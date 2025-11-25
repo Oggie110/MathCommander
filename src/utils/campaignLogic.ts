@@ -1,0 +1,105 @@
+import type { CampaignProgress, GameSettings } from '../types/game.ts';
+import { campaignLegs, celestialBodies } from '../data/campaignRoute';
+
+export const initializeCampaignProgress = (): CampaignProgress => {
+    return {
+        currentLegId: 'leg-1',
+        currentWaypointIndex: 0,
+        completedLegs: [],
+        starsEarned: {},
+    };
+};
+
+export const getLegById = (legId: string) => {
+    return campaignLegs.find(l => l.id === legId);
+};
+
+export const getLegIndex = (legId: string): number => {
+    return campaignLegs.findIndex(l => l.id === legId);
+};
+
+export const generateCampaignMission = (legId: string): GameSettings => {
+    const leg = getLegById(legId);
+    if (!leg) throw new Error('Leg not found');
+
+    const toBody = celestialBodies[leg.toBodyId];
+
+    return {
+        selectedTables: toBody.focusTables,
+        maxMultiplier: 12,
+        questionsPerRound: 2,
+    };
+};
+
+export const isBossLevel = (waypointIndex: number, totalWaypoints: number): boolean => {
+    return waypointIndex === totalWaypoints - 1;
+};
+
+export const completeMission = (
+    progress: CampaignProgress,
+    score: number,
+    totalQuestions: number
+): CampaignProgress => {
+    const newProgress = { ...progress };
+    const stars = calculateStars(score, totalQuestions);
+
+    const key = `${progress.currentLegId}_${progress.currentWaypointIndex}`;
+    newProgress.starsEarned[key] = Math.max(newProgress.starsEarned[key] || 0, stars);
+
+    const currentLeg = getLegById(progress.currentLegId);
+    if (!currentLeg) return newProgress;
+
+    // Only advance if passed (e.g. > 70%)
+    if (score / totalQuestions >= 0.7) {
+        if (progress.currentWaypointIndex < currentLeg.waypointsRequired - 1) {
+            newProgress.currentWaypointIndex++;
+        } else {
+            // Leg completed
+            if (!newProgress.completedLegs.includes(progress.currentLegId)) {
+                newProgress.completedLegs.push(progress.currentLegId);
+            }
+
+            // Find next leg
+            const currentLegIndex = campaignLegs.findIndex(l => l.id === progress.currentLegId);
+            if (currentLegIndex < campaignLegs.length - 1) {
+                newProgress.currentLegId = campaignLegs[currentLegIndex + 1].id;
+                newProgress.currentWaypointIndex = 0;
+            }
+        }
+    }
+
+    return newProgress;
+};
+
+export const calculateStars = (score: number, total: number): number => {
+    const percentage = score / total;
+    if (percentage === 1) return 3;
+    if (percentage >= 0.9) return 2;
+    if (percentage >= 0.7) return 1;
+    return 0;
+};
+
+export const getCompletedWaypointsCount = (progress: CampaignProgress): number => {
+    let count = 0;
+
+    // Count fully completed legs
+    progress.completedLegs.forEach(legId => {
+        const leg = getLegById(legId);
+        if (leg) count += leg.waypointsRequired;
+    });
+
+    // Add current leg progress (if not already counted in completedLegs)
+    if (!progress.completedLegs.includes(progress.currentLegId)) {
+        count += progress.currentWaypointIndex;
+    }
+
+    return count;
+};
+
+export const getTotalWaypoints = (): number => {
+    return campaignLegs.reduce((acc, leg) => acc + leg.waypointsRequired, 0);
+};
+
+export const getTotalStarsEarned = (progress: CampaignProgress): number => {
+    return Object.values(progress.starsEarned).reduce((a, b) => a + b, 0);
+};

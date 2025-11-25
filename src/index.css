@@ -1,0 +1,220 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #0a0a0a;
+    color: white;
+    font-family: "Press Start 2P", cursive;
+    image-rendering: pixelated;
+  }
+}
+
+@layer components {
+  .pixel-border {
+    box-shadow:
+      -4px 0 0 0 white,
+      4px 0 0 0 white,
+      0 -4px 0 0 white,
+      0 4px 0 0 white;
+    margin: 4px;
+  }
+
+  .pixel-btn {
+    padding: 1.5rem 1.5rem;
+    background-color: rgb(37 99 235);
+    color: white;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: transform 0.2s;
+    box-shadow:
+      inset -4px -4px 0px 0px rgba(0, 0, 0, 0.5),
+      inset 4px 4px 0px 0px rgba(255, 255, 255, 0.5);
+    border: 4px solid #000;
+  }
+
+  .pixel-btn:active {
+    transform: scale(0.95);
+  }
+
+  .pixel-btn:hover {
+    background-color: rgb(59 130 246);
+  }
+
+  .pixel-card {
+    background-color: #1a1a2e;
+    padding: 1.5rem;
+    border: 4px solid white;
+    box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Custom animations for side-scrolling shooter */
+@keyframes scrollSlow {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: -1000px 0;
+  }
+}
+
+/* Parallax star layers - using background-position for seamless looping */
+@keyframes parallaxStars4096 {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: -4096px 0;
+  }
+}
+
+@keyframes parallaxStars2048 {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: -2048px 0;
+  }
+}
+
+.animate-parallaxSlow {
+  animation: parallaxStars4096 60s linear infinite;
+}
+
+.animate-parallaxMedium {
+  animation: parallaxStars4096 30s linear infinite;
+}
+
+.animate-parallaxFast {
+  animation: parallaxStars2048 15s linear infinite;
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-4px);
+  }
+
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes slideOut {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(200px);
+    opacity: 0;
+  }
+}
+
+@keyframes slideDown {
+  0% {
+    transform: translateY(-300px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromRight {
+  0% {
+    transform: translateX(300px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hover {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-scrollSlow {
+  animation: scrollSlow 20s linear infinite;
+}
+
+.animate-shake {
+  animation: shake 0.3s ease-in-out;
+}
+
+.animate-slideOut {
+  animation: slideOut 1.5s ease-out forwards;
+}
+
+.animate-slideDown {
+  animation: slideDown 1s ease-out forwards;
+}
+
+.animate-slideInFromRight {
+  animation: slideInFromRight 1s ease-out forwards;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-in forwards;
+}
+
+.animate-fadeOut {
+  animation: fadeOut 0.5s ease-out forwards;
+}
+
+.animate-hover {
+  animation: hover 2s ease-in-out infinite;
+}
+
+@keyframes flyOutRight {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(calc(100vw + 100px));
+  }
+}
+
+.animate-flyOutRight {
+  animation: flyOutRight 1.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+}

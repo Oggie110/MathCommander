@@ -1,0 +1,85 @@
+
+> space-math-web@0.0.0 lint
+> eslint .
+
+
+/Volumes/New 4 TB/Dropbox/1_A_WORK/1_Projects/1_Motive-Music-AB/space-math-commander/space-math-web/src/components/Layout.tsx
+  15:37  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/Volumes/New 4 TB/Dropbox/1_A_WORK/1_Projects/1_Motive-Music-AB/space-math-commander/space-math-web/src/components/Layout.tsx:15:37
+  13 |                         className="absolute bg-white rounded-full"
+  14 |                         style={{
+> 15 |                             top: `${Math.random() * 100}%`,
+     |                                     ^^^^^^^^^^^^^ Cannot call impure function
+  16 |                             left: `${Math.random() * 100}%`,
+  17 |                             width: `${Math.random() * 3 + 1}px`,
+  18 |                             height: `${Math.random() * 3 + 1}px`,                                        react-hooks/purity
+  16:38  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/Volumes/New 4 TB/Dropbox/1_A_WORK/1_Projects/1_Motive-Music-AB/space-math-commander/space-math-web/src/components/Layout.tsx:16:38
+  14 |                         style={{
+  15 |                             top: `${Math.random() * 100}%`,
+> 16 |                             left: `${Math.random() * 100}%`,
+     |                                      ^^^^^^^^^^^^^ Cannot call impure function
+  17 |                             width: `${Math.random() * 3 + 1}px`,
+  18 |                             height: `${Math.random() * 3 + 1}px`,
+  19 |                             opacity: Math.random(),                                                      react-hooks/purity
+  17:39  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/Volumes/New 4 TB/Dropbox/1_A_WORK/1_Projects/1_Motive-Music-AB/space-math-commander/space-math-web/src/components/Layout.tsx:17:39
+  15 |                             top: `${Math.random() * 100}%`,
+  16 |                             left: `${Math.random() * 100}%`,
+> 17 |                             width: `${Math.random() * 3 + 1}px`,
+     |                                       ^^^^^^^^^^^^^ Cannot call impure function
+  18 |                             height: `${Math.random() * 3 + 1}px`,
+  19 |                             opacity: Math.random(),
+  20 |                             animation: `twinkle ${Math.random() * 5 + 2}s infinite`  react-hooks/purity
+  18:40  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/Volumes/New 4 TB/Dropbox/1_A_WORK/1_Projects/1_Motive-Music-AB/space-math-commander/space-math-web/src/components/Layout.tsx:18:40
+  16 |                             left: `${Math.random() * 100}%`,
+  17 |                             width: `${Math.random() * 3 + 1}px`,
+> 18 |                             height: `${Math.random() * 3 + 1}px`,
+     |                                        ^^^^^^^^^^^^^ Cannot call impure function
+  19 |                             opacity: Math.random(),
+  20 |                             animation: `twinkle ${Math.random() * 5 + 2}s infinite`
+  21 |                         }}                                  react-hooks/purity
+  19:38  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/Volumes/New 4 TB/Dropbox/1_A_WORK/1_Projects/1_Motive-Music-AB/space-math-commander/space-math-web/src/components/Layout.tsx:19:38
+  17 |                             width: `${Math.random() * 3 + 1}px`,
+  18 |                             height: `${Math.random() * 3 + 1}px`,
+> 19 |                             opacity: Math.random(),
+     |                                      ^^^^^^^^^^^^^ Cannot call impure function
+  20 |                             animation: `twinkle ${Math.random() * 5 + 2}s infinite`
+  21 |                         }}
+  22 |                     />                                                                          react-hooks/purity
+  20:51  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/Volumes/New 4 TB/Dropbox/1_A_WORK/1_Projects/1_Motive-Music-AB/space-math-commander/space-math-web/src/components/Layout.tsx:20:51
+  18 |                             height: `${Math.random() * 3 + 1}px`,
+  19 |                             opacity: Math.random(),
+> 20 |                             animation: `twinkle ${Math.random() * 5 + 2}s infinite`
+     |                                                   ^^^^^^^^^^^^^ Cannot call impure function
+  21 |                         }}
+  22 |                     />
+  23 |                 ))}                                                                                                          react-hooks/purity
+
+/Volumes/New 4 TB/Dropbox/1_A_WORK/1_Projects/1_Motive-Music-AB/space-math-commander/space-math-web/src/pages/MissionScreen.tsx
+  6:27  error  'campaignLegs' is defined but never used  @typescript-eslint/no-unused-vars
+  7:15  error  'Leg' is defined but never used           @typescript-eslint/no-unused-vars
+
+✖ 8 problems (8 errors, 0 warnings)
+
