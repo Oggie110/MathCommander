@@ -5,6 +5,7 @@ import SolarSystemMap from "@/pages/SolarSystemMap";
 import MissionScreen from "@/pages/MissionScreen";
 import BattleScreen from "@/pages/BattleScreen";
 import ResultScreen from "@/pages/ResultScreen";
+import AudioTestPage from "@/pages/AudioTestPage";
 
 const App = () => (
   <BrowserRouter>
@@ -15,6 +16,7 @@ const App = () => (
         <Route path="/mission" element={<MissionScreen />} />
         <Route path="/battle" element={<BattleScreen />} />
         <Route path="/result" element={<ResultScreen />} />
+        <Route path="/audio-test" element={<AudioTestPage />} />
       </Route>
     </Routes>
   </BrowserRouter>

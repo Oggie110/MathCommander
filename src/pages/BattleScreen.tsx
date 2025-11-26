@@ -4,7 +4,8 @@ import { PixelProgressBar } from '@/components/ui/PixelProgressBar';
 import { loadPlayerStats, savePlayerStats, generateQuestions, updateWeakAreas, calculateXP } from '@/utils/gameLogic';
 import { initializeCampaignProgress, generateCampaignMission, completeMission, isBossLevel, getLegById } from '@/utils/campaignLogic';
 import { getCommanderLine, getAlienLine, getVictoryMessage, isFinalBoss as checkIsFinalBoss } from '@/data/narrative';
-import { useSoundEffect } from '@/hooks/useAudio';
+import { audioEngine, useSFX } from '@/audio';
+import { getBattleMusicForChapter } from '@/audio/sounds';
 import type { Question } from '@/types/game.ts';
 import { Heart, ArrowLeft } from 'lucide-react';
 
@@ -20,7 +21,8 @@ const BattleScreen: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const locationState = location.state as LocationState | null;
-    const { play: playSound } = useSoundEffect();
+    const { play: playSFX } = useSFX();
+
     const [questions, setQuestions] = useState<Question[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [, setUserAnswer] = useState('');
@@ -40,6 +42,14 @@ const BattleScreen: React.FC = () => {
     const [currentBodyId, setCurrentBodyId] = useState('moon');
     const [commanderLine, setCommanderLine] = useState('');
     const [alienLine, setAlienLine] = useState('');
+    const [pendingNavigation, setPendingNavigation] = useState<{
+        questions: Question[];
+        xpEarned: number;
+        passed: boolean;
+        legId: string;
+        waypointIndex: number;
+        isReplay: boolean;
+    } | null>(null);
 
     // Load game state
     useEffect(() => {
@@ -61,6 +71,13 @@ const BattleScreen: React.FC = () => {
             const isBoss = isBossLevel(activeWaypointIndex, currentLeg.waypointsRequired);
             setIsBossBattle(isBoss);
             setCurrentBodyId(currentLeg.toBodyId);
+
+            // Start chapter-appropriate battle music (crossfades from menu music)
+            const battleMusicId = getBattleMusicForChapter(currentLeg.chapter);
+            audioEngine.playMusic(battleMusicId);
+            // Stop menu ambience and start space ambience
+            audioEngine.stopAmbience('menuAmbience');
+            audioEngine.startAmbience('spaceAmbience');
 
             // Generate dialogue lines
             const cmdLine = getCommanderLine(currentLeg.toBodyId, isBoss);
@@ -122,7 +139,7 @@ const BattleScreen: React.FC = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // Shot animation - cycle through shot frames when laser is active
+    // Shot animation - play through shot frames once when laser is active
     useEffect(() => {
         if (!showLaser) {
             setShotFrame(1);
@@ -131,9 +148,9 @@ const BattleScreen: React.FC = () => {
 
         const interval = setInterval(() => {
             setShotFrame(prev => {
-                // Cycle through Shot1-5, then ShotHit1-6 (total 11 frames)
+                // Play through Shot1-5, then ShotHit1-6 (total 11 frames) - no loop
                 if (prev < 11) return prev + 1;
-                return 1;
+                return 11; // Stay on last frame instead of looping
             });
         }, 50); // Fast animation - 50ms per frame
 
@@ -172,22 +189,14 @@ const BattleScreen: React.FC = () => {
     // Victory sequence - triggered when explosion finishes
     useEffect(() => {
         if (gameEnding === 'explosion' && explosionFrame === 0) {
-            // Short delay after explosion, then show victory dialogue
-            const timeout1 = setTimeout(() => {
+            // Short delay after explosion, then show victory dialogue (waits for click)
+            const timeout = setTimeout(() => {
                 setIntroStage('victory');
                 const victoryMsg = getVictoryMessage(currentBodyId, isBossBattle, checkIsFinalBoss(currentBodyId, isBossBattle));
                 setIntroMessage(victoryMsg);
             }, 500);
 
-            // After dialogue shows, hero flies out
-            const timeout2 = setTimeout(() => {
-                setIntroStage('heroExit');
-            }, 3000);
-
-            return () => {
-                clearTimeout(timeout1);
-                clearTimeout(timeout2);
-            };
+            return () => clearTimeout(timeout);
         }
     }, [gameEnding, explosionFrame, currentBodyId, isBossBattle]);
 
@@ -195,26 +204,40 @@ const BattleScreen: React.FC = () => {
     useEffect(() => {
         if (!commanderLine || !alienLine) return;
 
-        // Play intro sequence when dialogue is loaded
+        // Play intro sequence when dialogue is loaded - starts with commander dialogue
         setIntroStage('intro1');
         setIntroMessage(commanderLine);
+        // Waits for click to continue...
+    }, [commanderLine, alienLine]);
 
-        const sequence = [
-            { delay: 2500, action: () => setIntroStage('heroEnter') },
-            { delay: 3500, action: () => setIntroStage('enemyEnter') },
-            { delay: 4500, action: () => {
+    // Navigation after hero exit animation completes
+    useEffect(() => {
+        if (introStage === 'heroExit' && pendingNavigation) {
+            const timeout = setTimeout(() => {
+                navigate('/result', { state: pendingNavigation });
+            }, 1200); // Wait for fly-out animation
+            return () => clearTimeout(timeout);
+        }
+    }, [introStage, pendingNavigation, navigate]);
+
+    // Handle click to advance dialogue
+    const handleDialogueClick = useCallback(() => {
+        if (introStage === 'intro1') {
+            // Commander dialogue clicked - start ship entrance sequence
+            setIntroStage('heroEnter');
+            setTimeout(() => setIntroStage('enemyEnter'), 1000);
+            setTimeout(() => {
                 setIntroStage('intro2');
                 setIntroMessage(alienLine);
-            }},
-            { delay: 7000, action: () => setIntroStage('playing') },
-        ];
-
-        const timeouts = sequence.map(({ delay, action }) =>
-            setTimeout(action, delay)
-        );
-
-        return () => timeouts.forEach(clearTimeout);
-    }, [commanderLine, alienLine]); // Re-run when dialogue is loaded
+            }, 2000);
+        } else if (introStage === 'intro2') {
+            // Enemy dialogue clicked - start playing
+            setIntroStage('playing');
+        } else if (introStage === 'victory') {
+            // Victory dialogue clicked - hero exits
+            setIntroStage('heroExit');
+        }
+    }, [introStage, alienLine]);
 
     // Generate answer choices once per question to prevent flickering
     // MUST be before early return to maintain hook order
@@ -247,7 +270,7 @@ const BattleScreen: React.FC = () => {
         if (scorePercentage >= 70) {
             setGameEnding('explosion');
             // Play explosion sound with slight delay to sync with animation
-            setTimeout(() => playSound('explosion', 0.7), 200);
+            setTimeout(() => playSFX('explosion', { volume: 0.7 }), 200);
         } else {
             setGameEnding('escape');
         }
@@ -262,22 +285,24 @@ const BattleScreen: React.FC = () => {
 
         savePlayerStats(newStats);
 
-        // Navigate to result screen after showing ending animation
-        // Victory path: explosion (~1s) + delay (0.5s) + victory dialogue (2.5s) + hero exit (1.2s) = ~5.2s
-        // Escape path: 3s delay
-        const navigationDelay = scorePercentage >= 70 ? 5500 : 3000;
-        setTimeout(() => {
-            navigate('/result', {
-                state: {
-                    questions: finalQuestions,
-                    xpEarned,
-                    passed: scorePercentage >= 70, // Pass at 70%+
-                    legId: activeLegId,
-                    waypointIndex: locationState?.waypointIndex ?? currentProgress.currentWaypointIndex,
-                    isReplay: locationState?.isReplay || false,
-                },
-            });
-        }, navigationDelay);
+        // Store navigation data for when player clicks through victory dialogue
+        const navData = {
+            questions: finalQuestions,
+            xpEarned,
+            passed: scorePercentage >= 70,
+            legId: activeLegId,
+            waypointIndex: locationState?.waypointIndex ?? currentProgress.currentWaypointIndex,
+            isReplay: locationState?.isReplay || false,
+        };
+        setPendingNavigation(navData);
+
+        // For escape path, navigate after delay (no dialogue to click)
+        if (scorePercentage < 70) {
+            setTimeout(() => {
+                navigate('/result', { state: navData });
+            }, 3000);
+        }
+        // Victory path: navigation handled by heroExit useEffect after clicking victory dialogue
     };
 
     return (
@@ -388,7 +413,10 @@ const BattleScreen: React.FC = () => {
 
                                 {/* Intro/Victory Message Overlay */}
                                 {(introStage === 'intro1' || introStage === 'intro2' || introStage === 'victory') && (
-                                    <div className="absolute inset-0 z-20 flex items-start justify-center pt-16">
+                                    <div
+                                        className="absolute inset-0 z-20 flex items-start justify-center pt-16 cursor-pointer"
+                                        onClick={handleDialogueClick}
+                                    >
                                         <div className={`bg-gray-900/95 border-4 ${
                                             introStage === 'intro2' ? 'border-red-500' : 'border-cyan-400'
                                         } p-6 max-w-2xl animate-fadeIn shadow-lg`}
@@ -409,6 +437,12 @@ const BattleScreen: React.FC = () => {
                                             } leading-relaxed`}>
                                                 "{introMessage}"
                                             </p>
+                                            {/* Click to continue hint */}
+                                            <div className={`text-xs mt-4 animate-pulse ${
+                                                introStage === 'intro2' ? 'text-red-600/60' : 'text-cyan-600/60'
+                                            }`}>
+                                                [ Click to continue ]
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -614,7 +648,7 @@ const BattleScreen: React.FC = () => {
                                                                                     if (opt === currentQuestion.answer) {
                                                                                         setIsCorrect(true);
                                                                                         setShowLaser(true);
-                                                                                        playSound('laser', 0.6);
+                                                                                        playSFX('laser', { volume: 0.6 });
                                                                                     } else {
                                                                                         setIsCorrect(false);
                                                                                     }

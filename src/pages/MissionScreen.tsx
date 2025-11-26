@@ -3,9 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
 import { loadPlayerStats } from '@/utils/gameLogic';
 import { initializeCampaignProgress, getLegById, getLegIndex, isBossLevel } from '@/utils/campaignLogic';
-import { celestialBodies, campaignLegs } from '@/data/campaignRoute';
-import type { Leg } from '@/data/campaignRoute';
+import { celestialBodies } from '@/data/campaignRoute';
 import { ArrowLeft, Star, Rocket, Target } from 'lucide-react';
+import { useSFX } from '@/audio';
 
 // Planet image mapping (same as SolarSystemMap)
 const planetImages: Record<string, string> = {
@@ -35,6 +35,7 @@ const MissionScreen: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const state = location.state as LocationState | null;
+    const { play } = useSFX();
 
     const stats = loadPlayerStats();
     const progress = stats.campaignProgress || initializeCampaignProgress();
@@ -83,6 +84,7 @@ const MissionScreen: React.FC = () => {
     };
 
     const handleStartMission = (waypointIndex: number) => {
+        play('doors');
         navigate('/battle', {
             state: {
                 legId,

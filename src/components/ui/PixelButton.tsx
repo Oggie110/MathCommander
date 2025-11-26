@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { useSoundEffect } from '@/hooks/useAudio';
+import { useSFX } from '@/audio';
 
 interface PixelButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'primary' | 'secondary' | 'danger' | 'success';
@@ -15,7 +15,7 @@ export const PixelButton: React.FC<PixelButtonProps> = ({
     onClick,
     ...props
 }) => {
-    const { play } = useSoundEffect();
+    const { play } = useSFX();
 
     const variants = {
         primary: 'bg-blue-600 hover:bg-blue-500 text-white',

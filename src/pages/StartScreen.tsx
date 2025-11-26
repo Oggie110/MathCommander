@@ -1,17 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
 import { PixelCard } from '@/components/ui/PixelCard';
 import { openingNarrative } from '@/data/narrative';
-import { useAudio } from '@/hooks/useAudio';
+import { audioEngine } from '@/audio';
 import { Rocket, Radio } from 'lucide-react';
+
+type StopFn = ((fadeOut?: number) => void) | null;
 
 const StartScreen: React.FC = () => {
     const navigate = useNavigate();
-    const { startAmbience } = useAudio();
     const [showBriefing, setShowBriefing] = useState(false);
     const [displayedText, setDisplayedText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [isAudioLoading, setIsAudioLoading] = useState(false);
+    const [audioReady, setAudioReady] = useState(false);
+    const stopIntroDataRef = useRef<StopFn>(null);
+    const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    // Start ambience on mount if audio is already initialized (e.g., returning to start screen)
+    useEffect(() => {
+        if (audioEngine.isInitialized()) {
+            audioEngine.startAmbience('menuAmbience');
+            // Stop any music that might be playing
+            audioEngine.stopMusic();
+        }
+    }, []);
 
     // Typewriter effect for briefing
     useEffect(() => {
@@ -21,29 +35,80 @@ const StartScreen: React.FC = () => {
             let index = 0;
             const text = openingNarrative.message;
 
-            const typeInterval = setInterval(() => {
+            typeIntervalRef.current = setInterval(() => {
                 if (index < text.length) {
                     setDisplayedText(text.slice(0, index + 1));
                     index++;
                 } else {
-                    clearInterval(typeInterval);
+                    if (typeIntervalRef.current) {
+                        clearInterval(typeIntervalRef.current);
+                        typeIntervalRef.current = null;
+                    }
                     setIsTyping(false);
+                    // Stop intro data sound when typing finishes
+                    if (stopIntroDataRef.current) {
+                        stopIntroDataRef.current(500);
+                        stopIntroDataRef.current = null;
+                    }
                 }
             }, 30);
 
-            return () => clearInterval(typeInterval);
+            return () => {
+                if (typeIntervalRef.current) {
+                    clearInterval(typeIntervalRef.current);
+                    typeIntervalRef.current = null;
+                }
+            };
         }
     }, [showBriefing]);
 
     const handleSkipTyping = () => {
         if (isTyping) {
+            // Clear the typing interval
+            if (typeIntervalRef.current) {
+                clearInterval(typeIntervalRef.current);
+                typeIntervalRef.current = null;
+            }
             setDisplayedText(openingNarrative.message);
             setIsTyping(false);
+            // Stop intro data sound when skipping
+            if (stopIntroDataRef.current) {
+                stopIntroDataRef.current(300);
+                stopIntroDataRef.current = null;
+            }
         }
     };
 
-    const handleStartMission = () => {
-        startAmbience(); // Start background music on first interaction
+    const handleStartMission = async () => {
+        if (isAudioLoading) return;
+
+        setIsAudioLoading(true);
+
+        // Initialize audio engine (requires user interaction)
+        await audioEngine.init();
+
+        // Preload essential sounds for the start screen and beyond
+        await audioEngine.preloadAll([
+            'menuMusic',
+            'menuAmbience',
+            'buttonClick',
+            'battleMusicPhase1',
+            'battleMusicPhase2',
+            'battleMusicPhase3',
+            'spaceAmbience',
+            'laser',
+            'explosion',
+            'doors',
+            'introData',
+            'transition',
+        ]);
+
+        // Start intro: play introData SFX (with stop ref) and ambience, NO music yet
+        stopIntroDataRef.current = audioEngine.playSFXWithStop('introData');
+        audioEngine.startAmbience('menuAmbience');
+
+        setAudioReady(true);
+        setIsAudioLoading(false);
         setShowBriefing(true);
     };
 
@@ -91,10 +156,11 @@ const StartScreen: React.FC = () => {
                         <PixelButton
                             onClick={handleStartMission}
                             className="text-xl px-12 py-6 animate-pulse"
+                            disabled={isAudioLoading}
                         >
                             <div className="flex items-center gap-4">
-                                <Rocket className="w-8 h-8" />
-                                START MISSION
+                                <Rocket className={`w-8 h-8 ${isAudioLoading ? 'animate-spin' : ''}`} />
+                                {isAudioLoading ? 'LOADING...' : 'START MISSION'}
                             </div>
                         </PixelButton>
 

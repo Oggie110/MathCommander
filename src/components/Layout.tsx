@@ -1,23 +1,39 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Outlet } from 'react-router-dom';
 
+// Generate star data once at module level to avoid re-randomizing on re-renders
+const generateStars = (count: number) => {
+    return Array.from({ length: count }, (_, i) => ({
+        id: i,
+        top: Math.random() * 100,
+        left: Math.random() * 100,
+        size: Math.random() * 3 + 1,
+        opacity: Math.random(),
+        duration: Math.random() * 5 + 2,
+    }));
+};
+
+const STARS = generateStars(50);
+
 export const Layout: React.FC = () => {
+    const stars = useMemo(() => STARS, []);
+
     return (
         <div className="min-h-screen bg-space-black text-white font-pixel overflow-hidden relative">
             {/* Starfield Background */}
             <div className="fixed inset-0 z-0">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-50 animate-pulse"></div>
-                {Array.from({ length: 50 }).map((_, i) => (
+                {stars.map((star) => (
                     <div
-                        key={i}
+                        key={star.id}
                         className="absolute bg-white rounded-full"
                         style={{
-                            top: `${Math.random() * 100}%`,
-                            left: `${Math.random() * 100}%`,
-                            width: `${Math.random() * 3 + 1}px`,
-                            height: `${Math.random() * 3 + 1}px`,
-                            opacity: Math.random(),
-                            animation: `twinkle ${Math.random() * 5 + 2}s infinite`
+                            top: `${star.top}%`,
+                            left: `${star.left}%`,
+                            width: `${star.size}px`,
+                            height: `${star.size}px`,
+                            opacity: star.opacity,
+                            animation: `twinkle ${star.duration}s infinite`
                         }}
                     />
                 ))}

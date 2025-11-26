@@ -4,6 +4,7 @@ import { PixelButton } from '@/components/ui/PixelButton';
 import { PixelCard } from '@/components/ui/PixelCard';
 import { getDefeatMessage, getBossDefeatLine, isFinalBoss, victoryNarrative } from '@/data/narrative';
 import { getLegById, isBossLevel } from '@/utils/campaignLogic';
+import { audioEngine } from '@/audio';
 import type { Question } from '@/types/game.ts';
 import { Star, RotateCcw, Map, ChevronLeft, Radio } from 'lucide-react';
 
@@ -34,6 +35,19 @@ const ResultScreen: React.FC = () => {
         const isFinal = isFinalBoss(leg.toBodyId, isBoss);
         return { isBoss, bodyId: leg.toBodyId, isFinal };
     }, [legId, waypointIndex]);
+
+    // Switch music when entering result screen
+    React.useEffect(() => {
+        // Play victory music only for final boss victory, otherwise menu music
+        if (battleInfo.isFinal && passed) {
+            audioEngine.playMusic('victoryMusic');
+        } else {
+            audioEngine.playMusic('menuMusic');
+        }
+        // Stop space ambience and start menu ambience
+        audioEngine.stopAmbience('spaceAmbience');
+        audioEngine.startAmbience('menuAmbience');
+    }, [battleInfo.isFinal, passed]);
 
     // Get narrative messages
     const defeatInfo = useMemo(() => {

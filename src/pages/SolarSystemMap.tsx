@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
 import { loadPlayerStats } from '@/utils/gameLogic';
@@ -6,6 +6,7 @@ import { initializeCampaignProgress, getLegById, getLegIndex } from '@/utils/cam
 import { celestialBodies, campaignLegs, getChapterName } from '@/data/campaignRoute';
 import type { CelestialBody, Leg } from '@/data/campaignRoute';
 import { ArrowLeft, Lock, Star, ChevronRight } from 'lucide-react';
+import { audioEngine } from '@/audio';
 
 // Planet image mapping
 const planetImages: Record<string, string> = {
@@ -169,6 +170,15 @@ const SolarSystemMap: React.FC = () => {
     const navigate = useNavigate();
     const stats = loadPlayerStats();
     const progress = stats.campaignProgress || initializeCampaignProgress();
+
+    // Start menu music and ambience when entering map (e.g., after battle)
+    useEffect(() => {
+        // Switch to menu music (crossfades from battle music if coming from battle)
+        audioEngine.playMusic('menuMusic');
+        // Stop space ambience and start menu ambience
+        audioEngine.stopAmbience('spaceAmbience');
+        audioEngine.startAmbience('menuAmbience');
+    }, []);
 
     const currentLegIndex = getLegIndex(progress.currentLegId);
     const currentLeg = getLegById(progress.currentLegId);
