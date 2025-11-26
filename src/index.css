@@ -1,15 +1,68 @@
 @import "tailwindcss";
 
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+
+@theme {
+  /* Colors */
+  --color-space-black: #050510;
+  --color-space-dark: #0B0B1E;
+  --color-space-light: #1A1A35;
+
+  --color-industrial-dark: #181825;
+  --color-industrial-metal: #4A4A5A;
+  --color-industrial-blue: #2A2A40;
+  --color-industrial-highlight: #6E6E80;
+
+  --color-brand-primary: #2563EB;
+  --color-brand-secondary: #00F0FF;
+  --color-brand-accent: #FFE500;
+  --color-brand-hazard: #E5C000;
+  --color-brand-danger: #FF2A2A;
+  --color-brand-success: #00FF9D;
+
+  --color-ui-highlight: #FFFFFF;
+  --color-ui-shadow: #000000;
+
+  /* Fonts */
+  --font-pixel: "Press Start 2P", cursive;
+
+  /* Animations */
+  --animate-pulse-fast: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-float: float 3s ease-in-out infinite;
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+}
+
 @layer base {
   body {
-    background-color: #0a0a0a;
-    color: white;
-    font-family: "Press Start 2P", cursive;
+    @apply bg-space-black text-white font-pixel antialiased;
     image-rendering: pixelated;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-pixel;
   }
 }
 
 @layer components {
+
+  /* Hard-edged Pixel Borders */
   .pixel-border {
     box-shadow:
       -4px 0 0 0 white,
@@ -19,36 +72,38 @@
     margin: 4px;
   }
 
-  .pixel-btn {
-    padding: 1.5rem 1.5rem;
-    background-color: rgb(37 99 235);
-    color: white;
-    font-weight: bold;
-    text-transform: uppercase;
-    transition: transform 0.2s;
+  /* Industrial Panel Style */
+  .panel-industrial {
+    @apply bg-industrial-dark border-4 border-industrial-metal relative;
+    box-shadow:
+      inset 2px 2px 0px 0px rgba(255, 255, 255, 0.1),
+      inset -2px -2px 0px 0px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Hazard Stripes Pattern */
+  .bg-hazard {
+    background: repeating-linear-gradient(45deg,
+        #E5C000,
+        #E5C000 10px,
+        #000000 10px,
+        #000000 20px);
+  }
+
+  /* Retro Button Base */
+  .btn-retro {
+    @apply font-pixel uppercase tracking-wider transition-transform active:scale-95;
     box-shadow:
       inset -4px -4px 0px 0px rgba(0, 0, 0, 0.5),
       inset 4px 4px 0px 0px rgba(255, 255, 255, 0.5);
     border: 4px solid #000;
   }
 
-  .pixel-btn:active {
-    transform: scale(0.95);
-  }
-
-  .pixel-btn:hover {
-    background-color: rgb(59 130 246);
-  }
-
-  .pixel-card {
-    background-color: #1a1a2e;
-    padding: 1.5rem;
-    border: 4px solid white;
-    box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 0.5);
+  .btn-retro:hover {
+    filter: brightness(1.1);
   }
 }
 
-/* Custom animations for side-scrolling shooter */
+/* Animations */
 @keyframes scrollSlow {
   0% {
     background-position: 0 0;
@@ -59,7 +114,101 @@
   }
 }
 
-/* Parallax star layers - using background-position for seamless looping */
+.animate-scrollSlow {
+  animation: scrollSlow 20s linear infinite;
+}
+
+/* Ship Animations */
+@keyframes slideDown {
+  0% {
+    transform: translateY(-100vh);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideDown {
+  animation: slideDown 1s ease-out forwards;
+}
+
+@keyframes slideInFromRight {
+  0% {
+    transform: translateX(100vw);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideInFromRight {
+  animation: slideInFromRight 1s ease-out forwards;
+}
+
+@keyframes hover {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-hover {
+  animation: hover 2s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes slideOut {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100vw);
+    opacity: 0;
+  }
+}
+
+.animate-slideOut {
+  animation: slideOut 2s ease-in forwards;
+}
+
+@keyframes flyOutRight {
+  0% {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100vw) translateY(-50vh);
+    opacity: 0;
+  }
+}
+
+.animate-flyOutRight {
+  animation: flyOutRight 1.2s ease-in forwards;
+}
+
+/* Parallax Animations */
 @keyframes parallaxStars4096 {
   0% {
     background-position: 0 0;
@@ -90,131 +239,37 @@
   animation: parallaxStars2048 15s linear infinite;
 }
 
-@keyframes shake {
-
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-
-  25% {
-    transform: translateX(-4px);
-  }
-
-  75% {
-    transform: translateX(4px);
-  }
-}
-
-@keyframes slideOut {
-  0% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-
-  100% {
-    transform: translateX(200px);
-    opacity: 0;
-  }
-}
-
-@keyframes slideDown {
-  0% {
-    transform: translateY(-300px);
-    opacity: 0;
-  }
-
-  100% {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slideInFromRight {
-  0% {
-    transform: translateX(300px);
-    opacity: 0;
-  }
-
-  100% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
+/* UI Animations */
 @keyframes fadeIn {
   0% {
     opacity: 0;
   }
-
   100% {
     opacity: 1;
   }
-}
-
-@keyframes fadeOut {
-  0% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes hover {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-.animate-scrollSlow {
-  animation: scrollSlow 20s linear infinite;
-}
-
-.animate-shake {
-  animation: shake 0.3s ease-in-out;
-}
-
-.animate-slideOut {
-  animation: slideOut 1.5s ease-out forwards;
-}
-
-.animate-slideDown {
-  animation: slideDown 1s ease-out forwards;
-}
-
-.animate-slideInFromRight {
-  animation: slideInFromRight 1s ease-out forwards;
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.5s ease-in forwards;
+  animation: fadeIn 0.3s ease-out;
 }
 
-.animate-fadeOut {
-  animation: fadeOut 0.5s ease-out forwards;
+/* Dodge Animations */
+@keyframes dodgeUp {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-50px); }
+  100% { transform: translateY(0); }
 }
 
-.animate-hover {
-  animation: hover 2s ease-in-out infinite;
+@keyframes dodgeDown {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(50px); }
+  100% { transform: translateY(0); }
 }
 
-@keyframes flyOutRight {
-  0% {
-    transform: translateX(0);
-  }
-
-  100% {
-    transform: translateX(calc(100vw + 100px));
-  }
+.animate-dodgeUp {
+  animation: dodgeUp 0.4s ease-out;
 }
 
-.animate-flyOutRight {
-  animation: flyOutRight 1.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+.animate-dodgeDown {
+  animation: dodgeDown 0.4s ease-out;
 }

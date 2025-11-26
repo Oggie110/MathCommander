@@ -22,3 +22,20 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Utility scripts (not needed for deployment)
+scripts/
+
+# Build logs and documentation
+build_log.txt
+DIALOGUE*.txt
+DIALOGUE*.md
+
+# Raw audio source files (already processed into .wav)
+**/FromElevenLabs/
+
+# Unused SFX source files in radio folder (only radio_static.wav is used)
+public/assets/audio-assets/sfx/radio/SFX_*
+
+# Raw mp3 source files in humans folder
+public/assets/audio-assets/speech/humans/*.mp3

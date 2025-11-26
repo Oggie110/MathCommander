@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
 import { PixelCard } from '@/components/ui/PixelCard';
-import { getDefeatMessage, getBossDefeatLine, isFinalBoss, victoryNarrative } from '@/data/narrative';
+import { isFinalBoss, victoryNarrative } from '@/data/narrative';
 import { getLegById, isBossLevel } from '@/utils/campaignLogic';
 import { audioEngine } from '@/audio';
+import { selectVictoryLine, selectDefeatLine, selectEncourageLine, selectBossDefeatLine, type BodyId, type DialogueLine } from '@/audio/speechSounds';
 import type { Question } from '@/types/game.ts';
 import { Star, RotateCcw, Map, ChevronLeft, Radio } from 'lucide-react';
 
@@ -36,6 +37,37 @@ const ResultScreen: React.FC = () => {
         return { isBoss, bodyId: leg.toBodyId, isFinal };
     }, [legId, waypointIndex]);
 
+    // Use unified selection for all dialogue (synced text + audio)
+    const [victoryDialogue, setVictoryDialogue] = useState<DialogueLine | null>(null);
+    const [defeatDialogue, setDefeatDialogue] = useState<DialogueLine | null>(null);
+    const [encourageDialogue, setEncourageDialogue] = useState<DialogueLine | null>(null);
+    const [bossDefeatDialogue, setBossDefeatDialogue] = useState<DialogueLine | null>(null);
+
+    // Pre-select all dialogue lines once when battle info is known
+    React.useEffect(() => {
+        // Reset all dialogue states first
+        setVictoryDialogue(null);
+        setDefeatDialogue(null);
+        setEncourageDialogue(null);
+        setBossDefeatDialogue(null);
+
+        if (passed) {
+            // Victory: select victory line and boss defeat line (if boss)
+            if (battleInfo.bodyId || battleInfo.isBoss) {
+                setVictoryDialogue(selectVictoryLine(battleInfo.isBoss, battleInfo.isFinal));
+                if (battleInfo.isBoss && !battleInfo.isFinal) {
+                    setBossDefeatDialogue(selectBossDefeatLine(battleInfo.bodyId as BodyId));
+                }
+            }
+        } else {
+            // Defeat: always show encouragement
+            setEncourageDialogue(selectEncourageLine());
+            if (battleInfo.bodyId || battleInfo.isBoss) {
+                setDefeatDialogue(selectDefeatLine(battleInfo.isBoss));
+            }
+        }
+    }, [battleInfo.isBoss, battleInfo.isFinal, battleInfo.bodyId, passed]);
+
     // Switch music when entering result screen
     React.useEffect(() => {
         // Play victory music only for final boss victory, otherwise menu music
@@ -49,16 +81,46 @@ const ResultScreen: React.FC = () => {
         audioEngine.startAmbience('menuAmbience');
     }, [battleInfo.isFinal, passed]);
 
-    // Get narrative messages
-    const defeatInfo = useMemo(() => {
-        if (passed) return null;
-        return getDefeatMessage(battleInfo.isBoss);
-    }, [passed, battleInfo.isBoss]);
+    // Ref to store the stop function for radio static
+    const stopStaticRef = useRef<((fadeOut?: number) => void) | null>(null);
 
-    const bossDefeatLine = useMemo(() => {
-        if (!passed || !battleInfo.isBoss) return null;
-        return getBossDefeatLine(battleInfo.bodyId);
-    }, [passed, battleInfo.isBoss, battleInfo.bodyId]);
+    // Play boss defeat audio when dialogue is ready (with HEAVY radio effect + static)
+    React.useEffect(() => {
+        let cancelled = false;
+
+        const playBossDefeat = async () => {
+            if (!bossDefeatDialogue?.soundId) return;
+
+            // Preload radio static first to ensure we get a stop function
+            await audioEngine.preload('radioStatic');
+            if (cancelled) return;
+
+            // Play radio static alongside speech
+            const stopFn = audioEngine.playSFXWithStop('radioStatic');
+            if (stopFn) {
+                stopStaticRef.current = stopFn;
+            }
+
+            await audioEngine.playHeavyRadioSpeech(bossDefeatDialogue.soundId);
+
+            // Fade out static when speech ends
+            if (stopStaticRef.current && !cancelled) {
+                stopStaticRef.current(300);
+                stopStaticRef.current = null;
+            }
+        };
+
+        playBossDefeat();
+
+        // Cleanup: stop static when leaving the screen
+        return () => {
+            cancelled = true;
+            if (stopStaticRef.current) {
+                stopStaticRef.current(100);
+                stopStaticRef.current = null;
+            }
+        };
+    }, [bossDefeatDialogue]);
 
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-4">
@@ -102,13 +164,13 @@ const ResultScreen: React.FC = () => {
                 )}
 
                 {/* Boss defeat quote */}
-                {bossDefeatLine && !battleInfo.isFinal && (
+                {bossDefeatDialogue && !battleInfo.isFinal && (
                     <PixelCard className="mb-6 p-4 border-red-500/50 bg-gray-900/95">
                         <div className="text-red-600 text-xs font-bold mb-2 tracking-wider">
                             [ENEMY TRANSMISSION - SIGNAL LOST]
                         </div>
                         <p className="text-red-400 italic">
-                            "{bossDefeatLine}"
+                            "{bossDefeatDialogue.text}"
                         </p>
                         <div className="text-gray-600 text-xs mt-2">*static*</div>
                     </PixelCard>
@@ -135,10 +197,9 @@ const ResultScreen: React.FC = () => {
                         </div>
 
                         {/* Defeat encouragement message */}
-                        {defeatInfo && (
+                        {encourageDialogue && (
                             <div className="mt-4 text-sm">
-                                <p className="text-gray-400 mb-1">{defeatInfo.message}</p>
-                                <p className="text-cyan-400">{defeatInfo.encouragement}</p>
+                                <p className="text-cyan-400">"{encourageDialogue.text}"</p>
                             </div>
                         )}
                     </div>
@@ -155,26 +216,37 @@ const ResultScreen: React.FC = () => {
                     </div>
 
                     <div className="space-y-4">
-                        {isReplay && legId ? (
-                            // Replay mode - go back to mission screen
-                            <PixelButton
-                                onClick={() => navigate('/mission', { state: { legId, isReplay: true } })}
-                                className="w-full py-4 text-lg"
-                            >
-                                <div className="flex items-center justify-center gap-2">
-                                    <ChevronLeft className="w-5 h-5" />
-                                    BACK TO MISSIONS
-                                </div>
-                            </PixelButton>
-                        ) : (
-                            // Normal mode - go to map
+                        {passed && battleInfo.isBoss ? (
+                            // Beat a boss - go to map to see progress
                             <PixelButton
                                 onClick={() => navigate('/map')}
                                 className="w-full py-4 text-lg"
                             >
                                 <div className="flex items-center justify-center gap-2">
                                     <Map className="w-5 h-5" />
-                                    {battleInfo.isFinal && passed ? 'RETURN HOME' : 'RETURN TO MAP'}
+                                    {battleInfo.isFinal ? 'RETURN HOME' : 'VIEW PROGRESS'}
+                                </div>
+                            </PixelButton>
+                        ) : legId ? (
+                            // Regular enemy or lost - go back to mission screen
+                            <PixelButton
+                                onClick={() => navigate('/mission', { state: { legId, isReplay } })}
+                                className="w-full py-4 text-lg"
+                            >
+                                <div className="flex items-center justify-center gap-2">
+                                    <ChevronLeft className="w-5 h-5" />
+                                    CONTINUE
+                                </div>
+                            </PixelButton>
+                        ) : (
+                            // Fallback - go to map
+                            <PixelButton
+                                onClick={() => navigate('/map')}
+                                className="w-full py-4 text-lg"
+                            >
+                                <div className="flex items-center justify-center gap-2">
+                                    <Map className="w-5 h-5" />
+                                    RETURN TO MAP
                                 </div>
                             </PixelButton>
                         )}

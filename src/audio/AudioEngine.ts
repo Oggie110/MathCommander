@@ -1,5 +1,5 @@
 // Web Audio API based Audio Engine
-import type { SoundDefinition, PlayOptions, MusicOptions, CategoryVolumes } from './types';
+import type { PlayOptions, MusicOptions, CategoryVolumes } from './types';
 import { SOUNDS } from './sounds';
 
 const STORAGE_KEY = 'space-math-audio-settings';
@@ -10,6 +10,12 @@ class AudioEngine {
     private musicGain: GainNode | null = null;
     private sfxGain: GainNode | null = null;
     private ambienceGain: GainNode | null = null;
+    private speechGain: GainNode | null = null;
+
+    // Currently playing speech (only one at a time)
+    private currentSpeech: AudioBufferSourceNode | null = null;
+    private currentSpeechGain: GainNode | null = null;
+    private currentSpeechResolve: (() => void) | null = null;
 
     // Audio buffers (preloaded)
     private buffers: Map<string, AudioBuffer> = new Map();
@@ -28,6 +34,7 @@ class AudioEngine {
         music: 0.3,
         sfx: 0.5,
         ambience: 0.2,
+        speech: 0.4,
     };
 
     private _isInitialized = false;
@@ -64,6 +71,10 @@ class AudioEngine {
             this.ambienceGain.connect(this.masterGain);
             this.ambienceGain.gain.value = this.volumes.ambience;
 
+            this.speechGain = this.context.createGain();
+            this.speechGain.connect(this.masterGain);
+            this.speechGain.gain.value = this.volumes.speech;
+
             this._isInitialized = true;
             console.log('[AudioEngine] Initialized');
         } catch (error) {
@@ -77,6 +88,18 @@ class AudioEngine {
     async resume(): Promise<void> {
         if (this.context?.state === 'suspended') {
             await this.context.resume();
+            console.log('[AudioEngine] Context resumed');
+        }
+    }
+
+    /**
+     * Ensure context is running (sync version - queues resume if needed)
+     */
+    private ensureContextRunning(): void {
+        if (this.context?.state === 'suspended') {
+            this.context.resume().then(() => {
+                console.log('[AudioEngine] Context auto-resumed');
+            });
         }
     }
 
@@ -140,6 +163,14 @@ class AudioEngine {
     playSFX(soundId: string, options: PlayOptions = {}): void {
         if (!this.context || !this.sfxGain) {
             // Silently skip - audio will work after user interaction initializes the engine
+            return;
+        }
+
+        // If context is suspended, wait for resume then retry
+        if (this.context.state === 'suspended') {
+            this.context.resume().then(() => {
+                this.playSFX(soundId, options);
+            });
             return;
         }
 
@@ -267,6 +298,359 @@ class AudioEngine {
         };
     }
 
+    // === SPEECH PLAYBACK ===
+
+    /**
+     * Play boss defeat speech with HEAVY radio distortion effect
+     * Used for defeated boss transmissions on result screen (simulates dying/breaking radio)
+     * Returns a Promise that resolves when speech ends or is stopped
+     */
+    playHeavyRadioSpeech(soundId: string, options: PlayOptions = {}): Promise<void> {
+        return new Promise((resolve) => {
+            if (!this.context || !this.speechGain) {
+                resolve();
+                return;
+            }
+
+            if (this.context.state === 'suspended') {
+                this.context.resume().then(() => {
+                    this.playHeavyRadioSpeech(soundId, options).then(resolve);
+                });
+                return;
+            }
+
+            const sound = SOUNDS[soundId];
+            if (!sound) {
+                console.warn(`[AudioEngine] Unknown speech: ${soundId}`);
+                resolve();
+                return;
+            }
+
+            this.stopSpeech();
+
+            const buffer = this.buffers.get(soundId);
+            if (!buffer) {
+                this.preload(soundId).then(() => {
+                    this.playHeavyRadioSpeech(soundId, options).then(resolve);
+                });
+                return;
+            }
+
+            // Create source
+            const source = this.context.createBufferSource();
+            source.buffer = buffer;
+
+            // Create gain for this speech
+            const gainNode = this.context.createGain();
+            const volume = options.volume ?? sound.volume ?? 0.8;
+            gainNode.gain.value = volume;
+
+            // === HEAVY RADIO/DISTORTED TRANSMISSION EQ CHAIN ===
+            // More aggressive highpass (cuts more bass - thin/tinny sound)
+            const highpass = this.context.createBiquadFilter();
+            highpass.type = 'highpass';
+            highpass.frequency.value = 550;
+            highpass.Q.value = 1.0;
+
+            // More aggressive lowpass (cuts more highs - muffled)
+            const lowpass = this.context.createBiquadFilter();
+            lowpass.type = 'lowpass';
+            lowpass.frequency.value = 3200;
+            lowpass.Q.value = 1.0;
+
+            // Add a peaking filter for that "radio resonance" sound
+            const resonance = this.context.createBiquadFilter();
+            resonance.type = 'peaking';
+            resonance.frequency.value = 1800;
+            resonance.Q.value = 2.0;
+            resonance.gain.value = 4; // Boost the mid-range harshly
+
+            // Heavier reverb using delay feedback (more "broken" sounding)
+            const delay = this.context.createDelay();
+            delay.delayTime.value = 0.045; // 45ms delay
+            const feedback = this.context.createGain();
+            feedback.gain.value = 0.3; // More feedback
+            const wetGain = this.context.createGain();
+            wetGain.gain.value = 0.25; // More wet signal
+            const dryGain = this.context.createGain();
+            dryGain.gain.value = 0.8;
+
+            // Connect: source -> highpass -> lowpass -> resonance -> dry/wet mix -> gain -> speechGain
+            source.connect(highpass);
+            highpass.connect(lowpass);
+            lowpass.connect(resonance);
+
+            // Dry path
+            resonance.connect(dryGain);
+            dryGain.connect(gainNode);
+
+            // Wet path (heavier reverb)
+            resonance.connect(delay);
+            delay.connect(feedback);
+            feedback.connect(delay); // Feedback loop
+            delay.connect(wetGain);
+            wetGain.connect(gainNode);
+
+            gainNode.connect(this.speechGain);
+
+            this.currentSpeechResolve = resolve;
+
+            source.onended = () => {
+                if (this.currentSpeech === source) {
+                    this.currentSpeech = null;
+                    this.currentSpeechGain = null;
+                    this.currentSpeechResolve = null;
+                }
+                resolve();
+            };
+
+            if (options.onEnd) {
+                const originalOnEnd = source.onended;
+                source.onended = (event) => {
+                    if (originalOnEnd) originalOnEnd.call(source, event);
+                    options.onEnd?.();
+                };
+            }
+
+            this.currentSpeech = source;
+            this.currentSpeechGain = gainNode;
+
+            source.start();
+            console.log(`[AudioEngine] Playing heavy radio speech: ${soundId}`);
+        });
+    }
+
+    /**
+     * Play alien speech with EQ effects (boosted bass, radio-like transmission)
+     * Returns a Promise that resolves when speech ends or is stopped
+     */
+    playAlienSpeech(soundId: string, options: PlayOptions = {}): Promise<void> {
+        return new Promise((resolve) => {
+            if (!this.context || !this.speechGain) {
+                resolve();
+                return;
+            }
+
+            if (this.context.state === 'suspended') {
+                this.context.resume().then(() => {
+                    this.playAlienSpeech(soundId, options).then(resolve);
+                });
+                return;
+            }
+
+            const sound = SOUNDS[soundId];
+            if (!sound) {
+                console.warn(`[AudioEngine] Unknown speech: ${soundId}`);
+                resolve();
+                return;
+            }
+
+            this.stopSpeech();
+
+            const buffer = this.buffers.get(soundId);
+            if (!buffer) {
+                this.preload(soundId).then(() => {
+                    this.playAlienSpeech(soundId, options).then(resolve);
+                });
+                return;
+            }
+
+            // Create source
+            const source = this.context.createBufferSource();
+            source.buffer = buffer;
+
+            // Create gain for this speech
+            const gainNode = this.context.createGain();
+            const volume = options.volume ?? sound.volume ?? 0.8;
+            gainNode.gain.value = volume;
+
+            // === SUBTLE RADIO/TRANSMISSION EQ CHAIN ===
+            // Highpass filter (cuts bass for radio effect)
+            const highpass = this.context.createBiquadFilter();
+            highpass.type = 'highpass';
+            highpass.frequency.value = 350;
+            highpass.Q.value = 0.7;
+
+            // Lowpass filter (cuts highs for telephone/radio effect)
+            const lowpass = this.context.createBiquadFilter();
+            lowpass.type = 'lowpass';
+            lowpass.frequency.value = 4500;
+            lowpass.Q.value = 0.7;
+
+            // Subtle reverb using delay feedback
+            const delay = this.context.createDelay();
+            delay.delayTime.value = 0.03; // 30ms short delay
+            const feedback = this.context.createGain();
+            feedback.gain.value = 0.15; // Very subtle feedback
+            const wetGain = this.context.createGain();
+            wetGain.gain.value = 0.12; // Mix in just a touch of reverb
+            const dryGain = this.context.createGain();
+            dryGain.gain.value = 0.9;
+
+            // Connect: source -> highpass -> lowpass -> dry/wet mix -> gain -> speechGain
+            source.connect(highpass);
+            highpass.connect(lowpass);
+
+            // Dry path
+            lowpass.connect(dryGain);
+            dryGain.connect(gainNode);
+
+            // Wet path (subtle reverb)
+            lowpass.connect(delay);
+            delay.connect(feedback);
+            feedback.connect(delay); // Feedback loop
+            delay.connect(wetGain);
+            wetGain.connect(gainNode);
+
+            gainNode.connect(this.speechGain);
+
+            this.currentSpeechResolve = resolve;
+
+            source.onended = () => {
+                if (this.currentSpeech === source) {
+                    this.currentSpeech = null;
+                    this.currentSpeechGain = null;
+                    this.currentSpeechResolve = null;
+                }
+                resolve();
+            };
+
+            if (options.onEnd) {
+                const originalOnEnd = source.onended;
+                source.onended = (event) => {
+                    if (originalOnEnd) originalOnEnd.call(source, event);
+                    options.onEnd?.();
+                };
+            }
+
+            this.currentSpeech = source;
+            this.currentSpeechGain = gainNode;
+
+            source.start();
+            console.log(`[AudioEngine] Playing alien speech with EQ: ${soundId}`);
+        });
+    }
+
+    /**
+     * Play speech audio (only one at a time, interruptible)
+     * Returns a Promise that resolves when speech ends or is stopped
+     */
+    playSpeech(soundId: string, options: PlayOptions = {}): Promise<void> {
+        return new Promise((resolve) => {
+            if (!this.context || !this.speechGain) {
+                resolve();
+                return;
+            }
+
+            // If context is suspended, wait for resume then retry
+            if (this.context.state === 'suspended') {
+                this.context.resume().then(() => {
+                    console.log('[AudioEngine] Context resumed, retrying playSpeech');
+                    this.playSpeech(soundId, options).then(resolve);
+                });
+                return;
+            }
+
+            const sound = SOUNDS[soundId];
+            if (!sound) {
+                console.warn(`[AudioEngine] Unknown speech: ${soundId}`);
+                resolve();
+                return;
+            }
+
+            // Stop any currently playing speech
+            this.stopSpeech();
+
+            const buffer = this.buffers.get(soundId);
+            if (!buffer) {
+                // Load on demand then play
+                this.preload(soundId).then(() => {
+                    this.playSpeech(soundId, options).then(resolve);
+                });
+                return;
+            }
+
+            // Create source
+            const source = this.context.createBufferSource();
+            source.buffer = buffer;
+
+            // Create gain for this speech
+            const gainNode = this.context.createGain();
+            const volume = options.volume ?? sound.volume ?? 0.8;
+            gainNode.gain.value = volume;
+
+            // Connect: source -> gain -> speechGain -> master
+            source.connect(gainNode);
+            gainNode.connect(this.speechGain);
+
+            // Store resolve function so stopSpeech can call it
+            this.currentSpeechResolve = resolve;
+
+            // Handle natural end of speech
+            source.onended = () => {
+                if (this.currentSpeech === source) {
+                    this.currentSpeech = null;
+                    this.currentSpeechGain = null;
+                    this.currentSpeechResolve = null;
+                }
+                resolve();
+            };
+
+            // Callback when finished (if provided)
+            if (options.onEnd) {
+                const originalOnEnd = source.onended;
+                source.onended = (event) => {
+                    if (originalOnEnd) originalOnEnd.call(source, event);
+                    options.onEnd?.();
+                };
+            }
+
+            // Store references
+            this.currentSpeech = source;
+            this.currentSpeechGain = gainNode;
+
+            source.start();
+            console.log(`[AudioEngine] Playing speech: ${soundId}`);
+        });
+    }
+
+    /**
+     * Stop currently playing speech with optional fade out
+     */
+    stopSpeech(fadeOut = 100): void {
+        if (!this.context || !this.currentSpeech || !this.currentSpeechGain) {
+            return;
+        }
+
+        const source = this.currentSpeech;
+        const gain = this.currentSpeechGain;
+        const resolveFunc = this.currentSpeechResolve;
+
+        // Clear references immediately
+        this.currentSpeech = null;
+        this.currentSpeechGain = null;
+        this.currentSpeechResolve = null;
+
+        // Fade out and stop
+        gain.gain.linearRampToValueAtTime(0, this.context.currentTime + fadeOut / 1000);
+        setTimeout(() => {
+            try {
+                source.stop();
+            } catch {
+                // Already stopped
+            }
+            // Resolve the promise
+            resolveFunc?.();
+        }, fadeOut);
+    }
+
+    /**
+     * Check if speech is currently playing
+     */
+    isSpeechPlaying(): boolean {
+        return this.currentSpeech !== null;
+    }
+
     // === MUSIC PLAYBACK ===
 
     /**
@@ -275,6 +659,15 @@ class AudioEngine {
     playMusic(soundId: string, options: MusicOptions = {}): void {
         if (!this.context || !this.musicGain) {
             // Silently skip - audio will work after user interaction initializes the engine
+            return;
+        }
+
+        // If context is suspended, wait for resume then retry
+        if (this.context.state === 'suspended') {
+            this.context.resume().then(() => {
+                console.log('[AudioEngine] Context resumed, retrying playMusic');
+                this.playMusic(soundId, options);
+            });
             return;
         }
 
@@ -480,6 +873,15 @@ class AudioEngine {
             return;
         }
 
+        // If context is suspended, wait for resume then retry
+        if (this.context.state === 'suspended') {
+            this.context.resume().then(() => {
+                console.log('[AudioEngine] Context resumed, retrying startAmbience');
+                this.startAmbience(soundId, fadeIn);
+            });
+            return;
+        }
+
         // Skip if already playing
         if (this.ambienceLayers.has(soundId)) return;
 
@@ -499,11 +901,19 @@ class AudioEngine {
         source.buffer = buffer;
         source.loop = true;
 
+        // Low shelf filter to reduce bass (-4dB at 200Hz)
+        const lowShelf = this.context.createBiquadFilter();
+        lowShelf.type = 'lowshelf';
+        lowShelf.frequency.value = 200;
+        lowShelf.gain.value = -4;
+
         const gainNode = this.context.createGain();
         gainNode.gain.value = 0;
         gainNode.connect(this.ambienceGain);
 
-        source.connect(gainNode);
+        // Chain: source -> lowShelf -> gain -> ambienceGain
+        source.connect(lowShelf);
+        lowShelf.connect(gainNode);
         source.start();
 
         // Fade in
@@ -580,6 +990,14 @@ class AudioEngine {
         this.volumes.ambience = Math.max(0, Math.min(1, value));
         if (this.ambienceGain) {
             this.ambienceGain.gain.value = this.volumes.ambience;
+        }
+        this.saveSettings();
+    }
+
+    setSpeechVolume(value: number): void {
+        this.volumes.speech = Math.max(0, Math.min(1, value));
+        if (this.speechGain) {
+            this.speechGain.gain.value = this.volumes.speech;
         }
         this.saveSettings();
     }

@@ -46,7 +46,7 @@ export const commanderSectorLines: Record<string, string[]> = {
     ],
     mars: [
         "Martian sector compromised. Hostiles inbound.",
-        "Mars is crawling with enemy scouts.",
+        "Mars is crawling with enemy scouts, engage with caution.",
         "Red planet, red alert. Enemy ahead.",
     ],
     ceres: [
@@ -147,108 +147,110 @@ export const milestoneMessages: Record<string, { title: string; message: string 
 // ALIEN DIALOGUE
 // ============================================
 
-// Generic alien taunts (randomly selected)
+// Generic alien taunts (randomly selected) - matches audio files
 export const alienGenericTaunts = [
-    "Human vessel detected. Destroy it.",
-    "You dare enter our space?",
+    "Human vessel detected. Calculating your destruction.",
+    "You dare enter our space? A critical miscalculation.",
     "Your primitive ship is no match for us.",
-    "Turn back now, or be annihilated.",
-    "Another human fool. Eliminate.",
-    "You will not reach the Mothership.",
-    "Earth will fall. Starting with you.",
+    "Turn back now, or be reduced to zero.",
+    "Another human fool. Probability of survival: negligible.",
+    "You will not reach the Mothership. The odds are against you.",
+    "Earth will fall. We have run the numbers.",
     "Your numbers mean nothing to us.",
     "We have conquered a thousand worlds. Yours is next.",
     "Your mathematics cannot save you, human.",
     "Flee while you can, insect.",
-    "The Armada is endless. You are one.",
+    "The Armada is infinite. You are but one variable.",
+    "We solve for X. X equals your annihilation.",
+    "By our calculations, you have zero chance.",
 ];
 
-// Sector-specific alien lines
+// Sector-specific alien lines - matches audio files
 export const alienSectorTaunts: Record<string, string[]> = {
     // Inner System
     moon: [
-        "You defend a dying world.",
+        "You defend a dying world. The equation is already solved.",
         "Earth's moon was just the beginning.",
         "Your homeworld is within our grasp.",
     ],
     mars: [
         "Mars was easy to claim. So will Earth be.",
-        "The red planet runs red with defeat.",
+        "The red planet runs red with defeat. Your losses multiply.",
         "You fight for dust and rocks.",
     ],
     ceres: [
         "The belt belongs to us now.",
         "Your asteroids make excellent cover... for us.",
-        "Nowhere to hide, human.",
+        "Nowhere to hide, human. We've mapped every coordinate.",
     ],
     // Gas Giants
     jupiter: [
-        "You've come far. You will go no further.",
+        "You've come far. But distance is just a number.",
         "The gas giants bow to us.",
-        "Your courage is... amusing.",
+        "Your courage is... a statistical anomaly.",
     ],
     europa: [
         "The ice will be your tomb.",
-        "Jupiter's moons are our staging ground.",
-        "Cold space for a cold death.",
+        "Jupiter's moons are our staging ground. Calculated perfectly.",
+        "You minus life equals zero.",
     ],
     saturn: [
-        "The rings will be your grave marker.",
+        "The rings will be your grave marker. Count them as you fall.",
         "Saturn's beauty masks your doom.",
-        "The outer planets are ours now.",
+        "The outer planets are ours. The sum is complete.",
     ],
     titan: [
-        "Titan's clouds hide our forces. Not for long.",
-        "You persist. How... tedious.",
+        "Titan's clouds hide our true numbers.",
+        "You persist against the odds. How... tedious.",
         "Each victory brings you closer to defeat.",
     ],
     // Ice Giants & Kuiper Belt
     uranus: [
-        "So far from home. So alone.",
+        "So far from home. So alone. The distance is astronomical.",
         "No reinforcements will reach you here.",
         "The void will swallow you.",
     ],
     neptune: [
-        "The last planet. Your last chance to flee.",
+        "The last planet. Your final chance to recalculate.",
         "Beyond lies only death.",
         "You're far from home, human. No one will find your wreckage.",
     ],
     pluto: [
         "The Kuiper Belt welcomes no humans.",
         "Dwarf planet, giant mistake coming here.",
-        "You've entered the domain of the Mothership.",
+        "You've entered the domain of the Mothership. Factor in your doom.",
     ],
     haumea: [
-        "The Mothership awaits. As does your doom.",
+        "The Mothership awaits. As does your final equation.",
         "So close, yet you will fail.",
-        "Our supreme commander will destroy you personally.",
+        "Our supreme commander will divide you by zero.",
     ],
     makemake: [
         "Last warning, human. Turn back.",
-        "The Armada's elite guard you now. Surrender.",
-        "You will never reach the command ship.",
+        "The Armada's elite guard await. Overwhelming numbers.",
+        "You will never reach the command ship. Statistically impossible.",
     ],
     eris: [
-        "Zorath knows you're coming. He's... eager.",
-        "The Supreme Commander awaits your arrival.",
+        "Zorath knows you're coming. He's already calculated your end.",
+        "The Supreme Commander awaits. Your variables are limited.",
         "Your journey ends at the Mothership.",
     ],
     arrokoth: [
-        "You've reached the end, human. YOUR end.",
+        "You've reached the end, human. Sum total: nothing.",
         "The Mothership will crush you like the insect you are.",
-        "Zorath himself will witness your destruction.",
+        "Zorath himself will solve the problem of your existence.",
     ],
 };
 
-// Boss alien dialogue (story moments)
+// Boss alien dialogue (story moments) - matches audio files
 export const alienBossIntros: Record<string, { name: string; line: string }> = {
     moon: {
         name: "SQUADRON LEADER",
-        line: "I am the first wall you will not pass. Prepare to drift among the stars, human.",
+        line: "I am the first wall you will not pass. Prepare to be subtracted from existence, human.",
     },
     mars: {
         name: "SECTOR COMMANDER KRIX",
-        line: "You destroyed my scouts? Impressive. But I command this sector. Your journey ends here.",
+        line: "You destroyed my scouts? Impressive. But I am the remainder you cannot divide.",
     },
     ceres: {
         name: "SUPPLY MASTER VORN",
@@ -256,7 +258,7 @@ export const alienBossIntros: Record<string, { name: string; line: string }> = {
     },
     jupiter: {
         name: "FLEET CAPTAIN THAX",
-        line: "A Fleet Captain does not fall to a single human. I've crushed armadas larger than your entire species.",
+        line: "A Fleet Captain does not fall to a single human. I've crushed armadas greater than your entire species.",
     },
     europa: {
         name: "ICE COMMANDER CRYSTOS",
@@ -264,19 +266,19 @@ export const alienBossIntros: Record<string, { name: string; line: string }> = {
     },
     saturn: {
         name: "WAR GENERAL VRAX",
-        line: "I am War General Vrax. I have ended civilizations. You are merely... practice.",
+        line: "I am War General Vrax. I have ended civilizations. You are merely... a rounding error.",
     },
     titan: {
         name: "SHADOW COMMANDER NEXIS",
-        line: "Titan's clouds hide many secrets. Your death will be one of them.",
+        line: "Titan's clouds hide many secrets. Your death is a simple equation.",
     },
     uranus: {
         name: "VOID ADMIRAL ZETH",
-        line: "So deep into space... so far from hope. I admire your futility.",
+        line: "So deep into space... so far from hope. I admire your futile mathematics.",
     },
     neptune: {
         name: "HIGH ADMIRAL VORAXIS",
-        line: "The High Admiral speaks. You have fought well, human. But this is where legends come to die.",
+        line: "The High Admiral speaks. You have fought well, human. But this is where equations come to die.",
     },
     pluto: {
         name: "KUIPER WARDEN KRYOS",
@@ -284,38 +286,38 @@ export const alienBossIntros: Record<string, { name: string; line: string }> = {
     },
     haumea: {
         name: "ELITE GUARD CAPTAIN NEXAR",
-        line: "The Mothership's elite guard. Your luck ends here, human.",
+        line: "The Mothership's elite guard. Your luck is a variable we've eliminated.",
     },
     makemake: {
         name: "SUPREME GUARD ZYNN",
-        line: "I am Zorath's blade. You will be cut down.",
+        line: "Divide and conquer... that is the Armada's way. I am the division.",
     },
     eris: {
         name: "ROYAL DEFENDER OMNIX",
-        line: "Zorath's personal defender. I have never failed. I will not start with you.",
+        line: "Zorath's personal defender. I have never miscalculated. I will not start with you.",
     },
     arrokoth: {
         name: "SUPREME COMMANDER ZORATH",
-        line: "I am Zorath, Supreme Commander of the Armada. You destroyed my generals? No matter. I will personally erase your species from existence. Come, little human. Meet your end.",
+        line: "I am Zorath, Supreme Commander of the Armada. You destroyed my generals? Insignificant variables. I am the final equation, unsolvable.",
     },
 };
 
-// Boss defeat lines
+// Boss defeat lines - matches audio files
 export const alienBossDefeats: Record<string, string> = {
-    moon: "Impossible... how did you—",
+    moon: "Impossible... my calculations were—",
     mars: "The Armada will avenge me...",
     ceres: "My supplies... the fleet will starve...",
-    jupiter: "A Fleet Captain... defeated by ONE ship?!",
+    jupiter: "A Fleet Captain... divided by ONE ship?!",
     europa: "The ice... it melts...",
     saturn: "You... you are no ordinary human...",
-    titan: "The shadows... cannot hide me...",
-    uranus: "The void... takes me...",
+    titan: "The shadows... my calculations... wrong...",
+    uranus: "The void... subtracts me...",
     neptune: "The Supreme Commander will destroy you... this changes nothing...",
     pluto: "The Kuiper Belt... will remember...",
-    haumea: "Zorath... I have failed you...",
-    makemake: "The blade... is broken...",
-    eris: "I was... undefeated... until you...",
-    arrokoth: "NO! The Armada... my empire... humanity was supposed to KNEEL—",
+    haumea: "Zorath... I have miscalculated...",
+    makemake: "The prime factor... reduced to nothing...",
+    eris: "I was... undefeated... my formula... flawed...",
+    arrokoth: "NO! The Armada... my infinite power... humanity was supposed to equal NOTHING—",
 };
 
 // ============================================
@@ -387,7 +389,7 @@ export const getAlienLine = (bodyId: string, isBoss: boolean): { name?: string; 
     return { line: getRandomElement(alienGenericTaunts) };
 };
 
-export const getVictoryMessage = (bodyId: string, isBoss: boolean, isFinalBoss: boolean): string => {
+export const getVictoryMessage = (_bodyId: string, isBoss: boolean, isFinalBoss: boolean): string => {
     if (isFinalBoss) {
         return victoryMessages.finalBoss;
     }

@@ -3,9 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { PixelProgressBar } from '@/components/ui/PixelProgressBar';
 import { loadPlayerStats, savePlayerStats, generateQuestions, updateWeakAreas, calculateXP } from '@/utils/gameLogic';
 import { initializeCampaignProgress, generateCampaignMission, completeMission, isBossLevel, getLegById } from '@/utils/campaignLogic';
-import { getCommanderLine, getAlienLine, getVictoryMessage, isFinalBoss as checkIsFinalBoss } from '@/data/narrative';
+import { isFinalBoss as checkIsFinalBoss } from '@/data/narrative';
 import { audioEngine, useSFX } from '@/audio';
 import { getBattleMusicForChapter } from '@/audio/sounds';
+import { speechService } from '@/audio/SpeechService';
+import { selectWaveLine, selectAlienLine, selectVictoryLine, selectDefeatLine, type BodyId } from '@/audio/speechSounds';
 import type { Question } from '@/types/game.ts';
 import { Heart, ArrowLeft } from 'lucide-react';
 
@@ -35,13 +37,17 @@ const BattleScreen: React.FC = () => {
     const [gameEnding, setGameEnding] = useState<'explosion' | 'escape' | null>(null);
     const [explosionFrame, setExplosionFrame] = useState(1);
     const [isBossBattle, setIsBossBattle] = useState(false);
+    const [isFinalBoss, setIsFinalBoss] = useState(false);
     const [backgroundImage, setBackgroundImage] = useState('/assets/helianthus/SpaceBackgrounds/Dark/blue_purple.png');
     const [introStage, setIntroStage] = useState<IntroStage>('intro1');
     const [introMessage, setIntroMessage] = useState('');
     const [alienSpeaker, setAlienSpeaker] = useState<string | undefined>(undefined);
     const [currentBodyId, setCurrentBodyId] = useState('moon');
     const [commanderLine, setCommanderLine] = useState('');
+    const [commanderSoundId, setCommanderSoundId] = useState('');
     const [alienLine, setAlienLine] = useState('');
+    const [alienSoundId, setAlienSoundId] = useState('');
+    const [victorySoundId, setVictorySoundId] = useState('');
     const [pendingNavigation, setPendingNavigation] = useState<{
         questions: Question[];
         xpEarned: number;
@@ -50,6 +56,10 @@ const BattleScreen: React.FC = () => {
         waypointIndex: number;
         isReplay: boolean;
     } | null>(null);
+    const [dodgeDirection, setDodgeDirection] = useState<'up' | 'down'>('up');
+    const [showEscapeOverlay, setShowEscapeOverlay] = useState(false);
+    const [defeatMessage, setDefeatMessage] = useState<{ message: string; encouragement: string } | null>(null);
+    const [defeatSoundId, setDefeatSoundId] = useState('');
 
     // Load game state
     useEffect(() => {
@@ -69,23 +79,28 @@ const BattleScreen: React.FC = () => {
         const currentLeg = getLegById(activeLegId);
         if (currentLeg) {
             const isBoss = isBossLevel(activeWaypointIndex, currentLeg.waypointsRequired);
+            const isFinal = checkIsFinalBoss(currentLeg.toBodyId, isBoss);
             setIsBossBattle(isBoss);
+            setIsFinalBoss(isFinal);
             setCurrentBodyId(currentLeg.toBodyId);
 
-            // Start chapter-appropriate battle music (crossfades from menu music)
-            const battleMusicId = getBattleMusicForChapter(currentLeg.chapter);
+            // Start battle music (crossfades from menu music)
+            // Final boss (Zorath) gets epic music, other bosses get boss fight music, regular enemies get chapter music
+            const battleMusicId = isFinal ? 'zorathFightMusic' : (isBoss ? 'bossFightMusic' : getBattleMusicForChapter(currentLeg.chapter));
             audioEngine.playMusic(battleMusicId);
             // Stop menu ambience and start space ambience
             audioEngine.stopAmbience('menuAmbience');
             audioEngine.startAmbience('spaceAmbience');
 
-            // Generate dialogue lines
-            const cmdLine = getCommanderLine(currentLeg.toBodyId, isBoss);
-            setCommanderLine(cmdLine);
+            // Generate dialogue lines using unified selection (synced text + audio)
+            const waveDialogue = selectWaveLine(currentLeg.toBodyId as BodyId, isBoss);
+            setCommanderLine(waveDialogue.text);
+            setCommanderSoundId(waveDialogue.soundId);
 
-            const alien = getAlienLine(currentLeg.toBodyId, isBoss);
-            setAlienLine(alien.line);
-            setAlienSpeaker(alien.name);
+            const alienDialogue = selectAlienLine(currentLeg.toBodyId as BodyId, isBoss);
+            setAlienLine(alienDialogue.text);
+            setAlienSoundId(alienDialogue.soundId);
+            setAlienSpeaker(alienDialogue.name);
 
             if (isBoss) {
                 // Map planets to landscape assets
@@ -114,20 +129,27 @@ const BattleScreen: React.FC = () => {
             }
         }
 
-        // Select random enemy sprite - Ships 2-6 only (not Ship 1), Red/Blue/Green colors (no Yellow)
-        const enemyShips = [
-            '/assets/helianthus/ShooterFull/Ships/2/Pattern1/Red/Left/1.png',
-            '/assets/helianthus/ShooterFull/Ships/2/Pattern2/Blue/Left/1.png',
-            '/assets/helianthus/ShooterFull/Ships/3/Pattern1/Green/Left/1.png',
-            '/assets/helianthus/ShooterFull/Ships/3/Pattern2/Red/Left/1.png',
-            '/assets/helianthus/ShooterFull/Ships/4/Pattern1/Blue/Left/1.png',
-            '/assets/helianthus/ShooterFull/Ships/4/Pattern2/Green/Left/1.png',
-            '/assets/helianthus/ShooterFull/Ships/5/Pattern1/Red/Left/1.png',
-            '/assets/helianthus/ShooterFull/Ships/5/Pattern2/Blue/Left/1.png',
-            '/assets/helianthus/ShooterFull/Ships/6/Pattern1/Green/Left/1.png',
-            '/assets/helianthus/ShooterFull/Ships/6/Pattern2/Red/Left/1.png',
-        ];
-        setEnemyImage(enemyShips[Math.floor(Math.random() * enemyShips.length)]);
+        // Select enemy sprite - boss gets special ship, regular enemies get random from pool
+        if (currentLeg) {
+            const isBoss = isBossLevel(activeWaypointIndex, currentLeg.waypointsRequired);
+            if (isBoss) {
+                setEnemyImage('/assets/1Ships/BossShip1Small.png');
+            } else {
+                const enemyShips = [
+                    '/assets/helianthus/ShooterFull/Ships/2/Pattern1/Red/Left/1.png',
+                    '/assets/helianthus/ShooterFull/Ships/2/Pattern2/Blue/Left/1.png',
+                    '/assets/helianthus/ShooterFull/Ships/3/Pattern1/Green/Left/1.png',
+                    '/assets/helianthus/ShooterFull/Ships/3/Pattern2/Red/Left/1.png',
+                    '/assets/helianthus/ShooterFull/Ships/4/Pattern1/Blue/Left/1.png',
+                    '/assets/helianthus/ShooterFull/Ships/4/Pattern2/Green/Left/1.png',
+                    '/assets/helianthus/ShooterFull/Ships/5/Pattern1/Red/Left/1.png',
+                    '/assets/helianthus/ShooterFull/Ships/5/Pattern2/Blue/Left/1.png',
+                    '/assets/helianthus/ShooterFull/Ships/6/Pattern1/Green/Left/1.png',
+                    '/assets/helianthus/ShooterFull/Ships/6/Pattern2/Red/Left/1.png',
+                ];
+                setEnemyImage(enemyShips[Math.floor(Math.random() * enemyShips.length)]);
+            }
+        }
     }, [locationState]);
 
     // Hero ship animation - cycle through 6 frames for engine thrust
@@ -192,8 +214,11 @@ const BattleScreen: React.FC = () => {
             // Short delay after explosion, then show victory dialogue (waits for click)
             const timeout = setTimeout(() => {
                 setIntroStage('victory');
-                const victoryMsg = getVictoryMessage(currentBodyId, isBossBattle, checkIsFinalBoss(currentBodyId, isBossBattle));
-                setIntroMessage(victoryMsg);
+                // Use unified selection for synced text/audio
+                const isFinal = checkIsFinalBoss(currentBodyId, isBossBattle);
+                const victoryDialogue = selectVictoryLine(isBossBattle, isFinal);
+                setIntroMessage(victoryDialogue.text);
+                setVictorySoundId(victoryDialogue.soundId);
             }, 500);
 
             return () => clearTimeout(timeout);
@@ -210,6 +235,34 @@ const BattleScreen: React.FC = () => {
         // Waits for click to continue...
     }, [commanderLine, alienLine]);
 
+    // Play commander speech when intro1 starts (using pre-selected sound ID)
+    useEffect(() => {
+        if (introStage === 'intro1' && commanderSoundId) {
+            speechService.playById(commanderSoundId);
+        }
+    }, [introStage, commanderSoundId]);
+
+    // Play alien speech when intro2 starts (using pre-selected sound ID with alien EQ)
+    useEffect(() => {
+        if (introStage === 'intro2' && alienSoundId) {
+            speechService.playAlienById(alienSoundId);
+        }
+    }, [introStage, alienSoundId]);
+
+    // Play victory speech when victory dialogue appears (using pre-selected sound ID)
+    useEffect(() => {
+        if (introStage === 'victory' && victorySoundId) {
+            speechService.playById(victorySoundId);
+        }
+    }, [introStage, victorySoundId]);
+
+    // Play defeat speech when escape overlay appears (using pre-selected sound ID)
+    useEffect(() => {
+        if (showEscapeOverlay && defeatSoundId) {
+            speechService.playById(defeatSoundId);
+        }
+    }, [showEscapeOverlay, defeatSoundId]);
+
     // Navigation after hero exit animation completes
     useEffect(() => {
         if (introStage === 'heroExit' && pendingNavigation) {
@@ -220,22 +273,30 @@ const BattleScreen: React.FC = () => {
         }
     }, [introStage, pendingNavigation, navigate]);
 
-    // Handle click to advance dialogue
+    // Handle click to advance dialogue (also skips speech)
     const handleDialogueClick = useCallback(() => {
+        // Stop any playing speech when clicking to advance
+        speechService.stopCurrentSpeech();
+
         if (introStage === 'intro1') {
             // Commander dialogue clicked - start ship entrance sequence
             setIntroStage('heroEnter');
-            setTimeout(() => setIntroStage('enemyEnter'), 1000);
+            playSFX('shipSlide1', { volume: 0.5 }); // Hero ship enters
+            setTimeout(() => {
+                setIntroStage('enemyEnter');
+                playSFX('shipSlide2', { volume: 0.5 }); // Enemy ship enters
+            }, 1200); // Extended to let hero slide-in complete
             setTimeout(() => {
                 setIntroStage('intro2');
                 setIntroMessage(alienLine);
-            }, 2000);
+            }, 2400); // Extended to let enemy slide-in complete
         } else if (introStage === 'intro2') {
             // Enemy dialogue clicked - start playing
             setIntroStage('playing');
         } else if (introStage === 'victory') {
             // Victory dialogue clicked - hero exits
             setIntroStage('heroExit');
+            playSFX('shipSlide3', { volume: 0.5 }); // Hero ship exits
         }
     }, [introStage, alienLine]);
 
@@ -273,6 +334,11 @@ const BattleScreen: React.FC = () => {
             setTimeout(() => playSFX('explosion', { volume: 0.7 }), 200);
         } else {
             setGameEnding('escape');
+            playSFX('shipSlide4', { volume: 0.5 }); // Enemy escapes
+            // Use unified selection for synced text/audio
+            const defeatDialogue = selectDefeatLine(isBossBattle);
+            setDefeatMessage({ message: defeatDialogue.text, encouragement: '' }); // encouragement not used on battle screen
+            setDefeatSoundId(defeatDialogue.soundId);
         }
 
         // Update stats
@@ -296,11 +362,14 @@ const BattleScreen: React.FC = () => {
         };
         setPendingNavigation(navData);
 
-        // For escape path, navigate after delay (no dialogue to click)
+        // For escape path, navigate after delay (can click to skip)
         if (scorePercentage < 70) {
+            // Delay overlay to let escape animation play
+            setTimeout(() => setShowEscapeOverlay(true), 1500);
+            // Navigate after giving time to read (or click to skip)
             setTimeout(() => {
                 navigate('/result', { state: navData });
-            }, 3000);
+            }, 7000);
         }
         // Victory path: navigation handled by heroExit useEffect after clicking victory dialogue
     };
@@ -417,31 +486,52 @@ const BattleScreen: React.FC = () => {
                                         className="absolute inset-0 z-20 flex items-start justify-center pt-16 cursor-pointer"
                                         onClick={handleDialogueClick}
                                     >
-                                        <div className={`bg-gray-900/95 border-4 ${
-                                            introStage === 'intro2' ? 'border-red-500' : 'border-cyan-400'
-                                        } p-6 max-w-2xl animate-fadeIn shadow-lg`}
-                                             style={{ boxShadow:
-                                                introStage === 'intro2' ? '0 0 20px rgba(239, 68, 68, 0.5)' :
-                                                '0 0 20px rgba(34, 211, 238, 0.5)'
-                                             }}>
-                                            {/* Speaker label */}
-                                            <div className={`text-xs font-bold mb-2 tracking-wider ${
-                                                introStage === 'intro2' ? 'text-red-600' : 'text-cyan-600'
-                                            }`}>
-                                                {introStage === 'intro1' && '[COMMANDER]'}
-                                                {introStage === 'intro2' && (alienSpeaker ? `[${alienSpeaker}]` : '[ENEMY]')}
-                                                {introStage === 'victory' && '[COMMANDER]'}
-                                            </div>
-                                            <p className={`text-lg ${
-                                                introStage === 'intro2' ? 'text-red-400' : 'text-cyan-300'
-                                            } leading-relaxed`}>
-                                                "{introMessage}"
-                                            </p>
-                                            {/* Click to continue hint */}
-                                            <div className={`text-xs mt-4 animate-pulse ${
-                                                introStage === 'intro2' ? 'text-red-600/60' : 'text-cyan-600/60'
-                                            }`}>
-                                                [ Click to continue ]
+                                        <div className={`bg-gray-900/95 border-4 ${introStage === 'intro2' ? 'border-red-500' : 'border-cyan-400'
+                                            } p-6 max-w-2xl animate-fadeIn shadow-lg flex gap-4`}
+                                            style={{
+                                                boxShadow:
+                                                    introStage === 'intro2' ? '0 0 20px rgba(239, 68, 68, 0.5)' :
+                                                        '0 0 20px rgba(34, 211, 238, 0.5)'
+                                            }}>
+                                            {/* Commander portrait - only for commander dialogues */}
+                                            {(introStage === 'intro1' || introStage === 'victory') && (
+                                                <div className="flex-shrink-0">
+                                                    <img
+                                                        src="/assets/1GameCharacters/Commander.png"
+                                                        alt="Commander"
+                                                        className="w-24 h-24 object-contain"
+                                                        style={{ imageRendering: 'pixelated' }}
+                                                    />
+                                                </div>
+                                            )}
+                                            {/* Alien portrait - only for alien dialogues */}
+                                            {introStage === 'intro2' && (
+                                                <div className="flex-shrink-0">
+                                                    <img
+                                                        src={isFinalBoss ? '/assets/1GameCharacters/Zorath.png' : isBossBattle ? '/assets/1GameCharacters/AlienBoss.png' : '/assets/1GameCharacters/AlienCommander.png'}
+                                                        alt={isFinalBoss ? 'Zorath' : isBossBattle ? 'Alien Boss' : 'Alien Commander'}
+                                                        className="w-24 h-24 object-contain"
+                                                        style={{ imageRendering: 'pixelated' }}
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="flex-1">
+                                                {/* Speaker label */}
+                                                <div className={`text-xs font-bold mb-2 tracking-wider ${introStage === 'intro2' ? 'text-red-600' : 'text-cyan-600'
+                                                    }`}>
+                                                    {introStage === 'intro1' && '[COMMANDER]'}
+                                                    {introStage === 'intro2' && (alienSpeaker ? `[${alienSpeaker}]` : '[ENEMY]')}
+                                                    {introStage === 'victory' && '[COMMANDER]'}
+                                                </div>
+                                                <p className={`text-lg ${introStage === 'intro2' ? 'text-red-400' : 'text-cyan-300'
+                                                    } leading-relaxed`}>
+                                                    "{introMessage}"
+                                                </p>
+                                                {/* Click to continue hint */}
+                                                <div className={`text-xs mt-4 animate-pulse ${introStage === 'intro2' ? 'text-red-600/60' : 'text-cyan-600/60'
+                                                    }`}>
+                                                    [ Click to continue ]
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -451,15 +541,14 @@ const BattleScreen: React.FC = () => {
                                 <div className="relative z-10 w-full flex items-center justify-between px-16">
                                     {/* Hero Ship - Left Side */}
                                     {introStage !== 'intro1' && (
-                                        <div className={`relative ${
-                                            introStage === 'heroEnter' ? 'animate-slideDown' :
+                                        <div className={`relative ${introStage === 'heroEnter' ? 'animate-slideDown' :
                                             introStage === 'heroExit' ? 'animate-flyOutRight' :
-                                            'animate-hover'
-                                        }`}>
+                                                'animate-hover'
+                                            }`}>
                                             <img
                                                 src={`/assets/helianthus/ShooterFull/Ships/1/Pattern3/Yellow/Right/${heroFrame}.png`}
                                                 alt="Hero Ship"
-                                                className="h-19 w-auto"
+                                                className="h-20 w-auto"
                                                 style={{
                                                     imageRendering: 'pixelated',
                                                 }}
@@ -498,18 +587,18 @@ const BattleScreen: React.FC = () => {
 
                                     {/* Enemy Ship - Right Side */}
                                     {introStage !== 'intro1' && introStage !== 'heroEnter' && (
-                                        <div className={`relative flex items-center justify-center overflow-visible mr-8 ${
-                                            introStage === 'enemyEnter' ? 'animate-slideInFromRight' :
+                                        <div className={`relative flex items-center justify-center overflow-visible mr-8 ${introStage === 'enemyEnter' ? 'animate-slideInFromRight' :
                                             gameEnding === 'escape' ? 'animate-slideOut' :
-                                            'animate-hover'
-                                        }`}>
+                                                'animate-hover'
+                                            }`}>
                                             {/* Ship - always rendered to maintain position, hidden during/after explosion */}
                                             <img
                                                 src={enemyImage}
                                                 alt="Enemy Ship"
                                                 className={`
-                                                    h-19 w-auto
+                                                    ${isBossBattle ? 'h-60' : 'h-20'} w-auto
                                                     ${showFeedback && isCorrect ? 'animate-shake' : ''}
+                                                    ${showFeedback && !isCorrect ? (dodgeDirection === 'up' ? 'animate-dodgeUp' : 'animate-dodgeDown') : ''}
                                                     ${gameEnding === 'explosion' ? 'invisible' : ''}
                                                 `}
                                                 style={{
@@ -535,7 +624,7 @@ const BattleScreen: React.FC = () => {
                                 </div>
 
                                 {/* Hit/Miss feedback overlay */}
-                                {showFeedback && !(currentIndex === questions.length - 1 && isCorrect && explosionFrame > 0) && introStage !== 'victory' && introStage !== 'heroExit' && (
+                                {showFeedback && !(currentIndex === questions.length - 1 && isCorrect && explosionFrame > 0) && introStage !== 'victory' && introStage !== 'heroExit' && !showEscapeOverlay && (
                                     <div className={`
                                         absolute inset-0 z-15 flex items-center justify-center pointer-events-none
                                         ${currentIndex === questions.length - 1 && isCorrect ? 'text-xl' : 'text-5xl'} font-bold
@@ -547,11 +636,36 @@ const BattleScreen: React.FC = () => {
                                     </div>
                                 )}
 
-                                {/* Game ending overlay */}
-                                {gameEnding === 'escape' && (
-                                    <div className="absolute inset-0 z-20 flex items-start justify-center pt-16 bg-black bg-opacity-50">
-                                        <div className="text-4xl font-bold text-red-500 animate-bounce">
-                                            THE ENEMY GOT AWAY!
+                                {/* Game ending overlay - delayed to let escape animation play */}
+                                {gameEnding === 'escape' && showEscapeOverlay && defeatMessage && pendingNavigation && (
+                                    <div
+                                        className="absolute inset-0 z-20 flex items-start justify-center pt-16 cursor-pointer"
+                                        onClick={() => navigate('/result', { state: pendingNavigation })}
+                                    >
+                                        <div
+                                            className="bg-gray-900/95 border-4 border-red-500 p-6 max-w-2xl animate-fadeIn shadow-lg flex gap-4"
+                                            style={{ boxShadow: '0 0 20px rgba(239, 68, 68, 0.5)' }}
+                                        >
+                                            {/* Commander portrait */}
+                                            <div className="flex-shrink-0">
+                                                <img
+                                                    src="/assets/1GameCharacters/Commander.png"
+                                                    alt="Commander"
+                                                    className="w-24 h-24 object-contain"
+                                                    style={{ imageRendering: 'pixelated' }}
+                                                />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="text-xs font-bold mb-2 tracking-wider text-red-600">
+                                                    [COMMANDER]
+                                                </div>
+                                                <p className="text-lg text-red-400 leading-relaxed">
+                                                    "{defeatMessage.message}"
+                                                </p>
+                                                <div className="text-xs mt-4 text-red-600/60 animate-pulse">
+                                                    [ Click to continue ]
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -579,19 +693,19 @@ const BattleScreen: React.FC = () => {
                                     {/* Console layout */}
                                     <div className="flex gap-4 items-stretch">
                                         {/* Left status panel */}
-                                        <div className="hidden md:flex flex-col gap-2 w-24">
-                                            <div className="text-[8px] text-cyan-500 uppercase tracking-wider">Systems</div>
+                                        <div className="hidden md:flex flex-col gap-2 w-24 pt-12">
+                                            <div className="text-[10px] text-cyan-500 uppercase tracking-wider">Systems</div>
                                             <div className="flex items-center gap-2">
                                                 <div className={`w-2 h-2 rounded-full ${introStage === 'playing' ? 'bg-green-500 shadow-[0_0_6px_#22c55e]' : 'bg-yellow-500 shadow-[0_0_6px_#eab308] animate-pulse'}`} />
-                                                <span className="text-[8px] text-gray-400">WEAPONS</span>
+                                                <span className="text-[10px] text-gray-400">WEAPONS</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <div className={`w-2 h-2 rounded-full ${introStage === 'playing' ? 'bg-green-500 shadow-[0_0_6px_#22c55e]' : 'bg-yellow-500 shadow-[0_0_6px_#eab308] animate-pulse'}`} />
-                                                <span className="text-[8px] text-gray-400">SHIELDS</span>
+                                                <span className="text-[10px] text-gray-400">SHIELDS</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <div className={`w-2 h-2 rounded-full ${introStage === 'playing' ? 'bg-green-500 shadow-[0_0_6px_#22c55e]' : 'bg-yellow-500 shadow-[0_0_6px_#eab308] animate-pulse'}`} />
-                                                <span className="text-[8px] text-gray-400">TARGETING</span>
+                                                <span className="text-[10px] text-gray-400">TARGETING</span>
                                             </div>
                                         </div>
 
@@ -642,39 +756,42 @@ const BattleScreen: React.FC = () => {
                                                                     {answerChoices.map((opt, i) => (
                                                                         <button
                                                                             key={i}
+                                                                            disabled={showFeedback}
                                                                             onClick={() => {
                                                                                 setUserAnswer(opt.toString());
+                                                                                // Always fire laser
+                                                                                setShowLaser(true);
+                                                                                playSFX('laser', { volume: 0.6 });
+
+                                                                                if (opt === currentQuestion.answer) {
+                                                                                    setIsCorrect(true);
+                                                                                } else {
+                                                                                    setIsCorrect(false);
+                                                                                    // Randomize dodge direction for miss
+                                                                                    setDodgeDirection(Math.random() > 0.5 ? 'up' : 'down');
+                                                                                }
+                                                                                setShowFeedback(true);
+
+                                                                                const updatedQuestions = [...questions];
+                                                                                updatedQuestions[currentIndex] = {
+                                                                                    ...currentQuestion,
+                                                                                    userAnswer: opt,
+                                                                                    correct: opt === currentQuestion.answer,
+                                                                                };
+                                                                                setQuestions(updatedQuestions);
+
                                                                                 setTimeout(() => {
-                                                                                    if (opt === currentQuestion.answer) {
-                                                                                        setIsCorrect(true);
-                                                                                        setShowLaser(true);
-                                                                                        playSFX('laser', { volume: 0.6 });
+                                                                                    setShowLaser(false);
+                                                                                    if (currentIndex < questions.length - 1) {
+                                                                                        setCurrentIndex(currentIndex + 1);
+                                                                                        setUserAnswer('');
+                                                                                        setShowFeedback(false);
                                                                                     } else {
-                                                                                        setIsCorrect(false);
+                                                                                        handleGameComplete(updatedQuestions);
                                                                                     }
-                                                                                    setShowFeedback(true);
-
-                                                                                    const updatedQuestions = [...questions];
-                                                                                    updatedQuestions[currentIndex] = {
-                                                                                        ...currentQuestion,
-                                                                                        userAnswer: opt,
-                                                                                        correct: opt === currentQuestion.answer,
-                                                                                    };
-                                                                                    setQuestions(updatedQuestions);
-
-                                                                                    setTimeout(() => {
-                                                                                        setShowLaser(false);
-                                                                                        if (currentIndex < questions.length - 1) {
-                                                                                            setCurrentIndex(currentIndex + 1);
-                                                                                            setUserAnswer('');
-                                                                                            setShowFeedback(false);
-                                                                                        } else {
-                                                                                            handleGameComplete(updatedQuestions);
-                                                                                        }
-                                                                                    }, 1000);
-                                                                                }, 0);
+                                                                                }, 1000);
                                                                             }}
-                                                                            className="relative py-3 text-lg font-bold text-cyan-300 uppercase transition-all duration-100 hover:scale-105 active:scale-95"
+                                                                            className="relative py-3 text-lg font-bold text-cyan-300 uppercase transition-all duration-100 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                                                             style={{
                                                                                 background: 'linear-gradient(180deg, #2a3a4a 0%, #1a2a3a 50%, #0a1a2a 100%)',
                                                                                 border: '2px solid #3a5a7a',
@@ -735,13 +852,12 @@ const BattleScreen: React.FC = () => {
                                                     {introStage === 'playing' ? questions.map((q, i) => (
                                                         <div
                                                             key={i}
-                                                            className={`w-2 h-2 rounded-full ${
-                                                                i < currentIndex
-                                                                    ? (q.correct ? 'bg-green-500 shadow-[0_0_4px_#22c55e]' : 'bg-red-500 shadow-[0_0_4px_#ef4444]')
-                                                                    : i === currentIndex
-                                                                        ? 'bg-yellow-500 shadow-[0_0_4px_#eab308] animate-pulse'
-                                                                        : 'bg-gray-600'
-                                                            }`}
+                                                            className={`w-2 h-2 rounded-full ${i < currentIndex
+                                                                ? (q.correct ? 'bg-green-500 shadow-[0_0_4px_#22c55e]' : 'bg-red-500 shadow-[0_0_4px_#ef4444]')
+                                                                : i === currentIndex
+                                                                    ? 'bg-yellow-500 shadow-[0_0_4px_#eab308] animate-pulse'
+                                                                    : 'bg-gray-600'
+                                                                }`}
                                                         />
                                                     )) : (
                                                         <>
@@ -759,11 +875,11 @@ const BattleScreen: React.FC = () => {
                                         </div>
 
                                         {/* Right status panel */}
-                                        <div className="hidden md:flex flex-col gap-2 w-24 items-end">
-                                            <div className="text-[8px] text-cyan-500 uppercase tracking-wider">Tactical</div>
-                                            <div className="text-[8px] text-gray-500">PWR <span className="text-green-400">98%</span></div>
-                                            <div className="text-[8px] text-gray-500">TEMP <span className="text-yellow-400">47°C</span></div>
-                                            <div className="text-[8px] text-gray-500">AMMO <span className="text-cyan-400">∞</span></div>
+                                        <div className="hidden md:flex flex-col gap-2 w-24 items-end pt-12">
+                                            <div className="text-[10px] text-cyan-500 uppercase tracking-wider">Tactical</div>
+                                            <div className="text-[10px] text-gray-500">PWR <span className="text-green-400">98%</span></div>
+                                            <div className="text-[10px] text-gray-500">TEMP <span className="text-yellow-400">47°C</span></div>
+                                            <div className="text-[10px] text-gray-500">AMMO <span className="text-cyan-400">∞</span></div>
                                         </div>
                                     </div>
                                 </div>

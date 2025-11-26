@@ -3,7 +3,7 @@
 export interface SoundDefinition {
     id: string;
     src: string;
-    category: 'music' | 'sfx' | 'ambience';
+    category: 'music' | 'sfx' | 'ambience' | 'speech';
     // For music with intro/loop/outro sections
     loop?: boolean;
     loopStart?: number;  // seconds - where loop begins
@@ -34,6 +34,7 @@ export interface CategoryVolumes {
     music: number;
     sfx: number;
     ambience: number;
+    speech: number;
 }
 
 export interface AudioState {

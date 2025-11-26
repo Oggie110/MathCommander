@@ -14,7 +14,7 @@ const StartScreen: React.FC = () => {
     const [displayedText, setDisplayedText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [isAudioLoading, setIsAudioLoading] = useState(false);
-    const [audioReady, setAudioReady] = useState(false);
+    // const [audioReady, setAudioReady] = useState(false); // Unused
     const stopIntroDataRef = useRef<StopFn>(null);
     const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -107,7 +107,7 @@ const StartScreen: React.FC = () => {
         stopIntroDataRef.current = audioEngine.playSFXWithStop('introData');
         audioEngine.startAmbience('menuAmbience');
 
-        setAudioReady(true);
+        // setAudioReady(true);
         setIsAudioLoading(false);
         setShowBriefing(true);
     };
@@ -144,10 +144,10 @@ const StartScreen: React.FC = () => {
                 // Title Screen
                 <div className="relative z-10">
                     <div className="mb-12">
-                        <h1 className="text-4xl md:text-6xl text-star-yellow mb-4" style={{ textShadow: '4px 4px 0 #ff4d4d' }}>
+                        <h1 className="text-4xl md:text-6xl text-brand-accent mb-4 drop-shadow-[4px_4px_0_rgba(255,42,42,1)]">
                             SPACE MATH
                         </h1>
-                        <h2 className="text-2xl md:text-4xl text-white" style={{ textShadow: '4px 4px 0 #4d79ff' }}>
+                        <h2 className="text-2xl md:text-4xl text-white drop-shadow-[4px_4px_0_rgba(37,99,235,1)]">
                             COMMANDER
                         </h2>
                     </div>
@@ -157,6 +157,7 @@ const StartScreen: React.FC = () => {
                             onClick={handleStartMission}
                             className="text-xl px-12 py-6 animate-pulse"
                             disabled={isAudioLoading}
+                            size="lg"
                         >
                             <div className="flex items-center gap-4">
                                 <Rocket className={`w-8 h-8 ${isAudioLoading ? 'animate-spin' : ''}`} />
@@ -164,40 +165,41 @@ const StartScreen: React.FC = () => {
                             </div>
                         </PixelButton>
 
-                        <div className="text-gray-400 text-xs mt-8">
-                            v1.0.0 - PIXEL EDITION
+                        <div className="text-industrial-highlight text-xs mt-8 font-tech tracking-widest">
+                            v1.0.0 - INDUSTRIAL EDITION
                         </div>
                     </div>
                 </div>
             ) : (
                 // Mission Briefing
                 <div className="relative z-10 w-full max-w-2xl" onClick={handleSkipTyping}>
-                    <PixelCard className="p-6 md:p-8 bg-gray-900/95">
+                    <PixelCard className="p-6 md:p-8">
                         {/* Transmission header */}
-                        <div className="flex items-center gap-3 mb-6 border-b border-cyan-500/30 pb-4">
-                            <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                            <Radio className="w-5 h-5 text-cyan-400" />
-                            <span className="text-cyan-400 text-sm font-bold tracking-widest">
+                        <div className="flex items-center gap-3 mb-6 border-b-2 border-industrial-metal pb-4">
+                            <div className="w-3 h-3 rounded-full bg-brand-danger animate-pulse" />
+                            <Radio className="w-5 h-5 text-brand-secondary" />
+                            <span className="text-brand-secondary text-sm font-bold tracking-widest uppercase">
                                 {openingNarrative.title}
                             </span>
                         </div>
 
                         {/* Speaker */}
-                        <div className="text-yellow-400 text-xs font-bold mb-3 tracking-wider">
+                        <div className="text-brand-accent text-xs font-bold mb-3 tracking-wider uppercase">
                             [{openingNarrative.speaker}]
                         </div>
 
                         {/* Message with typewriter effect */}
-                        <div className="text-white text-left leading-relaxed mb-8 min-h-[120px]">
+                        <div className="text-white text-left leading-relaxed mb-8 min-h-[120px] font-tech text-lg">
                             "{displayedText}"
-                            {isTyping && <span className="animate-pulse">▊</span>}
+                            {isTyping && <span className="animate-pulse text-brand-secondary">▊</span>}
                         </div>
 
                         {/* Continue button */}
                         {!isTyping && (
                             <PixelButton
                                 onClick={handleContinue}
-                                className="w-full py-4 text-lg"
+                                className="w-full"
+                                size="lg"
                             >
                                 <div className="flex items-center justify-center gap-3">
                                     <Rocket className="w-5 h-5" />
@@ -207,8 +209,8 @@ const StartScreen: React.FC = () => {
                         )}
 
                         {isTyping && (
-                            <div className="text-gray-500 text-xs text-center">
-                                Click to skip...
+                            <div className="text-industrial-highlight text-xs text-center font-tech animate-pulse">
+                                Click to skip transmission...
                             </div>
                         )}
                     </PixelCard>

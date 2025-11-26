@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
-import { loadPlayerStats } from '@/utils/gameLogic';
-import { initializeCampaignProgress, getLegById, getLegIndex } from '@/utils/campaignLogic';
+import { loadPlayerStats, savePlayerStats } from '@/utils/gameLogic';
+import { initializeCampaignProgress, getLegById, getLegIndex, checkForMilestone, markMilestoneSeen } from '@/utils/campaignLogic';
 import { celestialBodies, campaignLegs, getChapterName } from '@/data/campaignRoute';
 import type { CelestialBody, Leg } from '@/data/campaignRoute';
-import { ArrowLeft, Lock, Star, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Lock, Star, ChevronRight, Radio } from 'lucide-react';
 import { audioEngine } from '@/audio';
+import { speechService } from '@/audio/SpeechService';
+import { milestoneMessages } from '@/data/narrative';
+import { PixelCard } from '@/components/ui/PixelCard';
+import { MILESTONE_TEXT } from '@/audio/speechSounds';
 
 // Planet image mapping
 const planetImages: Record<string, string> = {
@@ -76,9 +80,8 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
 
     return (
         <div
-            className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300 ${
-                canClick ? 'hover:scale-110' : 'cursor-not-allowed'
-            } ${isCurrent ? 'z-20' : 'z-10'}`}
+            className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300 ${canClick ? 'hover:scale-110' : 'cursor-not-allowed'
+                } ${isCurrent ? 'z-20' : 'z-10'}`}
             style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
             onClick={canClick ? onClick : undefined}
         >
@@ -91,7 +94,7 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
                         height: pos.size + 16,
                         left: -8,
                         top: -8,
-                        border: '3px solid #22d3ee',
+                        border: '3px solid var(--color-brand-secondary)',
                         opacity: 0.5,
                     }}
                 />
@@ -115,7 +118,7 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
                 {/* Lock icon */}
                 {isLocked && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <Lock className="w-6 h-6 text-gray-500" />
+                        <Lock className="w-6 h-6 text-industrial-highlight" />
                     </div>
                 )}
 
@@ -125,13 +128,12 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
                         {Array.from({ length: waypointProgress.total }).map((_, i) => (
                             <div
                                 key={i}
-                                className={`w-2 h-2 rounded-full ${
-                                    i < waypointProgress.current
-                                        ? 'bg-green-400 shadow-[0_0_4px_#4ade80]'
-                                        : i === waypointProgress.current
-                                            ? 'bg-yellow-400 shadow-[0_0_4px_#facc15] animate-pulse'
-                                            : 'bg-gray-600'
-                                }`}
+                                className={`w-2 h-2 rounded-full ${i < waypointProgress.current
+                                    ? 'bg-brand-success shadow-[0_0_4px_var(--color-brand-success)]'
+                                    : i === waypointProgress.current
+                                        ? 'bg-brand-accent shadow-[0_0_4px_var(--color-brand-accent)] animate-pulse'
+                                        : 'bg-industrial-metal'
+                                    }`}
                             />
                         ))}
                     </div>
@@ -144,9 +146,8 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
                 style={{ top: pos.size + 4 }}
             >
                 <div
-                    className={`text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${
-                        isLocked ? 'text-gray-600' : isCurrent ? 'text-cyan-400' : isCompleted ? 'text-green-400' : 'text-gray-400'
-                    }`}
+                    className={`text-[10px] font-bold uppercase tracking-wider whitespace-nowrap font-tech ${isLocked ? 'text-industrial-metal' : isCurrent ? 'text-brand-secondary' : isCompleted ? 'text-brand-success' : 'text-industrial-highlight'
+                        }`}
                 >
                     {body.name}
                 </div>
@@ -156,7 +157,7 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
                         {[1, 2, 3].map((star) => (
                             <Star
                                 key={star}
-                                className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400"
+                                className="w-2.5 h-2.5 text-brand-accent fill-brand-accent"
                             />
                         ))}
                     </div>
@@ -168,8 +169,11 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
 
 const SolarSystemMap: React.FC = () => {
     const navigate = useNavigate();
-    const stats = loadPlayerStats();
+    const [stats, setStats] = useState(() => loadPlayerStats());
     const progress = stats.campaignProgress || initializeCampaignProgress();
+
+    // Milestone modal state
+    const [activeMilestone, setActiveMilestone] = useState<'inner' | 'kuiper' | null>(null);
 
     // Start menu music and ambience when entering map (e.g., after battle)
     useEffect(() => {
@@ -179,6 +183,35 @@ const SolarSystemMap: React.FC = () => {
         audioEngine.stopAmbience('spaceAmbience');
         audioEngine.startAmbience('menuAmbience');
     }, []);
+
+    // Check for milestone on mount
+    useEffect(() => {
+        const milestone = checkForMilestone(progress);
+        if (milestone) {
+            // Show the milestone modal after a short delay for dramatic effect
+            const timer = setTimeout(() => {
+                setActiveMilestone(milestone);
+                // Play the milestone audio
+                speechService.playMilestone(milestone);
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [progress.currentLegId, progress.currentWaypointIndex]);
+
+    // Handle dismissing the milestone modal
+    const handleDismissMilestone = () => {
+        if (activeMilestone) {
+            // Mark milestone as seen and save
+            const updatedProgress = markMilestoneSeen(progress, activeMilestone);
+            const updatedStats = {
+                ...stats,
+                campaignProgress: updatedProgress,
+            };
+            savePlayerStats(updatedStats);
+            setStats(updatedStats);
+            setActiveMilestone(null);
+        }
+    };
 
     const currentLegIndex = getLegIndex(progress.currentLegId);
     const currentLeg = getLegById(progress.currentLegId);
@@ -242,10 +275,10 @@ const SolarSystemMap: React.FC = () => {
             >
                 <defs>
                     <filter id="glow">
-                        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                        <feGaussianBlur stdDeviation="2" result="coloredBlur" />
                         <feMerge>
-                            <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="SourceGraphic"/>
+                            <feMergeNode in="coloredBlur" />
+                            <feMergeNode in="SourceGraphic" />
                         </feMerge>
                     </filter>
                 </defs>
@@ -263,7 +296,7 @@ const SolarSystemMap: React.FC = () => {
                             y1={`${from.y}%`}
                             x2={`${to.x}%`}
                             y2={`${to.y}%`}
-                            stroke={isCompleted ? '#4ade80' : isCurrent ? '#22d3ee' : '#374151'}
+                            stroke={isCompleted ? 'var(--color-brand-success)' : isCurrent ? 'var(--color-brand-secondary)' : 'var(--color-industrial-metal)'}
                             strokeWidth={isCurrent ? 3 : isCompleted ? 2 : 1}
                             strokeDasharray={isCurrent ? '10 5' : isLocked ? '3 6' : 'none'}
                             opacity={isCompleted ? 0.5 : isCurrent ? 0.9 : 0.2}
@@ -277,7 +310,7 @@ const SolarSystemMap: React.FC = () => {
     };
 
     return (
-        <div className="flex-1 flex flex-col overflow-hidden bg-gray-950">
+        <div className="flex-1 flex flex-col overflow-hidden bg-space-black relative">
             {/* Background with stars */}
             <div className="absolute inset-0 z-0">
                 <div
@@ -301,12 +334,12 @@ const SolarSystemMap: React.FC = () => {
             </div>
 
             {/* Header */}
-            <div className="relative z-30 flex justify-between items-center p-4 bg-gradient-to-b from-black/80 to-transparent">
-                <PixelButton variant="secondary" onClick={() => navigate('/')} className="px-4 py-2">
+            <div className="relative z-30 flex justify-between items-center p-4 bg-industrial-dark/90 border-b-2 border-industrial-metal shadow-lg">
+                <PixelButton variant="secondary" onClick={() => navigate('/')} className="px-4 py-2" size="sm">
                     <ArrowLeft className="w-4 h-4" />
                 </PixelButton>
-                <h1 className="text-xl font-bold text-cyan-400 uppercase tracking-widest">Star Map</h1>
-                <div className="text-lg text-yellow-400 font-bold">
+                <h1 className="text-xl font-bold text-brand-secondary uppercase tracking-widest font-tech">Star Map</h1>
+                <div className="text-lg text-brand-accent font-bold font-pixel">
                     XP: {stats.totalXP}
                 </div>
             </div>
@@ -314,10 +347,10 @@ const SolarSystemMap: React.FC = () => {
             {/* Main map area */}
             <div className="flex-1 relative z-10 overflow-hidden">
                 {/* Chapter labels - positioned to match new layout */}
-                <div className="absolute bottom-4 left-4 text-[10px] text-gray-500 uppercase tracking-wider opacity-60">Inner System</div>
-                <div className="absolute bottom-4 right-8 text-[10px] text-gray-500 uppercase tracking-wider opacity-60">Gas Giants</div>
-                <div className="absolute top-1/2 right-4 text-[10px] text-gray-500 uppercase tracking-wider opacity-60">Ice Giants</div>
-                <div className="absolute top-4 left-4 text-[10px] text-gray-500 uppercase tracking-wider opacity-60">Kuiper Belt</div>
+                <div className="absolute bottom-4 left-4 text-[10px] text-industrial-highlight uppercase tracking-wider opacity-60 font-tech">Inner System</div>
+                <div className="absolute bottom-4 right-8 text-[10px] text-industrial-highlight uppercase tracking-wider opacity-60 font-tech">Gas Giants</div>
+                <div className="absolute top-1/2 right-4 text-[10px] text-industrial-highlight uppercase tracking-wider opacity-60 font-tech">Ice Giants</div>
+                <div className="absolute top-4 left-4 text-[10px] text-industrial-highlight uppercase tracking-wider opacity-60 font-tech">Kuiper Belt</div>
 
                 {/* Paths */}
                 {renderPaths()}
@@ -347,34 +380,37 @@ const SolarSystemMap: React.FC = () => {
             </div>
 
             {/* Bottom info panel */}
-            <div className="relative z-30 bg-gradient-to-t from-gray-900 via-gray-900/95 to-transparent">
-                <div className="h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50" />
+            <div className="relative z-30 bg-industrial-dark border-t-4 border-industrial-metal shadow-[0_-4px_10px_rgba(0,0,0,0.5)]">
+                {/* Hazard Stripe Top Border */}
+                <div className="h-2 w-full bg-hazard opacity-50" />
+
                 <div className="p-4">
                     {selectedBody ? (
                         <div className="flex items-center gap-6">
                             {/* Selected planet preview */}
-                            <div className="flex-shrink-0">
+                            <div className="flex-shrink-0 relative">
+                                <div className="absolute inset-0 bg-brand-secondary/20 rounded-full blur-xl animate-pulse" />
                                 <img
                                     src={planetImages[selectedBody.id]}
                                     alt={selectedBody.name}
-                                    className="w-20 h-20"
+                                    className="w-20 h-20 relative z-10"
                                     style={{ imageRendering: 'pixelated' }}
                                 />
                             </div>
 
                             {/* Planet info */}
                             <div className="flex-1 min-w-0">
-                                <h2 className="text-2xl font-bold text-white mb-1">{selectedBody.name}</h2>
+                                <h2 className="text-2xl font-bold text-white mb-1 font-pixel">{selectedBody.name}</h2>
                                 {selectedLeg && (
-                                    <div className="text-xs text-cyan-400 uppercase tracking-wider mb-2">
+                                    <div className="text-xs text-brand-secondary uppercase tracking-wider mb-2 font-tech">
                                         {getChapterName(selectedLeg.chapter)}
                                     </div>
                                 )}
-                                <p className="text-sm text-gray-400 line-clamp-2">{selectedBody.fact}</p>
+                                <p className="text-sm text-gray-300 line-clamp-2 font-tech">{selectedBody.fact}</p>
                                 <div className="flex gap-4 mt-2">
-                                    <div className="text-xs">
-                                        <span className="text-gray-500">Tables: </span>
-                                        <span className="text-green-400">{selectedBody.focusTables.join(', ')}</span>
+                                    <div className="text-xs font-tech">
+                                        <span className="text-industrial-highlight">Tables: </span>
+                                        <span className="text-brand-success">{selectedBody.focusTables.join(', ')}</span>
                                     </div>
                                 </div>
                             </div>
@@ -382,32 +418,57 @@ const SolarSystemMap: React.FC = () => {
                             {/* Action button */}
                             <div className="flex-shrink-0">
                                 {getBodyStatus(selectedBody.id).isCurrent ? (
-                                    <PixelButton onClick={() => handleStartMission(false)} className="px-6 py-3 text-lg">
+                                    <PixelButton onClick={() => handleStartMission(false)} className="px-6 py-3 text-lg" variant="primary">
                                         LAUNCH <ChevronRight className="w-5 h-5 inline" />
                                     </PixelButton>
                                 ) : getBodyStatus(selectedBody.id).isCompleted && selectedBody.id !== 'earth' ? (
                                     <div className="text-center">
-                                        <div className="text-green-400 text-sm font-bold flex items-center gap-1">
-                                            <Star className="w-4 h-4 fill-green-400" /> CLEARED
+                                        <div className="text-brand-success text-sm font-bold flex items-center gap-1 font-tech">
+                                            <Star className="w-4 h-4 fill-brand-success" /> CLEARED
                                         </div>
-                                        <PixelButton variant="secondary" onClick={() => handleStartMission(true)} className="px-4 py-2 mt-2 text-sm">
+                                        <PixelButton variant="secondary" onClick={() => handleStartMission(true)} className="px-4 py-2 mt-2 text-sm" size="sm">
                                             REPLAY
                                         </PixelButton>
                                     </div>
                                 ) : selectedBody.id === 'earth' ? (
-                                    <div className="text-center text-cyan-400 text-sm font-bold">
+                                    <div className="text-center text-brand-secondary text-sm font-bold font-tech">
                                         HOME BASE
                                     </div>
                                 ) : null}
                             </div>
                         </div>
                     ) : (
-                        <div className="text-center text-gray-500">
-                            Select a destination on the map
+                        <div className="text-center text-industrial-highlight font-tech py-4">
+                            SELECT A DESTINATION ON THE MAP
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Milestone Modal Overlay */}
+            {activeMilestone && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 animate-fadeIn">
+                    <PixelCard className="max-w-lg mx-4 p-6 border-brand-secondary bg-gray-900/95">
+                        <div className="flex items-center gap-3 mb-4 border-b border-brand-secondary/30 pb-3">
+                            <div className="w-3 h-3 rounded-full bg-brand-secondary animate-pulse" />
+                            <Radio className="w-5 h-5 text-brand-secondary" />
+                            <span className="text-brand-secondary text-sm font-bold tracking-widest">
+                                MILESTONE REACHED
+                            </span>
+                        </div>
+                        <p className="text-cyan-300 text-lg leading-relaxed mb-6">
+                            "{MILESTONE_TEXT[activeMilestone === 'inner' ? 'milestone_inner' : 'milestone_kuiper']}"
+                        </p>
+                        <PixelButton
+                            onClick={handleDismissMilestone}
+                            className="w-full py-3"
+                            variant="primary"
+                        >
+                            CONTINUE
+                        </PixelButton>
+                    </PixelCard>
+                </div>
+            )}
         </div>
     );
 };

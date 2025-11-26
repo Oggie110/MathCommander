@@ -7,6 +7,43 @@ export const initializeCampaignProgress = (): CampaignProgress => {
         currentWaypointIndex: 0,
         completedLegs: [],
         starsEarned: {},
+        milestonesSeen: [],
+    };
+};
+
+// Milestone definitions - which leg triggers each milestone
+export const MILESTONE_TRIGGERS: Record<string, 'inner' | 'kuiper'> = {
+    'leg-4': 'inner',  // Entering gas giants (ceres → jupiter)
+    'leg-10': 'kuiper', // Entering Kuiper Belt (neptune → pluto)
+};
+
+/**
+ * Check if a milestone should be shown for the current leg
+ * Returns the milestone type if one should be shown, null otherwise
+ */
+export const checkForMilestone = (progress: CampaignProgress): 'inner' | 'kuiper' | null => {
+    const milestoneType = MILESTONE_TRIGGERS[progress.currentLegId];
+    if (!milestoneType) return null;
+
+    // Only show if at waypoint 0 (just entered this leg) and not already seen
+    if (progress.currentWaypointIndex !== 0) return null;
+
+    const seen = progress.milestonesSeen || [];
+    if (seen.includes(milestoneType)) return null;
+
+    return milestoneType;
+};
+
+/**
+ * Mark a milestone as seen
+ */
+export const markMilestoneSeen = (progress: CampaignProgress, milestone: 'inner' | 'kuiper'): CampaignProgress => {
+    const seen = progress.milestonesSeen || [];
+    if (seen.includes(milestone)) return progress;
+
+    return {
+        ...progress,
+        milestonesSeen: [...seen, milestone],
     };
 };
 

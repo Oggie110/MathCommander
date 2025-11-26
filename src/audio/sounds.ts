@@ -1,8 +1,10 @@
 // Sound Registry - Define all game sounds here
 import type { SoundDefinition } from './types';
 import type { Leg } from '@/data/campaignRoute';
+import { SPEECH_SOUNDS } from './speechSounds';
 
-export const SOUNDS: Record<string, SoundDefinition> = {
+// Core game sounds (music, sfx, ambience)
+const CORE_SOUNDS: Record<string, SoundDefinition> = {
     // === MUSIC ===
     menuMusic: {
         id: 'menuMusic',
@@ -39,6 +41,20 @@ export const SOUNDS: Record<string, SoundDefinition> = {
         category: 'music',
         loop: false,
         volume: 0.3,
+    },
+    bossFightMusic: {
+        id: 'bossFightMusic',
+        src: '/assets/audio-assets/music/mc_bossfight_music.wav',
+        category: 'music',
+        loop: true,
+        volume: 0.5,
+    },
+    zorathFightMusic: {
+        id: 'zorathFightMusic',
+        src: '/assets/audio-assets/music/mc_zorathfight_music.wav',
+        category: 'music',
+        loop: true,
+        volume: 0.5,
     },
 
     // === AMBIENCE ===
@@ -98,6 +114,44 @@ export const SOUNDS: Record<string, SoundDefinition> = {
         category: 'sfx',
         volume: 0.5,
     },
+    // Ship slide whoosh sounds
+    shipSlide1: {
+        id: 'shipSlide1',
+        src: '/assets/audio-assets/sfx/sfx/ship_slide/SFX_Whoosh_Pass_By_PSEF179 1.wav',
+        category: 'sfx',
+        volume: 0.5,
+    },
+    shipSlide2: {
+        id: 'shipSlide2',
+        src: '/assets/audio-assets/sfx/sfx/ship_slide/SFX_Whoosh_Pass_By_PSEF180.wav',
+        category: 'sfx',
+        volume: 0.5,
+    },
+    shipSlide3: {
+        id: 'shipSlide3',
+        src: '/assets/audio-assets/sfx/sfx/ship_slide/SFX_Whoosh_Pass_By_PSEF182 1.wav',
+        category: 'sfx',
+        volume: 0.5,
+    },
+    shipSlide4: {
+        id: 'shipSlide4',
+        src: '/assets/audio-assets/sfx/sfx/ship_slide/SFX_Whoosh_Pass_By_PSEF185.wav',
+        category: 'sfx',
+        volume: 0.5,
+    },
+    // Radio static for boss defeat transmission
+    radioStatic: {
+        id: 'radioStatic',
+        src: '/assets/audio-assets/sfx/radio/radio_static.wav',
+        category: 'sfx',
+        volume: 0.7,
+    },
+};
+
+// Combined sounds registry (core + speech)
+export const SOUNDS: Record<string, SoundDefinition> = {
+    ...CORE_SOUNDS,
+    ...SPEECH_SOUNDS,
 };
 
 // Helper to get all sounds by category

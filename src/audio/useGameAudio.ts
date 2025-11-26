@@ -1,5 +1,5 @@
 // React hook for the Audio Engine
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { audioEngine } from './AudioEngine';
 import { getAllSoundIds } from './sounds';
 import type { PlayOptions, MusicOptions, CategoryVolumes } from './types';

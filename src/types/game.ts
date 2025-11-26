@@ -23,4 +23,5 @@ export interface CampaignProgress {
     currentWaypointIndex: number;
     completedLegs: string[];
     starsEarned: Record<string, number>; // legId_waypointIndex -> stars (1-3)
+    milestonesSeen?: string[]; // 'inner' | 'kuiper' - tracks which milestones have been shown
 }

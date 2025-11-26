@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Outlet } from 'react-router-dom';
+import { ScreenFrame } from '@/components/ui/ScreenFrame';
 
 // Generate star data once at module level to avoid re-randomizing on re-renders
 const generateStars = (count: number) => {
@@ -19,14 +20,14 @@ export const Layout: React.FC = () => {
     const stars = useMemo(() => STARS, []);
 
     return (
-        <div className="min-h-screen bg-space-black text-white font-pixel overflow-hidden relative">
+        <ScreenFrame>
             {/* Starfield Background */}
             <div className="fixed inset-0 z-0">
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-50 animate-pulse"></div>
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 animate-pulse"></div>
                 {stars.map((star) => (
                     <div
                         key={star.id}
-                        className="absolute bg-white rounded-full"
+                        className="absolute bg-brand-accent rounded-full"
                         style={{
                             top: `${star.top}%`,
                             left: `${star.left}%`,
@@ -50,6 +51,6 @@ export const Layout: React.FC = () => {
           50% { opacity: 1; }
         }
       `}</style>
-        </div>
+        </ScreenFrame>
     );
 };
