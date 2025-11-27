@@ -33,7 +33,7 @@ const CORE_SOUNDS: Record<string, SoundDefinition> = {
         src: '/assets/audio-assets/music/mc_battle_music_phase3.wav',
         category: 'music',
         loop: true,
-        volume: 0.3,
+        volume: 0.5,
     },
     victoryMusic: {
         id: 'victoryMusic',

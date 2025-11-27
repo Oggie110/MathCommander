@@ -341,12 +341,15 @@ const BattleScreen: React.FC = () => {
             setDefeatSoundId(defeatDialogue.soundId);
         }
 
-        // Update stats
+        // Update stats (only advance campaign if not replaying a completed level)
+        const isReplay = locationState?.isReplay || false;
         const newStats = {
             ...stats,
             totalXP: stats.totalXP + xpEarned,
             weakAreas: updateWeakAreas(finalQuestions, stats.weakAreas),
-            campaignProgress: completeMission(currentProgress, correctCount, finalQuestions.length),
+            campaignProgress: isReplay
+                ? currentProgress  // Don't advance progression on replay
+                : completeMission(currentProgress, correctCount, finalQuestions.length),
         };
 
         savePlayerStats(newStats);

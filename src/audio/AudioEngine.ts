@@ -11,6 +11,10 @@ class AudioEngine {
     private sfxGain: GainNode | null = null;
     private ambienceGain: GainNode | null = null;
     private speechGain: GainNode | null = null;
+    private speechCompressor: DynamicsCompressorNode | null = null;
+    private speechMakeupGain: GainNode | null = null;
+    private sfxCompressor: DynamicsCompressorNode | null = null;
+    private sfxMakeupGain: GainNode | null = null;
 
     // Currently playing speech (only one at a time)
     private currentSpeech: AudioBufferSourceNode | null = null;
@@ -63,16 +67,46 @@ class AudioEngine {
             this.musicGain.connect(this.masterGain);
             this.musicGain.gain.value = this.volumes.music;
 
+            // SFX compressor for consistent volume levels (lighter than speech)
+            this.sfxCompressor = this.context.createDynamicsCompressor();
+            this.sfxCompressor.threshold.value = -24; // Start compressing at -24dB
+            this.sfxCompressor.knee.value = 6;        // Soft knee for smooth compression
+            this.sfxCompressor.ratio.value = 4;       // 4:1 compression ratio (lighter than speech)
+            this.sfxCompressor.attack.value = 0.003;  // 3ms attack (fast, catches transients)
+            this.sfxCompressor.release.value = 0.25;  // 250ms release (smooth)
+
+            // Makeup gain after SFX compressor
+            this.sfxMakeupGain = this.context.createGain();
+            this.sfxMakeupGain.gain.value = 0.5;      // Reduce post-compressed signal
+            this.sfxMakeupGain.connect(this.masterGain);
+
+            this.sfxCompressor.connect(this.sfxMakeupGain);
+
             this.sfxGain = this.context.createGain();
-            this.sfxGain.connect(this.masterGain);
+            this.sfxGain.connect(this.sfxCompressor);
             this.sfxGain.gain.value = this.volumes.sfx;
 
             this.ambienceGain = this.context.createGain();
             this.ambienceGain.connect(this.masterGain);
             this.ambienceGain.gain.value = this.volumes.ambience;
 
+            // Speech compressor for consistent volume levels
+            this.speechCompressor = this.context.createDynamicsCompressor();
+            this.speechCompressor.threshold.value = -24; // Start compressing at -24dB
+            this.speechCompressor.knee.value = 6;        // Soft knee for smooth compression
+            this.speechCompressor.ratio.value = 6;       // 6:1 compression ratio
+            this.speechCompressor.attack.value = 0.003;  // 3ms attack (fast, catches transients)
+            this.speechCompressor.release.value = 0.25;  // 250ms release (smooth)
+
+            // Makeup gain after compressor to reduce overall level
+            this.speechMakeupGain = this.context.createGain();
+            this.speechMakeupGain.gain.value = 0.5;      // Reduce post-compressed signal
+            this.speechMakeupGain.connect(this.masterGain);
+
+            this.speechCompressor.connect(this.speechMakeupGain);
+
             this.speechGain = this.context.createGain();
-            this.speechGain.connect(this.masterGain);
+            this.speechGain.connect(this.speechCompressor);
             this.speechGain.gain.value = this.volumes.speech;
 
             this._isInitialized = true;

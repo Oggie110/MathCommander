@@ -36,25 +36,25 @@ const planetImages: Record<string, string> = {
 // Middle row (L→R): Europa → Saturn → Titan → Uranus → Neptune
 // Top row (L→R): Pluto → Haumea → Makemake → Eris → Arrokoth
 const planetPositions: Record<string, { x: number; y: number; size: number }> = {
-    // Inner System (bottom row)
-    earth: { x: 6, y: 78, size: 44 },
-    moon: { x: 16, y: 72, size: 28 },
-    mars: { x: 28, y: 78, size: 36 },
-    ceres: { x: 40, y: 72, size: 22 },
-    jupiter: { x: 54, y: 78, size: 56 },
-    // Gas Giants (middle row)
-    europa: { x: 66, y: 68, size: 26 },
-    saturn: { x: 80, y: 62, size: 52 },
-    titan: { x: 90, y: 52, size: 28 },
-    // Ice Giants (continuing up)
-    uranus: { x: 82, y: 42, size: 40 },
-    neptune: { x: 70, y: 35, size: 40 },
-    // Kuiper Belt (top row, going left then right)
-    pluto: { x: 56, y: 28, size: 26 },
-    haumea: { x: 42, y: 22, size: 22 },
-    makemake: { x: 28, y: 18, size: 26 },
-    eris: { x: 14, y: 24, size: 28 },
-    arrokoth: { x: 6, y: 16, size: 18 },
+    // Inner System (bottom row) - sizes doubled
+    earth: { x: 6, y: 78, size: 88 },
+    moon: { x: 16, y: 72, size: 56 },
+    mars: { x: 28, y: 78, size: 72 },
+    ceres: { x: 40, y: 72, size: 44 },
+    jupiter: { x: 54, y: 78, size: 112 },
+    // Gas Giants (middle row) - sizes doubled
+    europa: { x: 66, y: 68, size: 52 },
+    saturn: { x: 80, y: 62, size: 104 },
+    titan: { x: 90, y: 52, size: 56 },
+    // Ice Giants (continuing up) - sizes doubled
+    uranus: { x: 82, y: 42, size: 80 },
+    neptune: { x: 70, y: 35, size: 80 },
+    // Kuiper Belt (top row, going left then right) - sizes doubled
+    pluto: { x: 56, y: 28, size: 52 },
+    haumea: { x: 42, y: 22, size: 44 },
+    makemake: { x: 28, y: 18, size: 52 },
+    eris: { x: 14, y: 24, size: 56 },
+    arrokoth: { x: 6, y: 16, size: 36 },
 };
 
 interface WaypointNodeProps {
@@ -63,6 +63,7 @@ interface WaypointNodeProps {
     isCompleted: boolean;
     isCurrent: boolean;
     isLocked: boolean;
+    isSelected: boolean;
     onClick: () => void;
     waypointProgress?: { current: number; total: number };
 }
@@ -72,6 +73,7 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
     isCompleted,
     isCurrent,
     isLocked,
+    isSelected,
     onClick,
     waypointProgress,
 }) => {
@@ -81,11 +83,11 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
     return (
         <div
             className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300 ${canClick ? 'hover:scale-110' : 'cursor-not-allowed'
-                } ${isCurrent ? 'z-20' : 'z-10'}`}
+                } ${isCurrent || isSelected ? 'z-20' : 'z-10'}`}
             style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
             onClick={canClick ? onClick : undefined}
         >
-            {/* Selection ring for current */}
+            {/* Selection ring for current (pulsing) */}
             {isCurrent && (
                 <div
                     className="absolute inset-0 rounded-full animate-ping"
@@ -96,6 +98,20 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
                         top: -8,
                         border: '3px solid var(--color-brand-secondary)',
                         opacity: 0.5,
+                    }}
+                />
+            )}
+            {/* Selection ring for selected planet (static) */}
+            {isSelected && !isCurrent && (
+                <div
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                        width: pos.size + 16,
+                        height: pos.size + 16,
+                        left: -8,
+                        top: -8,
+                        border: '3px solid var(--color-brand-accent)',
+                        opacity: 0.8,
                     }}
                 />
             )}
@@ -122,25 +138,9 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
                     </div>
                 )}
 
-                {/* Waypoint progress dots */}
-                {isCurrent && waypointProgress && (
-                    <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 flex gap-1">
-                        {Array.from({ length: waypointProgress.total }).map((_, i) => (
-                            <div
-                                key={i}
-                                className={`w-2 h-2 rounded-full ${i < waypointProgress.current
-                                    ? 'bg-brand-success shadow-[0_0_4px_var(--color-brand-success)]'
-                                    : i === waypointProgress.current
-                                        ? 'bg-brand-accent shadow-[0_0_4px_var(--color-brand-accent)] animate-pulse'
-                                        : 'bg-industrial-metal'
-                                    }`}
-                            />
-                        ))}
-                    </div>
-                )}
             </div>
 
-            {/* Planet name label and stars */}
+            {/* Planet name label, stars, and waypoint progress */}
             <div
                 className="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center"
                 style={{ top: pos.size + 4 }}
@@ -158,6 +158,22 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
                             <Star
                                 key={star}
                                 className="w-2.5 h-2.5 text-brand-accent fill-brand-accent"
+                            />
+                        ))}
+                    </div>
+                )}
+                {/* Waypoint progress dots for current planet */}
+                {isCurrent && waypointProgress && (
+                    <div className="flex gap-1 mt-0.5">
+                        {Array.from({ length: waypointProgress.total }).map((_, i) => (
+                            <div
+                                key={i}
+                                className={`w-2 h-2 rounded-full ${i < waypointProgress.current
+                                    ? 'bg-brand-success shadow-[0_0_4px_var(--color-brand-success)]'
+                                    : i === waypointProgress.current
+                                        ? 'bg-brand-accent shadow-[0_0_4px_var(--color-brand-accent)] animate-pulse'
+                                        : 'bg-industrial-metal'
+                                    }`}
                             />
                         ))}
                     </div>
@@ -220,6 +236,8 @@ const SolarSystemMap: React.FC = () => {
         currentLeg ? celestialBodies[currentLeg.toBodyId] : null
     );
     const [selectedLeg, setSelectedLeg] = useState<Leg | null>(currentLeg ?? null);
+    // Track which planet has the replay popup open
+    const [replayPopupBody, setReplayPopupBody] = useState<CelestialBody | null>(null);
 
     const getBodyStatus = (bodyId: string) => {
         // Find which leg this body is the destination of
@@ -249,7 +267,18 @@ const SolarSystemMap: React.FC = () => {
             setSelectedBody(body);
             const leg = campaignLegs.find(l => l.toBodyId === body.id);
             setSelectedLeg(leg || null);
+
+            // For completed planets (not Earth), show replay popup
+            if (status.isCompleted && body.id !== 'earth') {
+                setReplayPopupBody(body);
+            } else {
+                setReplayPopupBody(null);
+            }
         }
+    };
+
+    const handleCloseReplayPopup = () => {
+        setReplayPopupBody(null);
     };
 
     const handleStartMission = (isReplay: boolean = false) => {
@@ -372,11 +401,59 @@ const SolarSystemMap: React.FC = () => {
                             isCompleted={status.isCompleted}
                             isCurrent={status.isCurrent}
                             isLocked={status.isLocked}
+                            isSelected={selectedBody?.id === body.id}
                             onClick={() => handleBodyClick(body)}
                             waypointProgress={waypointProgress}
                         />
                     );
                 })}
+
+                {/* Replay popup over completed planet */}
+                {replayPopupBody && (
+                    <>
+                        {/* Backdrop to close popup */}
+                        <div
+                            className="absolute inset-0 z-20"
+                            onClick={handleCloseReplayPopup}
+                        />
+                        {/* Popup positioned above the planet */}
+                        <div
+                            className="absolute z-30 transform -translate-x-1/2 animate-fadeIn"
+                            style={{
+                                left: `${planetPositions[replayPopupBody.id].x}%`,
+                                top: `${planetPositions[replayPopupBody.id].y - 12}%`,
+                            }}
+                        >
+                            <div className="bg-industrial-dark border-2 border-brand-accent rounded-lg p-3 shadow-lg shadow-brand-accent/20">
+                                <div className="text-center mb-2">
+                                    <div className="text-brand-success text-xs font-bold flex items-center justify-center gap-1 font-tech">
+                                        <Star className="w-3 h-3 fill-brand-success" /> CLEARED
+                                    </div>
+                                </div>
+                                <PixelButton
+                                    variant="primary"
+                                    onClick={() => {
+                                        handleCloseReplayPopup();
+                                        handleStartMission(true);
+                                    }}
+                                    className="px-4 py-2 text-sm"
+                                    size="sm"
+                                >
+                                    REPLAY
+                                </PixelButton>
+                                {/* Arrow pointing down to planet */}
+                                <div
+                                    className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0"
+                                    style={{
+                                        borderLeft: '8px solid transparent',
+                                        borderRight: '8px solid transparent',
+                                        borderTop: '8px solid var(--color-brand-accent)',
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
 
             {/* Bottom info panel */}
@@ -426,9 +503,9 @@ const SolarSystemMap: React.FC = () => {
                                         <div className="text-brand-success text-sm font-bold flex items-center gap-1 font-tech">
                                             <Star className="w-4 h-4 fill-brand-success" /> CLEARED
                                         </div>
-                                        <PixelButton variant="secondary" onClick={() => handleStartMission(true)} className="px-4 py-2 mt-2 text-sm" size="sm">
-                                            REPLAY
-                                        </PixelButton>
+                                        <div className="text-xs text-industrial-highlight mt-1 font-tech">
+                                            Click planet to replay
+                                        </div>
                                     </div>
                                 ) : selectedBody.id === 'earth' ? (
                                     <div className="text-center text-brand-secondary text-sm font-bold font-tech">
