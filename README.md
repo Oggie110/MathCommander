@@ -21,6 +21,18 @@ Travel across the solar system from Earth to the distant Kuiper Belt, battling a
 - Tailwind CSS
 - Web Audio API for spatial audio and effects
 
+## Audio System
+
+The game uses a custom Web Audio API engine (`src/audio/AudioEngine.ts`) with per-channel dynamics processing for consistent volume levels:
+
+| Channel | Threshold | Ratio | Attack | Release | Makeup Gain |
+|---------|-----------|-------|--------|---------|-------------|
+| Music   | -18dB     | 3:1   | 10ms   | 200ms   | 0.7         |
+| SFX     | -24dB     | 4:1   | 3ms    | 250ms   | 0.5         |
+| Speech  | -24dB     | 6:1   | 3ms    | 250ms   | 0.5         |
+
+Speech audio also includes radio transmission effects (bandpass filtering, subtle reverb) with a heavier "damaged transmission" variant for defeated bosses.
+
 ## Development
 
 ```bash
