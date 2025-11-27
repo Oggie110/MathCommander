@@ -6,6 +6,7 @@ import MissionScreen from "@/pages/MissionScreen";
 import BattleScreen from "@/pages/BattleScreen";
 import ResultScreen from "@/pages/ResultScreen";
 import AudioTestPage from "@/pages/AudioTestPage";
+import HomeBaseScreen from "@/pages/HomeBaseScreen";
 
 const App = () => (
   <BrowserRouter>
@@ -17,6 +18,7 @@ const App = () => (
         <Route path="/battle" element={<BattleScreen />} />
         <Route path="/result" element={<ResultScreen />} />
         <Route path="/audio-test" element={<AudioTestPage />} />
+        <Route path="/homebase" element={<HomeBaseScreen />} />
       </Route>
     </Routes>
   </BrowserRouter>

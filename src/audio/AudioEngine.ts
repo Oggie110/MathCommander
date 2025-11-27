@@ -15,6 +15,8 @@ class AudioEngine {
     private speechMakeupGain: GainNode | null = null;
     private sfxCompressor: DynamicsCompressorNode | null = null;
     private sfxMakeupGain: GainNode | null = null;
+    private musicCompressor: DynamicsCompressorNode | null = null;
+    private musicMakeupGain: GainNode | null = null;
 
     // Currently playing speech (only one at a time)
     private currentSpeech: AudioBufferSourceNode | null = null;
@@ -63,8 +65,23 @@ class AudioEngine {
             this.masterGain.connect(this.context.destination);
             this.masterGain.gain.value = this.volumes.master;
 
+            // Music compressor for consistent volume levels (gentle, preserves dynamics)
+            this.musicCompressor = this.context.createDynamicsCompressor();
+            this.musicCompressor.threshold.value = -18; // Start compressing at -18dB (higher threshold)
+            this.musicCompressor.knee.value = 10;       // Soft knee for very smooth compression
+            this.musicCompressor.ratio.value = 3;       // 3:1 compression ratio (gentle)
+            this.musicCompressor.attack.value = 0.01;   // 10ms attack (slower to preserve transients)
+            this.musicCompressor.release.value = 0.2;   // 200ms release (smooth)
+
+            // Makeup gain after music compressor
+            this.musicMakeupGain = this.context.createGain();
+            this.musicMakeupGain.gain.value = 0.7;      // Gentle reduction
+            this.musicMakeupGain.connect(this.masterGain);
+
+            this.musicCompressor.connect(this.musicMakeupGain);
+
             this.musicGain = this.context.createGain();
-            this.musicGain.connect(this.masterGain);
+            this.musicGain.connect(this.musicCompressor);
             this.musicGain.gain.value = this.volumes.music;
 
             // SFX compressor for consistent volume levels (lighter than speech)

@@ -268,8 +268,8 @@ const SolarSystemMap: React.FC = () => {
             const leg = campaignLegs.find(l => l.toBodyId === body.id);
             setSelectedLeg(leg || null);
 
-            // For completed planets (not Earth), show replay popup
-            if (status.isCompleted && body.id !== 'earth') {
+            // For completed planets (including Earth), show popup
+            if (status.isCompleted) {
                 setReplayPopupBody(body);
             } else {
                 setReplayPopupBody(null);
@@ -421,26 +421,42 @@ const SolarSystemMap: React.FC = () => {
                             className="absolute z-30 transform -translate-x-1/2 animate-fadeIn"
                             style={{
                                 left: `${planetPositions[replayPopupBody.id].x}%`,
-                                top: `${planetPositions[replayPopupBody.id].y - 12}%`,
+                                top: `${planetPositions[replayPopupBody.id].y - 14}%`,
                             }}
                         >
                             <div className="bg-industrial-dark border-2 border-brand-accent rounded-lg p-3 shadow-lg shadow-brand-accent/20">
-                                <div className="text-center mb-2">
-                                    <div className="text-brand-success text-xs font-bold flex items-center justify-center gap-1 font-tech">
-                                        <Star className="w-3 h-3 fill-brand-success" /> CLEARED
-                                    </div>
-                                </div>
-                                <PixelButton
-                                    variant="primary"
-                                    onClick={() => {
-                                        handleCloseReplayPopup();
-                                        handleStartMission(true);
-                                    }}
-                                    className="px-4 py-2 text-sm"
-                                    size="sm"
-                                >
-                                    REPLAY
-                                </PixelButton>
+                                {replayPopupBody.id === 'earth' ? (
+                                    <PixelButton
+                                        variant="secondary"
+                                        onClick={() => {
+                                            handleCloseReplayPopup();
+                                            navigate('/homebase');
+                                        }}
+                                        className="px-4 py-2 text-sm"
+                                        size="sm"
+                                    >
+                                        HOMEBASE
+                                    </PixelButton>
+                                ) : (
+                                    <>
+                                        <div className="text-center mb-2">
+                                            <div className="text-brand-success text-xs font-bold flex items-center justify-center gap-1 font-tech">
+                                                <Star className="w-3 h-3 fill-brand-success" /> CLEARED
+                                            </div>
+                                        </div>
+                                        <PixelButton
+                                            variant="primary"
+                                            onClick={() => {
+                                                handleCloseReplayPopup();
+                                                handleStartMission(true);
+                                            }}
+                                            className="px-4 py-2 text-sm"
+                                            size="sm"
+                                        >
+                                            REPLAY
+                                        </PixelButton>
+                                    </>
+                                )}
                                 {/* Arrow pointing down to planet */}
                                 <div
                                     className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0"
@@ -498,18 +514,20 @@ const SolarSystemMap: React.FC = () => {
                                     <PixelButton onClick={() => handleStartMission(false)} className="px-6 py-3 text-lg" variant="primary">
                                         LAUNCH <ChevronRight className="w-5 h-5 inline" />
                                     </PixelButton>
-                                ) : getBodyStatus(selectedBody.id).isCompleted && selectedBody.id !== 'earth' ? (
+                                ) : getBodyStatus(selectedBody.id).isCompleted ? (
                                     <div className="text-center">
-                                        <div className="text-brand-success text-sm font-bold flex items-center gap-1 font-tech">
-                                            <Star className="w-4 h-4 fill-brand-success" /> CLEARED
-                                        </div>
+                                        {selectedBody.id === 'earth' ? (
+                                            <div className="text-brand-secondary text-sm font-bold font-tech">
+                                                HOME BASE
+                                            </div>
+                                        ) : (
+                                            <div className="text-brand-success text-sm font-bold flex items-center gap-1 font-tech">
+                                                <Star className="w-4 h-4 fill-brand-success" /> CLEARED
+                                            </div>
+                                        )}
                                         <div className="text-xs text-industrial-highlight mt-1 font-tech">
-                                            Click planet to replay
+                                            Click planet for options
                                         </div>
-                                    </div>
-                                ) : selectedBody.id === 'earth' ? (
-                                    <div className="text-center text-brand-secondary text-sm font-bold font-tech">
-                                        HOME BASE
                                     </div>
                                 ) : null}
                             </div>
