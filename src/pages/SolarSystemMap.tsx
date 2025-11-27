@@ -13,7 +13,26 @@ import { milestoneMessages } from '@/data/narrative';
 import { PixelCard } from '@/components/ui/PixelCard';
 import { MILESTONE_TEXT } from '@/audio/speechSounds';
 
-// Planet image mapping
+// Animated planet sprite mapping - folder path and frame count
+const animatedPlanets: Record<string, { folder: string; frames: number }> = {
+    earth: { folder: '/assets/helianthus/AnimatedPlanetsFull/Terran_with_clouds/1', frames: 60 },
+    moon: { folder: '/assets/helianthus/AnimatedPlanetsFull/Barren_or_Moon/1', frames: 60 },
+    mars: { folder: '/assets/helianthus/AnimatedPlanetsFull/Desert/1', frames: 60 },
+    ceres: { folder: '/assets/helianthus/AnimatedPlanetsFull/Barren_or_Moon/2', frames: 60 },
+    jupiter: { folder: '/assets/helianthus/AnimatedPlanetsFull/Gas_giant_or_Toxic/1', frames: 60 },
+    europa: { folder: '/assets/helianthus/AnimatedPlanetsFull/Ice', frames: 60 },
+    saturn: { folder: '/assets/helianthus/AnimatedPlanetsFull/Gas_giant_or_Toxic/2', frames: 60 },
+    titan: { folder: '/assets/helianthus/AnimatedPlanetsFull/Desert/2', frames: 60 },
+    uranus: { folder: '/assets/helianthus/AnimatedPlanetsFull/Gas_giant_or_Toxic/3', frames: 60 },
+    neptune: { folder: '/assets/helianthus/AnimatedPlanetsFull/Gas_giant_or_Toxic/4', frames: 60 },
+    pluto: { folder: '/assets/helianthus/AnimatedPlanetsFull/Barren_or_Moon/3', frames: 60 },
+    haumea: { folder: '/assets/helianthus/AnimatedPlanetsFull/Barren_or_Moon/4', frames: 60 },
+    makemake: { folder: '/assets/helianthus/AnimatedPlanetsFull/Ice', frames: 60 },
+    eris: { folder: '/assets/helianthus/AnimatedPlanetsFull/Ice', frames: 60 },
+    arrokoth: { folder: '/assets/helianthus/AnimatedPlanetsFull/Barren_or_Moon/1', frames: 60 },
+};
+
+// Static planet images (fallback)
 const planetImages: Record<string, string> = {
     earth: '/assets/helianthus/PlanetsFull/Ocean/1.png',
     moon: '/assets/helianthus/PlanetsFull/Barren_or_Moon/1.png',
@@ -30,6 +49,58 @@ const planetImages: Record<string, string> = {
     makemake: '/assets/helianthus/PlanetsFull/Rocky/1.png',
     eris: '/assets/helianthus/PlanetsFull/Ice_or_Snow/4.png',
     arrokoth: '/assets/helianthus/PlanetsFull/Asteroids/5.png',
+};
+
+// Animated Planet Component
+const AnimatedPlanet: React.FC<{
+    planetId: string;
+    size: number;
+    isLocked?: boolean;
+    className?: string;
+}> = ({ planetId, size, isLocked = false, className = '' }) => {
+    const [frame, setFrame] = useState(1);
+    const planetData = animatedPlanets[planetId];
+
+    useEffect(() => {
+        if (!planetData || isLocked) return;
+
+        const interval = setInterval(() => {
+            setFrame(prev => (prev % planetData.frames) + 1);
+        }, 100); // ~10fps for gentle rotation
+
+        return () => clearInterval(interval);
+    }, [planetData, isLocked]);
+
+    if (!planetData) {
+        // Fallback to static image
+        return (
+            <img
+                src={planetImages[planetId]}
+                alt={planetId}
+                style={{
+                    width: size,
+                    height: size,
+                    imageRendering: 'pixelated',
+                    filter: isLocked ? 'brightness(0.3) grayscale(1)' : 'none',
+                }}
+                className={className}
+            />
+        );
+    }
+
+    return (
+        <img
+            src={`${planetData.folder}/${frame}.png`}
+            alt={planetId}
+            style={{
+                width: size,
+                height: size,
+                imageRendering: 'pixelated',
+                filter: isLocked ? 'brightness(0.3) grayscale(1)' : 'none',
+            }}
+            className={className}
+        />
+    );
 };
 
 // Planet positions on the map - arranged in campaign flow order (serpentine path)
@@ -121,16 +192,10 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
 
             {/* Planet image */}
             <div className="relative">
-                <img
-                    src={planetImages[body.id]}
-                    alt={body.name}
-                    style={{
-                        width: pos.size,
-                        height: pos.size,
-                        imageRendering: 'pixelated',
-                        filter: isLocked ? 'brightness(0.3) grayscale(1)' : 'none',
-                    }}
-                    className={`${isCurrent ? 'animate-pulse' : ''}`}
+                <AnimatedPlanet
+                    planetId={body.id}
+                    size={pos.size}
+                    isLocked={isLocked}
                 />
 
 
@@ -573,12 +638,9 @@ const SolarSystemMap: React.FC = () => {
                             {/* Selected planet preview */}
                             <div className="flex-shrink-0 relative">
                                 <div className="absolute inset-0 bg-brand-secondary/20 rounded-full blur-xl animate-pulse" />
-                                <img
-                                    src={planetImages[selectedBody.id]}
-                                    alt={selectedBody.name}
-                                    className="w-20 h-20 relative z-10"
-                                    style={{ imageRendering: 'pixelated' }}
-                                />
+                                <div className="relative z-10">
+                                    <AnimatedPlanet planetId={selectedBody.id} size={80} />
+                                </div>
                             </div>
 
                             {/* Planet info */}

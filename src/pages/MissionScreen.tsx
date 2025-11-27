@@ -7,23 +7,60 @@ import { celestialBodies } from '@/data/campaignRoute';
 import { ArrowLeft, Star } from 'lucide-react';
 import { useSFX } from '@/audio';
 
-// Planet image mapping (same as SolarSystemMap)
-const planetImages: Record<string, string> = {
-    earth: '/assets/helianthus/PlanetsFull/Ocean/1.png',
-    moon: '/assets/helianthus/PlanetsFull/Barren_or_Moon/1.png',
-    mars: '/assets/helianthus/PlanetsFull/Desert_or_Martian/1.png',
-    ceres: '/assets/helianthus/PlanetsFull/Asteroids/1.png',
-    jupiter: '/assets/helianthus/PlanetsFull/Gas_Giant_or_Toxic/1.png',
-    europa: '/assets/helianthus/PlanetsFull/Ice_or_Snow/1.png',
-    saturn: '/assets/helianthus/PlanetsFull/Gas_Giant_or_Toxic/5.png',
-    titan: '/assets/helianthus/PlanetsFull/Desert_or_Martian/3.png',
-    uranus: '/assets/helianthus/PlanetsFull/Gas_Giant_or_Toxic/9.png',
-    neptune: '/assets/helianthus/PlanetsFull/Ocean/3.png',
-    pluto: '/assets/helianthus/PlanetsFull/Ice_or_Snow/3.png',
-    haumea: '/assets/helianthus/PlanetsFull/Barren_or_Moon/3.png',
-    makemake: '/assets/helianthus/PlanetsFull/Rocky/1.png',
-    eris: '/assets/helianthus/PlanetsFull/Ice_or_Snow/4.png',
-    arrokoth: '/assets/helianthus/PlanetsFull/Asteroids/5.png',
+// Animated planet sprite mapping - folder path and frame count
+const animatedPlanets: Record<string, { folder: string; frames: number }> = {
+    earth: { folder: '/assets/helianthus/AnimatedPlanetsFull/Terran_with_clouds/1', frames: 60 },
+    moon: { folder: '/assets/helianthus/AnimatedPlanetsFull/Barren_or_Moon/1', frames: 60 },
+    mars: { folder: '/assets/helianthus/AnimatedPlanetsFull/Desert/1', frames: 60 },
+    ceres: { folder: '/assets/helianthus/AnimatedPlanetsFull/Barren_or_Moon/2', frames: 60 },
+    jupiter: { folder: '/assets/helianthus/AnimatedPlanetsFull/Gas_giant_or_Toxic/1', frames: 60 },
+    europa: { folder: '/assets/helianthus/AnimatedPlanetsFull/Ice', frames: 60 },
+    saturn: { folder: '/assets/helianthus/AnimatedPlanetsFull/Gas_giant_or_Toxic/2', frames: 60 },
+    titan: { folder: '/assets/helianthus/AnimatedPlanetsFull/Desert/2', frames: 60 },
+    uranus: { folder: '/assets/helianthus/AnimatedPlanetsFull/Gas_giant_or_Toxic/3', frames: 60 },
+    neptune: { folder: '/assets/helianthus/AnimatedPlanetsFull/Gas_giant_or_Toxic/4', frames: 60 },
+    pluto: { folder: '/assets/helianthus/AnimatedPlanetsFull/Barren_or_Moon/3', frames: 60 },
+    haumea: { folder: '/assets/helianthus/AnimatedPlanetsFull/Barren_or_Moon/4', frames: 60 },
+    makemake: { folder: '/assets/helianthus/AnimatedPlanetsFull/Ice', frames: 60 },
+    eris: { folder: '/assets/helianthus/AnimatedPlanetsFull/Ice', frames: 60 },
+    arrokoth: { folder: '/assets/helianthus/AnimatedPlanetsFull/Barren_or_Moon/1', frames: 60 },
+};
+
+// Animated Planet Component
+const AnimatedPlanet: React.FC<{
+    planetId: string;
+    size: number;
+    className?: string;
+}> = ({ planetId, size, className = '' }) => {
+    const [frame, setFrame] = useState(1);
+    const planetData = animatedPlanets[planetId];
+
+    useEffect(() => {
+        if (!planetData) return;
+
+        const interval = setInterval(() => {
+            setFrame(prev => (prev % planetData.frames) + 1);
+        }, 100); // ~10fps for gentle rotation
+
+        return () => clearInterval(interval);
+    }, [planetData]);
+
+    if (!planetData) {
+        return null;
+    }
+
+    return (
+        <img
+            src={`${planetData.folder}/${frame}.png`}
+            alt={planetId}
+            style={{
+                width: size,
+                height: size,
+                imageRendering: 'pixelated',
+            }}
+            className={className}
+        />
+    );
 };
 
 interface LocationState {
@@ -160,12 +197,7 @@ const MissionScreen: React.FC = () => {
                 <div className="flex items-center gap-8 mb-12">
                     {/* Origin */}
                     <div className="text-center">
-                        <img
-                            src={planetImages[origin.id]}
-                            alt={origin.name}
-                            className="w-16 h-16 mx-auto mb-2"
-                            style={{ imageRendering: 'pixelated' }}
-                        />
+                        <AnimatedPlanet planetId={origin.id} size={64} className="mx-auto mb-2" />
                         <div className="text-xs text-gray-400 uppercase">{origin.name}</div>
                     </div>
 
@@ -259,12 +291,7 @@ const MissionScreen: React.FC = () => {
 
                     {/* Destination */}
                     <div className="text-center">
-                        <img
-                            src={planetImages[destination.id]}
-                            alt={destination.name}
-                            className="w-20 h-20 mx-auto mb-2"
-                            style={{ imageRendering: 'pixelated' }}
-                        />
+                        <AnimatedPlanet planetId={destination.id} size={80} className="mx-auto mb-2" />
                         <div className="text-sm text-cyan-400 font-bold uppercase">{destination.name}</div>
                     </div>
                 </div>
@@ -272,12 +299,7 @@ const MissionScreen: React.FC = () => {
                 {/* Mission info panel */}
                 <div className="bg-gray-900/80 border-4 border-gray-700 p-6 max-w-xl w-full">
                     <div className="flex items-start gap-4">
-                        <img
-                            src={planetImages[destination.id]}
-                            alt={destination.name}
-                            className="w-24 h-24"
-                            style={{ imageRendering: 'pixelated' }}
-                        />
+                        <AnimatedPlanet planetId={destination.id} size={96} />
                         <div className="flex-1">
                             <h2 className="text-xl font-bold text-white mb-2">{destination.name}</h2>
                             <p className="text-sm text-gray-400 mb-3">{destination.fact}</p>
