@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
 import { loadPlayerStats } from '@/utils/gameLogic';
 import { initializeCampaignProgress, getLegById, getLegIndex, isBossLevel } from '@/utils/campaignLogic';
 import { celestialBodies } from '@/data/campaignRoute';
-import { ArrowLeft, Star, Rocket, Target } from 'lucide-react';
+import { ArrowLeft, Star } from 'lucide-react';
 import { useSFX } from '@/audio';
 
 // Planet image mapping (same as SolarSystemMap)
@@ -30,6 +30,27 @@ interface LocationState {
     legId: string;
     isReplay?: boolean;
 }
+
+// Animated enemy ship sprite
+const AnimatedShip: React.FC<{ isLocked: boolean }> = ({ isLocked }) => {
+    const [frame, setFrame] = useState(1);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setFrame(f => f >= 6 ? 1 : f + 1);
+        }, 150); // 150ms per frame
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <img
+            src={`/assets/helianthus/ShooterFull/Ships/2/Pattern1/Red/Left/${frame}.png`}
+            alt="Wave"
+            className={`w-10 h-10 object-contain ${isLocked ? 'opacity-30 grayscale' : ''}`}
+            style={{ imageRendering: 'pixelated' }}
+        />
+    );
+};
 
 const MissionScreen: React.FC = () => {
     const navigate = useNavigate();
@@ -169,26 +190,28 @@ const MissionScreen: React.FC = () => {
                                         onClick={() => !status.isLocked && handleStartMission(waypointIndex)}
                                         disabled={status.isLocked}
                                         className={`
-                                            relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
+                                            relative flex flex-col items-center p-4 border-4 transition-all
                                             ${status.isLocked
-                                                ? 'border-gray-700 bg-gray-900/50 cursor-not-allowed opacity-50'
+                                                ? 'border-red-900 bg-gray-900/50 cursor-not-allowed opacity-50'
                                                 : status.isCurrent
-                                                    ? 'border-cyan-400 bg-cyan-900/30 hover:bg-cyan-900/50 cursor-pointer animate-pulse'
+                                                    ? 'border-red-500 bg-red-900/30 hover:bg-red-900/50 cursor-pointer animate-pulseSubtle'
                                                     : status.isCompleted
                                                         ? 'border-green-500 bg-green-900/30 hover:bg-green-900/50 cursor-pointer'
-                                                        : 'border-gray-600 bg-gray-800/50 cursor-pointer'
+                                                        : 'border-red-500 bg-red-900/30 hover:bg-red-900/50 cursor-pointer'
                                             }
                                         `}
                                     >
                                         {/* Icon */}
-                                        <div className={`
-                                            w-12 h-12 rounded-full flex items-center justify-center mb-2
-                                            ${isBoss ? 'bg-red-900/50' : 'bg-gray-800'}
-                                        `}>
+                                        <div className={`flex items-center justify-center mb-2 ${isBoss ? 'w-24 h-24' : 'w-12 h-12'}`}>
                                             {isBoss ? (
-                                                <Target className={`w-6 h-6 ${status.isLocked ? 'text-gray-600' : 'text-red-400'}`} />
+                                                <img
+                                                    src="/assets/1Ships/BossShip1Small.png"
+                                                    alt="Boss"
+                                                    className={`w-[88px] h-[88px] object-contain ${status.isLocked ? 'opacity-30 grayscale' : 'animate-hoverSmall'}`}
+                                                    style={{ imageRendering: 'pixelated' }}
+                                                />
                                             ) : (
-                                                <Rocket className={`w-6 h-6 ${status.isLocked ? 'text-gray-600' : 'text-cyan-400'}`} />
+                                                <AnimatedShip isLocked={status.isLocked} />
                                             )}
                                         </div>
 
@@ -217,7 +240,7 @@ const MissionScreen: React.FC = () => {
 
                                         {/* Current indicator */}
                                         {status.isCurrent && (
-                                            <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] bg-cyan-500 text-black px-2 rounded font-bold">
+                                            <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] bg-cyan-500 text-black px-2 font-bold">
                                                 NEXT
                                             </div>
                                         )}
@@ -247,7 +270,7 @@ const MissionScreen: React.FC = () => {
                 </div>
 
                 {/* Mission info panel */}
-                <div className="bg-gray-900/80 border border-gray-700 rounded-lg p-6 max-w-xl w-full">
+                <div className="bg-gray-900/80 border-4 border-gray-700 p-6 max-w-xl w-full">
                     <div className="flex items-start gap-4">
                         <img
                             src={planetImages[destination.id]}

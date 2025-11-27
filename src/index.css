@@ -162,6 +162,32 @@
   animation: hover 2s ease-in-out infinite;
 }
 
+@keyframes hoverSmall {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-hoverSmall {
+  animation: hoverSmall 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseSubtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulseSubtle {
+  animation: pulseSubtle 2.5s ease-in-out infinite;
+}
+
 @keyframes shake {
   0%, 100% {
     transform: translateX(0);

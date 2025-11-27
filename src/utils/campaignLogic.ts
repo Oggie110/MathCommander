@@ -110,10 +110,9 @@ export const completeMission = (
 
 export const calculateStars = (score: number, total: number): number => {
     const percentage = score / total;
-    if (percentage === 1) return 3;
-    if (percentage >= 0.9) return 2;
-    if (percentage >= 0.7) return 1;
-    return 0;
+    if (percentage >= 0.9) return 3;  // 90%+
+    if (percentage >= 0.7) return 2;  // 70-89%
+    return 0;                         // <70% = fail
 };
 
 export const getCompletedWaypointsCount = (progress: CampaignProgress): number => {

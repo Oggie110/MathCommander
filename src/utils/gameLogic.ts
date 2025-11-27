@@ -1,4 +1,5 @@
-import type { Question, GameSettings, PlayerStats } from '../types/game.ts';
+import type { Question, GameSettings, PlayerStats, Rank } from '../types/game.ts';
+import { RANKS } from '../types/game.ts';
 
 export const generateQuestions = (
     settings: GameSettings,
@@ -101,4 +102,25 @@ export const loadPlayerStats = (): PlayerStats => {
 
 export const savePlayerStats = (stats: PlayerStats): void => {
     localStorage.setItem('spacemath_stats', JSON.stringify(stats));
+};
+
+// Rank system utilities
+export const getRankForXP = (xp: number): Rank => {
+    return [...RANKS].reverse().find(r => xp >= r.minXP) || RANKS[0];
+};
+
+export const getNextRank = (xp: number): Rank | null => {
+    const currentRank = getRankForXP(xp);
+    const currentIndex = RANKS.findIndex(r => r.id === currentRank.id);
+    return currentIndex < RANKS.length - 1 ? RANKS[currentIndex + 1] : null;
+};
+
+export const getXPProgress = (xp: number): { current: number; next: number; progress: number } => {
+    const currentRank = getRankForXP(xp);
+    const nextRank = getNextRank(xp);
+    if (!nextRank) return { current: xp, next: xp, progress: 1 };
+
+    const progressXP = xp - currentRank.minXP;
+    const totalNeeded = nextRank.minXP - currentRank.minXP;
+    return { current: progressXP, next: totalNeeded, progress: progressXP / totalNeeded };
 };

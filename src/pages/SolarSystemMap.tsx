@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
-import { loadPlayerStats, savePlayerStats } from '@/utils/gameLogic';
+import { loadPlayerStats, savePlayerStats, getRankForXP, getXPProgress } from '@/utils/gameLogic';
 import { initializeCampaignProgress, getLegById, getLegIndex, checkForMilestone, markMilestoneSeen } from '@/utils/campaignLogic';
 import { celestialBodies, campaignLegs, getChapterName } from '@/data/campaignRoute';
 import type { CelestialBody, Leg } from '@/data/campaignRoute';
@@ -66,6 +66,7 @@ interface WaypointNodeProps {
     isSelected: boolean;
     onClick: () => void;
     waypointProgress?: { current: number; total: number };
+    starsEarned?: number; // 0-3 stars for completed planets
 }
 
 const WaypointNode: React.FC<WaypointNodeProps> = ({
@@ -76,6 +77,7 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
     isSelected,
     onClick,
     waypointProgress,
+    starsEarned = 0,
 }) => {
     const pos = planetPositions[body.id];
     const canClick = !isLocked;
@@ -154,10 +156,13 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
                 {/* Star ratings for completed planets */}
                 {isCompleted && body.id !== 'earth' && (
                     <div className="flex gap-0.5 mt-0.5">
-                        {[1, 2, 3].map((star) => (
+                        {[1, 2, 3].map((starIndex) => (
                             <Star
-                                key={star}
-                                className="w-2.5 h-2.5 text-brand-accent fill-brand-accent"
+                                key={starIndex}
+                                className={`w-2.5 h-2.5 ${starIndex <= starsEarned
+                                    ? 'text-brand-accent fill-brand-accent'
+                                    : 'text-industrial-metal fill-none'
+                                    }`}
                             />
                         ))}
                     </div>
@@ -268,8 +273,8 @@ const SolarSystemMap: React.FC = () => {
             const leg = campaignLegs.find(l => l.toBodyId === body.id);
             setSelectedLeg(leg || null);
 
-            // For completed planets (including Earth), show popup
-            if (status.isCompleted) {
+            // For completed planets (including Earth) and current planet, show popup
+            if (status.isCompleted || status.isCurrent) {
                 setReplayPopupBody(body);
             } else {
                 setReplayPopupBody(null);
@@ -368,8 +373,22 @@ const SolarSystemMap: React.FC = () => {
                     <ArrowLeft className="w-4 h-4" />
                 </PixelButton>
                 <h1 className="text-xl font-bold text-brand-secondary uppercase tracking-widest font-tech">Star Map</h1>
-                <div className="text-lg text-brand-accent font-bold font-pixel">
-                    XP: {stats.totalXP}
+                {/* Rank and XP display */}
+                <div className="flex flex-col items-end gap-1">
+                    <div className="text-sm text-brand-accent font-bold font-tech">
+                        {getRankForXP(stats.totalXP).name}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-24 h-2 bg-industrial-metal rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-brand-accent transition-all duration-300"
+                                style={{ width: `${getXPProgress(stats.totalXP).progress * 100}%` }}
+                            />
+                        </div>
+                        <div className="text-xs text-industrial-highlight font-tech">
+                            {stats.totalXP} XP
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -393,6 +412,19 @@ const SolarSystemMap: React.FC = () => {
                         total: currentLeg?.waypointsRequired || 4,
                     } : undefined;
 
+                    // Calculate stars earned for completed planets (minimum across all waypoints)
+                    let starsEarned = 0;
+                    if (status.isCompleted && leg) {
+                        const waypointStars: number[] = [];
+                        for (let i = 0; i < leg.waypointsRequired; i++) {
+                            const key = `${leg.id}_${i}`;
+                            const stars = progress.starsEarned[key] || 0;
+                            waypointStars.push(stars);
+                        }
+                        // Use minimum stars (shows weakest performance)
+                        starsEarned = waypointStars.length > 0 ? Math.min(...waypointStars) : 0;
+                    }
+
                     return (
                         <WaypointNode
                             key={body.id}
@@ -404,6 +436,7 @@ const SolarSystemMap: React.FC = () => {
                             isSelected={selectedBody?.id === body.id}
                             onClick={() => handleBodyClick(body)}
                             waypointProgress={waypointProgress}
+                            starsEarned={starsEarned}
                         />
                     );
                 })}
@@ -436,6 +469,18 @@ const SolarSystemMap: React.FC = () => {
                                         size="sm"
                                     >
                                         HOMEBASE
+                                    </PixelButton>
+                                ) : getBodyStatus(replayPopupBody.id).isCurrent ? (
+                                    <PixelButton
+                                        variant="primary"
+                                        onClick={() => {
+                                            handleCloseReplayPopup();
+                                            handleStartMission(false);
+                                        }}
+                                        className="px-4 py-2 text-sm"
+                                        size="sm"
+                                    >
+                                        LAUNCH
                                     </PixelButton>
                                 ) : (
                                     <>
