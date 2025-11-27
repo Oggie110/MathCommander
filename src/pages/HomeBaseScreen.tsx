@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Volume2, VolumeX, Music, MessageSquare, Sparkles, Star, Trophy, Rocket, Play } from 'lucide-react';
 import { PixelCard } from '@/components/ui/PixelCard';
 import { audioEngine } from '@/audio';
-import { loadPlayerStats } from '@/utils/gameLogic';
+import { loadPlayerStats, getRankForXP, getNextRank, getXPProgress } from '@/utils/gameLogic';
 import { initializeCampaignProgress, getTotalStarsEarned, getCompletedWaypointsCount, getTotalWaypoints } from '@/utils/campaignLogic';
 
 const HomeBaseScreen: React.FC = () => {
@@ -130,6 +130,11 @@ const HomeBaseScreen: React.FC = () => {
     const totalWaypoints = getTotalWaypoints();
     const completedStages = progress.completedLegs.length;
 
+    // Rank calculations
+    const currentRank = getRankForXP(stats.totalXP);
+    const nextRank = getNextRank(stats.totalXP);
+    const xpProgress = getXPProgress(stats.totalXP);
+
     return (
         <div className="flex-1 flex relative overflow-hidden">
             {/* Background Image - covers full height, aligned left */}
@@ -168,34 +173,54 @@ const HomeBaseScreen: React.FC = () => {
                             PILOT STATS
                         </h2>
 
-                        {/* Player Avatar */}
+                        {/* Player Rank Badge */}
                         <div className="flex items-center gap-4 mb-4 pb-4 border-b border-industrial-metal">
-                            <div className="w-16 h-16 rounded-lg border-2 border-brand-accent overflow-hidden bg-industrial-dark">
+                            <div className="w-20 h-20 rounded-lg border-2 border-brand-accent overflow-hidden bg-industrial-dark/50 p-1">
                                 <img
-                                    src="/assets/helianthus/PlayerShips/1.png"
-                                    alt="Player Ship"
+                                    src={currentRank.badge}
+                                    alt={currentRank.name}
                                     className="w-full h-full object-contain"
                                     style={{ imageRendering: 'pixelated' }}
                                 />
                             </div>
-                            <div>
-                                <div className="text-white font-tech text-sm">COMMANDER</div>
-                                <div className="text-brand-secondary text-xs font-tech">RANK: CADET</div>
+                            <div className="flex-1">
+                                <div className="text-brand-accent font-tech text-sm uppercase">{currentRank.name}</div>
+                                <div className="text-industrial-highlight text-xs font-tech mt-1">
+                                    {stats.totalXP.toLocaleString()} XP
+                                </div>
                             </div>
                         </div>
 
-                        {/* XP */}
+                        {/* XP Progress to Next Rank */}
                         <div className="mb-3">
                             <div className="flex justify-between text-xs mb-1">
-                                <span className="text-industrial-highlight font-tech">TOTAL XP</span>
-                                <span className="text-brand-accent font-tech">{stats.totalXP.toLocaleString()}</span>
+                                <span className="text-industrial-highlight font-tech">
+                                    {nextRank ? 'PROGRESS TO NEXT RANK' : 'MAX RANK ACHIEVED'}
+                                </span>
+                                {nextRank && (
+                                    <span className="text-brand-secondary font-tech">
+                                        {xpProgress.current.toLocaleString()} / {xpProgress.next.toLocaleString()}
+                                    </span>
+                                )}
                             </div>
                             <div className="h-2 bg-industrial-metal rounded-full overflow-hidden">
                                 <div
-                                    className="h-full bg-gradient-to-r from-brand-accent to-brand-secondary"
-                                    style={{ width: `${Math.min((stats.totalXP % 1000) / 10, 100)}%` }}
+                                    className="h-full bg-gradient-to-r from-brand-accent to-brand-secondary transition-all"
+                                    style={{ width: `${Math.round(xpProgress.progress * 100)}%` }}
                                 />
                             </div>
+                            {nextRank && (
+                                <div className="flex items-center gap-2 mt-2">
+                                    <span className="text-industrial-highlight text-xs font-tech">NEXT:</span>
+                                    <img
+                                        src={nextRank.badge}
+                                        alt={nextRank.name}
+                                        className="w-5 h-5 object-contain"
+                                        style={{ imageRendering: 'pixelated' }}
+                                    />
+                                    <span className="text-brand-secondary text-xs font-tech">{nextRank.name}</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Stars */}

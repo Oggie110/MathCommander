@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
 import { loadPlayerStats, savePlayerStats, getRankForXP, getXPProgress } from '@/utils/gameLogic';
+import { RANKS } from '@/types/game';
 import { initializeCampaignProgress, getLegById, getLegIndex, checkForMilestone, markMilestoneSeen } from '@/utils/campaignLogic';
 import { celestialBodies, campaignLegs, getChapterName } from '@/data/campaignRoute';
 import type { CelestialBody, Leg } from '@/data/campaignRoute';
@@ -196,6 +197,9 @@ const SolarSystemMap: React.FC = () => {
     // Milestone modal state
     const [activeMilestone, setActiveMilestone] = useState<'inner' | 'kuiper' | null>(null);
 
+    // Rank-up modal state
+    const [rankUpModal, setRankUpModal] = useState<{ show: boolean; rank: typeof RANKS[0] | null }>({ show: false, rank: null });
+
     // Start menu music and ambience when entering map (e.g., after battle)
     useEffect(() => {
         // Switch to menu music (crossfades from battle music if coming from battle)
@@ -219,6 +223,25 @@ const SolarSystemMap: React.FC = () => {
         }
     }, [progress.currentLegId, progress.currentWaypointIndex]);
 
+    // Check for rank-up on mount
+    useEffect(() => {
+        const currentRank = getRankForXP(stats.totalXP);
+        const lastSeenRankId = stats.lastSeenRankId || 'cadet'; // Default to cadet if not set
+        const lastSeenRankIndex = RANKS.findIndex(r => r.id === lastSeenRankId);
+        const currentRankIndex = RANKS.findIndex(r => r.id === currentRank.id);
+
+        // If current rank is higher than last seen, show rank-up modal
+        if (currentRankIndex > lastSeenRankIndex) {
+            // Delay slightly so it doesn't overlap with other effects
+            const timer = setTimeout(() => {
+                setRankUpModal({ show: true, rank: currentRank });
+                // Play a celebration sound
+                audioEngine.playSFX('victory');
+            }, activeMilestone ? 3000 : 800); // Wait longer if milestone is showing
+            return () => clearTimeout(timer);
+        }
+    }, [stats.totalXP, stats.lastSeenRankId, activeMilestone]);
+
     // Handle dismissing the milestone modal
     const handleDismissMilestone = () => {
         if (activeMilestone) {
@@ -231,6 +254,20 @@ const SolarSystemMap: React.FC = () => {
             savePlayerStats(updatedStats);
             setStats(updatedStats);
             setActiveMilestone(null);
+        }
+    };
+
+    // Handle dismissing the rank-up modal
+    const handleDismissRankUp = () => {
+        if (rankUpModal.rank) {
+            // Save the new rank as seen
+            const updatedStats = {
+                ...stats,
+                lastSeenRankId: rankUpModal.rank.id,
+            };
+            savePlayerStats(updatedStats);
+            setStats(updatedStats);
+            setRankUpModal({ show: false, rank: null });
         }
     };
 
@@ -374,19 +411,27 @@ const SolarSystemMap: React.FC = () => {
                 </PixelButton>
                 <h1 className="text-xl font-bold text-brand-secondary uppercase tracking-widest font-tech">Star Map</h1>
                 {/* Rank and XP display */}
-                <div className="flex flex-col items-end gap-1">
-                    <div className="text-sm text-brand-accent font-bold font-tech">
-                        {getRankForXP(stats.totalXP).name}
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-24 h-2 bg-industrial-metal rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-brand-accent transition-all duration-300"
-                                style={{ width: `${getXPProgress(stats.totalXP).progress * 100}%` }}
-                            />
+                <div className="flex items-center gap-3">
+                    <img
+                        src={getRankForXP(stats.totalXP).badge}
+                        alt={getRankForXP(stats.totalXP).name}
+                        className="w-12 h-12 object-contain"
+                        style={{ imageRendering: 'pixelated' }}
+                    />
+                    <div className="flex flex-col items-end gap-1">
+                        <div className="text-sm text-brand-accent font-bold font-tech">
+                            {getRankForXP(stats.totalXP).name}
                         </div>
-                        <div className="text-xs text-industrial-highlight font-tech">
-                            {stats.totalXP} XP
+                        <div className="flex items-center gap-2">
+                            <div className="w-24 h-2 bg-industrial-metal rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-brand-accent transition-all duration-300"
+                                    style={{ width: `${getXPProgress(stats.totalXP).progress * 100}%` }}
+                                />
+                            </div>
+                            <div className="text-xs text-industrial-highlight font-tech">
+                                {stats.totalXP} XP
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -588,25 +633,100 @@ const SolarSystemMap: React.FC = () => {
             {/* Milestone Modal Overlay */}
             {activeMilestone && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 animate-fadeIn">
-                    <PixelCard className="max-w-lg mx-4 p-6 border-brand-secondary bg-gray-900/95">
-                        <div className="flex items-center gap-3 mb-4 border-b border-brand-secondary/30 pb-3">
-                            <div className="w-3 h-3 rounded-full bg-brand-secondary animate-pulse" />
-                            <Radio className="w-5 h-5 text-brand-secondary" />
-                            <span className="text-brand-secondary text-sm font-bold tracking-widest">
-                                MILESTONE REACHED
-                            </span>
+                    <div className="relative max-w-lg mx-4 rounded-lg overflow-hidden border-2 border-brand-secondary shadow-lg shadow-brand-secondary/30">
+                        {/* Background image */}
+                        <div
+                            className="absolute inset-0 z-0"
+                            style={{
+                                backgroundImage: `url(/assets/1NewStuff/${activeMilestone === 'inner' ? 'milestone1' : 'milestone2'}.png)`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                            }}
+                        />
+                        {/* Dark overlay for text readability */}
+                        <div className="absolute inset-0 z-0 bg-black/60" />
+
+                        {/* Content */}
+                        <div className="relative z-10 p-6">
+                            <div className="flex items-center gap-3 mb-4 border-b border-brand-secondary/30 pb-3">
+                                <div className="w-3 h-3 rounded-full bg-brand-secondary animate-pulse" />
+                                <Radio className="w-5 h-5 text-brand-secondary" />
+                                <span className="text-brand-secondary text-sm font-bold tracking-widest font-tech">
+                                    MILESTONE REACHED
+                                </span>
+                            </div>
+                            <p className="text-cyan-300 text-lg leading-relaxed mb-6 drop-shadow-lg">
+                                "{MILESTONE_TEXT[activeMilestone === 'inner' ? 'milestone_inner' : 'milestone_kuiper']}"
+                            </p>
+                            <PixelButton
+                                onClick={handleDismissMilestone}
+                                className="w-full py-3"
+                                variant="primary"
+                            >
+                                CONTINUE
+                            </PixelButton>
                         </div>
-                        <p className="text-cyan-300 text-lg leading-relaxed mb-6">
-                            "{MILESTONE_TEXT[activeMilestone === 'inner' ? 'milestone_inner' : 'milestone_kuiper']}"
-                        </p>
-                        <PixelButton
-                            onClick={handleDismissMilestone}
-                            className="w-full py-3"
-                            variant="primary"
-                        >
-                            CONTINUE
-                        </PixelButton>
-                    </PixelCard>
+                    </div>
+                </div>
+            )}
+
+            {/* Rank-Up Modal Overlay */}
+            {rankUpModal.show && rankUpModal.rank && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 animate-fadeIn">
+                    <div className="relative max-w-md mx-4 rounded-lg overflow-hidden border-2 border-brand-accent shadow-lg shadow-brand-accent/30">
+                        {/* Background image */}
+                        <div
+                            className="absolute inset-0 z-0"
+                            style={{
+                                backgroundImage: 'url(/assets/1NewStuff/milestone3.png)',
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                            }}
+                        />
+                        {/* Dark overlay for text readability */}
+                        <div className="absolute inset-0 z-0 bg-black/50" />
+
+                        {/* Content */}
+                        <div className="relative z-10 p-6">
+                            <div className="flex items-center justify-center gap-2 mb-4">
+                                <Star className="w-5 h-5 text-brand-accent fill-brand-accent" />
+                                <span className="text-brand-accent text-sm font-bold tracking-widest font-tech">
+                                    RANK UP!
+                                </span>
+                                <Star className="w-5 h-5 text-brand-accent fill-brand-accent" />
+                            </div>
+
+                            {/* Badge display */}
+                            <div className="flex justify-center mb-4">
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-brand-accent/30 rounded-full blur-xl animate-pulse" />
+                                    <img
+                                        src={rankUpModal.rank.badge}
+                                        alt={rankUpModal.rank.name}
+                                        className="w-32 h-32 object-contain relative z-10"
+                                        style={{ imageRendering: 'pixelated' }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="text-center mb-4">
+                                <div className="text-brand-accent text-2xl font-bold font-tech uppercase drop-shadow-lg">
+                                    {rankUpModal.rank.name}
+                                </div>
+                                <div className="text-white text-sm font-tech mt-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                                    You've earned this rank through your dedication to the mission!
+                                </div>
+                            </div>
+
+                            <PixelButton
+                                onClick={handleDismissRankUp}
+                                className="w-full py-3"
+                                variant="primary"
+                            >
+                                ACCEPT PROMOTION
+                            </PixelButton>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

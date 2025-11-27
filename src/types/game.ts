@@ -16,6 +16,7 @@ export interface PlayerStats {
     totalXP: number;
     weakAreas: Record<string, number>;
     campaignProgress?: CampaignProgress;
+    lastSeenRankId?: string; // Track which rank the player has seen the rank-up modal for
 }
 
 export interface CampaignProgress {
@@ -30,14 +31,15 @@ export interface Rank {
     id: string;
     name: string;
     minXP: number;
+    badge: string;
 }
 
 export const RANKS: Rank[] = [
-    { id: 'cadet', name: 'Space Cadet', minXP: 0 },
-    { id: 'captain', name: 'Space Captain', minXP: 500 },
-    { id: 'commander', name: 'Space Commander', minXP: 2000 },
-    { id: 'admiral', name: 'Fleet Admiral', minXP: 5000 },
-    { id: 'marshal', name: 'Star Marshal', minXP: 10000 },
-    { id: 'guardian', name: 'Cosmic Guardian', minXP: 25000 },
-    { id: 'legend', name: 'Galactic Legend', minXP: 50000 },
+    { id: 'cadet', name: 'Space Cadet', minXP: 0, badge: '/assets/1NewStuff/NewBadges/rank-cadet.png' },
+    { id: 'captain', name: 'Space Captain', minXP: 500, badge: '/assets/1NewStuff/NewBadges/rank-captain.png' },
+    { id: 'commander', name: 'Space Commander', minXP: 2000, badge: '/assets/1NewStuff/NewBadges/rank-commander.png' },
+    { id: 'admiral', name: 'Fleet Admiral', minXP: 5000, badge: '/assets/1NewStuff/NewBadges/rank-fleet-admiral.png' },
+    { id: 'marshal', name: 'Star Marshal', minXP: 10000, badge: '/assets/1NewStuff/NewBadges/rank-star-marshal.png' },
+    { id: 'guardian', name: 'Cosmic Guardian', minXP: 25000, badge: '/assets/1NewStuff/NewBadges/rank-cosmic-guardian.png' },
+    { id: 'legend', name: 'Galactic Legend', minXP: 50000, badge: '/assets/1NewStuff/NewBadges/rank-galactic-legend.png' },
 ];
