@@ -437,7 +437,7 @@ const BattleScreen: React.FC = () => {
                                 <div className="absolute inset-0 z-0 overflow-hidden">
                                     {/* Base background - slowest layer */}
                                     <div
-                                        className="absolute inset-0 bg-bottom animate-scrollSlow"
+                                        className={`absolute inset-0 bg-bottom ${isBossBattle ? 'animate-scrollBoss' : 'animate-scrollSlow'}`}
                                         style={{
                                             backgroundImage: `url(${backgroundImage})`,
                                             backgroundSize: isBossBattle ? 'auto 600px' : '8000px',
@@ -567,8 +567,10 @@ const BattleScreen: React.FC = () => {
                                                 ? `/assets/helianthus/ShooterFull/Shots/Blue/Shot${shotFrame}.png`
                                                 : `/assets/helianthus/ShooterFull/Shots/Blue/ShotHit${shotFrame - 5}.png`;
 
-                                            // Projectile travels across (0% to 100%), hit effect at impact point (105% to reach enemy)
-                                            const progressPercent = isProjectile ? (shotFrame - 1) * 25 : 105;
+                                            // Projectile travels across, hit effect at impact point
+                                            // Boss ships are larger with protruding cannon, so shot needs to travel further
+                                            const hitPoint = isBossBattle ? 125 : 105;
+                                            const progressPercent = isProjectile ? (shotFrame - 1) * (hitPoint / 4) : hitPoint;
 
                                             return (
                                                 <img

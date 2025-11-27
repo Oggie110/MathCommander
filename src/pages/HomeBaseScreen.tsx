@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Volume2, VolumeX, Music, MessageSquare, Sparkles, Star, Trophy, Rocket, Play } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX, Sparkles, Star, Rocket, Play } from 'lucide-react';
 import { PixelCard } from '@/components/ui/PixelCard';
 import { audioEngine } from '@/audio';
 import { loadPlayerStats, getRankForXP, getNextRank, getXPProgress } from '@/utils/gameLogic';
@@ -143,14 +143,14 @@ const HomeBaseScreen: React.FC = () => {
                 style={{
                     backgroundImage: 'url(/assets/1NewStuff/homebase.png)',
                     backgroundSize: 'auto 100%',
-                    backgroundPosition: 'left center',
+                    backgroundPosition: 'center center',
                     backgroundRepeat: 'no-repeat',
                     imageRendering: 'pixelated',
                 }}
             />
 
             {/* Dark overlay for better readability */}
-            <div className="absolute inset-0 z-0 bg-black/30" />
+            <div className="absolute inset-0 z-0 bg-black/70" />
 
             {/* Back button */}
             <div className="absolute top-4 left-4 z-20">
@@ -163,13 +163,13 @@ const HomeBaseScreen: React.FC = () => {
                 </button>
             </div>
 
-            {/* Main content area - panels on the right */}
-            <div className="relative z-10 flex w-full p-4">
-                {/* Right side panels - centered in right half */}
-                <div className="md:w-80 ml-auto mr-[3%] mt-8 space-y-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
-                    <PixelCard className="p-4 bg-industrial-dark/95 backdrop-blur-sm">
-                        <h2 className="text-brand-accent font-tech text-lg mb-4 flex items-center gap-2">
-                            <Trophy className="w-5 h-5" />
+            {/* Main content area - centered panels side by side */}
+            <div className="relative z-10 flex items-center justify-center w-full p-4">
+                <div className="flex flex-col md:flex-row md:items-start gap-4 mt-12 max-h-[calc(100vh-4rem)] overflow-y-auto">
+                    {/* Left column - Pilot Stats & Ship */}
+                    <div className="flex flex-col gap-4 w-80">
+                    <PixelCard className="p-8 bg-industrial-dark/95 backdrop-blur-sm">
+                        <h2 className="text-brand-accent font-tech text-base mb-4">
                             PILOT STATS
                         </h2>
 
@@ -184,8 +184,8 @@ const HomeBaseScreen: React.FC = () => {
                                 />
                             </div>
                             <div className="flex-1">
-                                <div className="text-brand-accent font-tech text-sm uppercase">{currentRank.name}</div>
-                                <div className="text-industrial-highlight text-xs font-tech mt-1">
+                                <div className="text-brand-accent font-tech text-sm uppercase whitespace-nowrap">{currentRank.name}</div>
+                                <div className="text-industrial-highlight text-xs font-tech mt-1 whitespace-nowrap">
                                     {stats.totalXP.toLocaleString()} XP
                                 </div>
                             </div>
@@ -193,16 +193,14 @@ const HomeBaseScreen: React.FC = () => {
 
                         {/* XP Progress to Next Rank */}
                         <div className="mb-3">
-                            <div className="flex justify-between text-xs mb-1">
-                                <span className="text-industrial-highlight font-tech">
-                                    {nextRank ? 'PROGRESS TO NEXT RANK' : 'MAX RANK ACHIEVED'}
-                                </span>
-                                {nextRank && (
-                                    <span className="text-brand-secondary font-tech">
-                                        {xpProgress.current.toLocaleString()} / {xpProgress.next.toLocaleString()}
-                                    </span>
-                                )}
+                            <div className="text-industrial-highlight font-tech text-[10px] mb-1">
+                                {nextRank ? 'PROGRESS TO NEXT RANK' : 'MAX RANK ACHIEVED'}
                             </div>
+                            {nextRank && (
+                                <div className="text-brand-secondary font-tech text-xs mb-1">
+                                    {xpProgress.current.toLocaleString()} / {xpProgress.next.toLocaleString()}
+                                </div>
+                            )}
                             <div className="h-2 bg-industrial-metal rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-gradient-to-r from-brand-accent to-brand-secondary transition-all"
@@ -211,14 +209,8 @@ const HomeBaseScreen: React.FC = () => {
                             </div>
                             {nextRank && (
                                 <div className="flex items-center gap-2 mt-2">
-                                    <span className="text-industrial-highlight text-xs font-tech">NEXT:</span>
-                                    <img
-                                        src={nextRank.badge}
-                                        alt={nextRank.name}
-                                        className="w-5 h-5 object-contain"
-                                        style={{ imageRendering: 'pixelated' }}
-                                    />
-                                    <span className="text-brand-secondary text-xs font-tech">{nextRank.name}</span>
+                                    <span className="text-industrial-highlight text-xs font-tech whitespace-nowrap">NEXT:</span>
+                                    <span className="text-brand-secondary text-xs font-tech whitespace-nowrap">{nextRank.name}</span>
                                 </div>
                             )}
                         </div>
@@ -242,18 +234,16 @@ const HomeBaseScreen: React.FC = () => {
                         </div>
 
                         {/* Stages */}
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between mb-4 pb-4 border-b border-industrial-metal">
                             <div className="flex items-center gap-2">
                                 <Sparkles className="w-4 h-4 text-brand-success" />
                                 <span className="text-industrial-highlight text-xs font-tech">PLANETS CLEARED</span>
                             </div>
                             <span className="text-brand-success font-tech">{completedStages}</span>
                         </div>
-                    </PixelCard>
 
-                    {/* Spaceship display */}
-                    <PixelCard className="p-4 bg-industrial-dark/95 backdrop-blur-sm">
-                        <h2 className="text-brand-secondary font-tech text-sm mb-3">YOUR SHIP</h2>
+                        {/* Spaceship display - now inside Pilot Stats */}
+                        <h3 className="text-brand-secondary font-tech text-sm mb-3">YOUR SHIP</h3>
                         <div className="flex justify-center">
                             <video
                                 src="/assets/1NewStuff/ShipRotate.mp4"
@@ -261,7 +251,7 @@ const HomeBaseScreen: React.FC = () => {
                                 loop
                                 muted
                                 playsInline
-                                className="w-40 h-40 object-contain"
+                                className="w-32 h-32 object-contain"
                             />
                         </div>
                         <div className="text-center mt-2">
@@ -269,21 +259,19 @@ const HomeBaseScreen: React.FC = () => {
                             <div className="text-industrial-highlight text-xs font-tech">CLASS: INTERCEPTOR</div>
                         </div>
                     </PixelCard>
+                    </div>
 
-                    {/* Audio Settings - below stats */}
-                    <PixelCard className="p-4 bg-industrial-dark/95 backdrop-blur-sm">
-                        <h2 className="text-brand-accent font-tech text-lg mb-4 flex items-center gap-2">
-                            <Volume2 className="w-5 h-5" />
+                    {/* Right column - Audio Settings */}
+                    <div className="flex flex-col gap-4 w-80">
+                    <PixelCard className="p-8 bg-industrial-dark/95 backdrop-blur-sm h-fit">
+                        <h2 className="text-brand-accent font-tech text-base mb-4">
                             AUDIO SETTINGS
                         </h2>
 
                         {/* Music Volume */}
                         <div className="mb-5">
                             <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                    <Music className="w-4 h-4 text-brand-secondary" />
-                                    <span className="text-white text-sm font-tech">MUSIC</span>
-                                </div>
+                                <span className="text-white text-xs font-tech">MUSIC</span>
                                 <div className="flex items-center gap-1">
                                     <button
                                         onClick={testMusic}
@@ -323,10 +311,7 @@ const HomeBaseScreen: React.FC = () => {
                         {/* SFX & Ambience Volume */}
                         <div className="mb-5">
                             <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                    <Sparkles className="w-4 h-4 text-brand-accent" />
-                                    <span className="text-white text-sm font-tech">SFX & AMBIENCE</span>
-                                </div>
+                                <span className="text-white text-xs font-tech whitespace-nowrap">SFX & AMBIENCE</span>
                                 <div className="flex items-center gap-1">
                                     <button
                                         onClick={testSFX}
@@ -366,10 +351,7 @@ const HomeBaseScreen: React.FC = () => {
                         {/* Speech Volume */}
                         <div className="mb-2">
                             <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                    <MessageSquare className="w-4 h-4 text-brand-success" />
-                                    <span className="text-white text-sm font-tech">SPEECH</span>
-                                </div>
+                                <span className="text-white text-xs font-tech">SPEECH</span>
                                 <div className="flex items-center gap-1">
                                     <button
                                         onClick={testSpeech}
@@ -406,6 +388,7 @@ const HomeBaseScreen: React.FC = () => {
                             </div>
                         </div>
                     </PixelCard>
+                    </div>
                 </div>
             </div>
         </div>
@@ -413,3 +396,4 @@ const HomeBaseScreen: React.FC = () => {
 };
 
 export default HomeBaseScreen;
+

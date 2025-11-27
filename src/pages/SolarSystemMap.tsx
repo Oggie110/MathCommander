@@ -567,9 +567,9 @@ const SolarSystemMap: React.FC = () => {
                 {/* Hazard Stripe Top Border */}
                 <div className="h-2 w-full bg-hazard opacity-50" />
 
-                <div className="p-4">
+                <div className="p-4 min-h-[120px] flex items-center">
                     {selectedBody ? (
-                        <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-6 w-full">
                             {/* Selected planet preview */}
                             <div className="flex-shrink-0 relative">
                                 <div className="absolute inset-0 bg-brand-secondary/20 rounded-full blur-xl animate-pulse" />
@@ -584,11 +584,9 @@ const SolarSystemMap: React.FC = () => {
                             {/* Planet info */}
                             <div className="flex-1 min-w-0">
                                 <h2 className="text-2xl font-bold text-white mb-1 font-pixel">{selectedBody.name}</h2>
-                                {selectedLeg && (
-                                    <div className="text-xs text-brand-secondary uppercase tracking-wider mb-2 font-tech">
-                                        {getChapterName(selectedLeg.chapter)}
-                                    </div>
-                                )}
+                                <div className="text-xs text-brand-secondary uppercase tracking-wider mb-2 font-tech">
+                                    {selectedLeg ? getChapterName(selectedLeg.chapter) : 'Inner System'}
+                                </div>
                                 <p className="text-sm text-gray-300 line-clamp-2 font-tech">{selectedBody.fact}</p>
                                 <div className="flex gap-4 mt-2">
                                     <div className="text-xs font-tech">
@@ -623,7 +621,7 @@ const SolarSystemMap: React.FC = () => {
                             </div>
                         </div>
                     ) : (
-                        <div className="text-center text-industrial-highlight font-tech py-4">
+                        <div className="text-center text-industrial-highlight font-tech w-full">
                             SELECT A DESTINATION ON THE MAP
                         </div>
                     )}

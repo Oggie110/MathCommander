@@ -92,7 +92,12 @@ export const updateWeakAreas = (
 export const loadPlayerStats = (): PlayerStats => {
     const stored = localStorage.getItem('spacemath_stats');
     if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        // Ensure campaignProgress.starsEarned exists (migration for old save data)
+        if (parsed.campaignProgress && !parsed.campaignProgress.starsEarned) {
+            parsed.campaignProgress.starsEarned = {};
+        }
+        return parsed;
     }
     return {
         totalXP: 0,
