@@ -9,8 +9,8 @@ import type { CelestialBody, Leg } from '@/data/campaignRoute';
 import { ArrowLeft, Lock, Star, ChevronRight, Radio } from 'lucide-react';
 import { audioEngine } from '@/audio';
 import { speechService } from '@/audio/SpeechService';
-import { milestoneMessages } from '@/data/narrative';
-import { PixelCard } from '@/components/ui/PixelCard';
+// import { milestoneMessages } from '@/data/narrative';
+// import { PixelCard } from '@/components/ui/PixelCard';
 import { MILESTONE_TEXT } from '@/audio/speechSounds';
 
 // Animated planet sprite mapping - folder path and frame count

@@ -19,7 +19,7 @@ const HomeBaseScreen: React.FC = () => {
     const handleResetProgress = () => {
         const freshStats = {
             totalXP: 0,
-            highScores: {},
+            weakAreas: {},
             campaignProgress: initializeCampaignProgress(),
         };
         savePlayerStats(freshStats);

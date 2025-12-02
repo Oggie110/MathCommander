@@ -144,17 +144,6 @@ class AudioEngine {
     }
 
     /**
-     * Ensure context is running (sync version - queues resume if needed)
-     */
-    private ensureContextRunning(): void {
-        if (this.context?.state === 'suspended') {
-            this.context.resume().then(() => {
-                console.log('[AudioEngine] Context auto-resumed');
-            });
-        }
-    }
-
-    /**
      * Check if audio engine is initialized
      */
     isInitialized(): boolean {

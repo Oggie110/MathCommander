@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PixelProgressBar } from '@/components/ui/PixelProgressBar';
+// import { PixelProgressBar } from '@/components/ui/PixelProgressBar';
 import { loadPlayerStats, savePlayerStats, generateQuestions, updateWeakAreas, calculateXP } from '@/utils/gameLogic';
 import { initializeCampaignProgress, generateCampaignMission, completeMission, isBossLevel, getLegById } from '@/utils/campaignLogic';
 import { isFinalBoss as checkIsFinalBoss } from '@/data/narrative';
@@ -346,8 +346,6 @@ const BattleScreen: React.FC = () => {
     }, [currentQuestion]);
 
     if (questions.length === 0) return null;
-
-    const progress = ((currentIndex + 1) / questions.length) * 100;
 
     const handleGameComplete = (finalQuestions: Question[]) => {
         const stats = loadPlayerStats();

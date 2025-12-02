@@ -39,8 +39,8 @@ const ResultScreen: React.FC = () => {
     }, [legId, waypointIndex]);
 
     // Use unified selection for all dialogue (synced text + audio)
-    const [victoryDialogue, setVictoryDialogue] = useState<DialogueLine | null>(null);
-    const [defeatDialogue, setDefeatDialogue] = useState<DialogueLine | null>(null);
+    const [_victoryDialogue, setVictoryDialogue] = useState<DialogueLine | null>(null);
+    const [_defeatDialogue, setDefeatDialogue] = useState<DialogueLine | null>(null);
     const [encourageDialogue, setEncourageDialogue] = useState<DialogueLine | null>(null);
     const [bossDefeatDialogue, setBossDefeatDialogue] = useState<DialogueLine | null>(null);
 
