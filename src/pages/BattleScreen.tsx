@@ -171,6 +171,21 @@ const BattleScreen: React.FC = () => {
         return () => clearInterval(interval);
     }, []);
 
+    // Preload explosion assets (images + sound) to prevent first-play stutter
+    useEffect(() => {
+        // Preload explosion sound
+        audioEngine.preload('explosion');
+
+        // Preload explosion sprite frames (8 frames each for Red and Blue)
+        const explosionColors = ['Red', 'Blue'];
+        explosionColors.forEach(color => {
+            for (let frame = 1; frame <= 8; frame++) {
+                const img = new Image();
+                img.src = `/assets/helianthus/ShooterFull/Explosions/${color}/64px/${frame}.png`;
+            }
+        });
+    }, []);
+
     // Shot animation - play through shot frames once when laser is active
     useEffect(() => {
         if (!showLaser) {

@@ -685,27 +685,22 @@ const SolarSystemMap: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Action button */}
-                            <div className="flex-shrink-0">
+                            {/* Status indicator */}
+                            <div className="flex-shrink-0 text-center">
                                 {getBodyStatus(selectedBody.id).isCurrent ? (
-                                    <PixelButton onClick={() => handleStartMission(false)} className="px-6 py-3 text-lg" variant="primary">
-                                        LAUNCH <ChevronRight className="w-5 h-5 inline" />
-                                    </PixelButton>
-                                ) : getBodyStatus(selectedBody.id).isCompleted ? (
-                                    <div className="text-center">
-                                        {selectedBody.id === 'earth' ? (
-                                            <div className="text-brand-secondary text-sm font-bold font-tech">
-                                                HOME BASE
-                                            </div>
-                                        ) : (
-                                            <div className="text-brand-success text-sm font-bold flex items-center gap-1 font-tech">
-                                                <Star className="w-4 h-4 fill-brand-success" /> CLEARED
-                                            </div>
-                                        )}
-                                        <div className="text-xs text-industrial-highlight mt-1 font-tech">
-                                            Click planet for options
-                                        </div>
+                                    <div className="text-brand-accent text-sm font-bold font-tech">
+                                        CURRENT TARGET
                                     </div>
+                                ) : getBodyStatus(selectedBody.id).isCompleted ? (
+                                    selectedBody.id === 'earth' ? (
+                                        <div className="text-brand-secondary text-sm font-bold font-tech">
+                                            HOME BASE
+                                        </div>
+                                    ) : (
+                                        <div className="text-brand-success text-sm font-bold flex items-center gap-1 font-tech">
+                                            <Star className="w-4 h-4 fill-brand-success" /> CLEARED
+                                        </div>
+                                    )
                                 ) : null}
                             </div>
                         </div>
