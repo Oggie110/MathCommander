@@ -218,10 +218,10 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
                         }`}
                 >
                     {body.name}
-                    {body.id === 'earth' && (
-                        <div className="text-[8px] text-industrial-highlight font-normal normal-case">(Home Base)</div>
-                    )}
                 </div>
+                {body.id === 'earth' && (
+                    <div className="text-[9px] text-brand-secondary font-normal tracking-wide whitespace-nowrap">(Home Base)</div>
+                )}
                 {/* Star ratings for completed planets */}
                 {isCompleted && body.id !== 'earth' && (
                     <div className="flex gap-0.5 mt-0.5">
@@ -507,11 +507,35 @@ const SolarSystemMap: React.FC = () => {
 
             {/* Main map area */}
             <div className="flex-1 relative z-10 overflow-hidden">
-                {/* Chapter labels - positioned to match new layout */}
-                <div className="absolute bottom-4 left-4 text-[10px] text-industrial-highlight uppercase tracking-wider opacity-60 font-tech">Inner System</div>
-                <div className="absolute bottom-4 right-8 text-[10px] text-industrial-highlight uppercase tracking-wider opacity-60 font-tech">Gas Giants</div>
-                <div className="absolute top-1/2 right-4 text-[10px] text-industrial-highlight uppercase tracking-wider opacity-60 font-tech">Ice Giants</div>
-                <div className="absolute top-4 left-4 text-[10px] text-industrial-highlight uppercase tracking-wider opacity-60 font-tech">Kuiper Belt</div>
+                {/* Chapter labels - styled badges near where each section starts */}
+                {/* Inner System - near Earth (x:6%, y:78%) */}
+                <div
+                    className="absolute z-5 px-3 py-1 rounded border border-blue-500/50 bg-blue-950/70 backdrop-blur-sm"
+                    style={{ left: '1%', top: '64%' }}
+                >
+                    <span className="text-[11px] text-blue-400 uppercase tracking-widest font-tech font-bold">Inner System</span>
+                </div>
+                {/* Gas Giants - near Jupiter (x:54%, y:78%) */}
+                <div
+                    className="absolute z-5 px-3 py-1 rounded border border-purple-500/50 bg-purple-950/70 backdrop-blur-sm"
+                    style={{ left: '48%', top: '64%' }}
+                >
+                    <span className="text-[11px] text-purple-400 uppercase tracking-widest font-tech font-bold">Gas Giants</span>
+                </div>
+                {/* Ice Giants - near Uranus (x:82%, y:42%) */}
+                <div
+                    className="absolute z-5 px-3 py-1 rounded border border-cyan-500/50 bg-cyan-950/70 backdrop-blur-sm"
+                    style={{ left: '76%', top: '28%' }}
+                >
+                    <span className="text-[11px] text-cyan-400 uppercase tracking-widest font-tech font-bold">Ice Giants</span>
+                </div>
+                {/* Kuiper Belt - near Pluto (x:56%, y:28%) */}
+                <div
+                    className="absolute z-5 px-3 py-1 rounded border border-orange-500/50 bg-orange-950/70 backdrop-blur-sm"
+                    style={{ left: '50%', top: '14%' }}
+                >
+                    <span className="text-[11px] text-orange-400 uppercase tracking-widest font-tech font-bold">Kuiper Belt</span>
+                </div>
 
                 {/* Paths */}
                 {renderPaths()}

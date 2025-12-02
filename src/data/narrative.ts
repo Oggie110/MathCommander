@@ -246,7 +246,7 @@ export const alienSectorTaunts: Record<string, string[]> = {
 export const alienBossIntros: Record<string, { name: string; line: string }> = {
     moon: {
         name: "SQUADRON LEADER",
-        line: "I am the first wall you will not pass. Prepare to be subtracted from existence, human.",
+        line: "I am the first wall, you will not pass. Prepare to be subtracted from existence, human.",
     },
     mars: {
         name: "SECTOR COMMANDER KRIX",

@@ -459,7 +459,7 @@ export const ALIEN_SECTOR_TEXT: Record<string, string> = {
 
 // Alien boss intro text with names
 export const ALIEN_BOSS_TEXT: Record<string, { name: string; line: string }> = {
-    boss_moon: { name: "SQUADRON LEADER", line: "I am the first wall you will not pass. Prepare to be subtracted from existence, human." },
+    boss_moon: { name: "SQUADRON LEADER", line: "I am the first wall, you will not pass. Prepare to be subtracted from existence, human." },
     boss_mars: { name: "SECTOR COMMANDER KRIX", line: "You destroyed my scouts? Impressive. But I am the remainder you cannot divide." },
     boss_ceres: { name: "SUPPLY MASTER VORN", line: "The asteroid belt is mine. You'll be just another piece of debris." },
     boss_jupiter: { name: "FLEET CAPTAIN THAX", line: "A Fleet Captain does not fall to a single human. I've crushed armadas greater than your entire species." },
