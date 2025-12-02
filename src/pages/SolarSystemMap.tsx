@@ -218,6 +218,9 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
                         }`}
                 >
                     {body.name}
+                    {body.id === 'earth' && (
+                        <div className="text-[8px] text-industrial-highlight font-normal normal-case">(Home Base)</div>
+                    )}
                 </div>
                 {/* Star ratings for completed planets */}
                 {isCompleted && body.id !== 'earth' && (
