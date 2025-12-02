@@ -1,19 +1,62 @@
 import type { Question, GameSettings, PlayerStats, Rank } from '../types/game.ts';
 import { RANKS } from '../types/game.ts';
 
+// Progressive x1 frequency based on destination
+// Earth/Moon: 30%, Mars: 15%, Ceres: 10%, Jupiter+: 0%
+// Exception: Newly introduced tables get 10% x1 at their introduction destination
+
+// Which table is introduced at which destination
+const tableIntroducedAt: Record<number, string> = {
+    // 1, 2, 3 are starting tables (earth)
+    4: 'moon',
+    5: 'mars',
+    6: 'ceres',
+    7: 'jupiter',
+    8: 'europa',
+    9: 'saturn',
+    10: 'uranus',
+    11: 'neptune',
+    12: 'pluto',
+};
+
+const getX1Frequency = (destinationId: string | undefined, table: number): number => {
+    // Check if this table is newly introduced at this destination
+    if (tableIntroducedAt[table] === destinationId) {
+        return 0.1; // 10% for newly introduced tables
+    }
+
+    // Progressive reduction based on destination
+    const destinationFrequencies: Record<string, number> = {
+        earth: 0.3,
+        moon: 0.3,
+        mars: 0.15,
+        ceres: 0.1,
+        // Everything from Jupiter onwards: 0%
+    };
+
+    return destinationFrequencies[destinationId || 'earth'] ?? 0;
+};
+
+
 export const generateQuestions = (
     settings: GameSettings,
     stats?: PlayerStats
 ): Question[] => {
     const questions: Question[] = [];
-    const { selectedTables, maxMultiplier, questionsPerRound } = settings;
+    const { selectedTables, maxMultiplier, questionsPerRound, destinationId } = settings;
 
     // Create pool of all possible pairs with weighting
     const allPairs: [number, number][] = [];
     selectedTables.forEach(table => {
         for (let i = 1; i <= maxMultiplier; i++) {
-            // Reduce frequency of x1 and x10 (only include 30% of the time)
-            if (i === 1 || i === 10) {
+            // Progressive x1 frequency reduction (rarer as you progress)
+            if (i === 1) {
+                const x1Freq = getX1Frequency(destinationId, table);
+                if (Math.random() < x1Freq) {
+                    allPairs.push([table, i]);
+                }
+            // x10 stays at 30% throughout
+            } else if (i === 10) {
                 if (Math.random() < 0.3) {
                     allPairs.push([table, i]);
                 }
@@ -23,34 +66,96 @@ export const generateQuestions = (
         }
     });
 
-    // Sort pairs by weakness (if stats available)
+    // Remove duplicates from allPairs (dedupe for selection)
+    const uniquePairsMap = new Map<string, [number, number]>();
+    const pairWeights = new Map<string, number>();
+
+    allPairs.forEach(pair => {
+        const key = `${pair[0]}x${pair[1]}`;
+        uniquePairsMap.set(key, pair);
+        pairWeights.set(key, (pairWeights.get(key) || 0) + 1);
+    });
+
+    const uniquePairs = Array.from(uniquePairsMap.values());
+
+    // Select questions with true random selection (no duplicates)
+    const selectedPairs: [number, number][] = [];
+    const usedKeys = new Set<string>();
+    const tableCount = new Map<number, number>(); // Track how many times each table (num1) appears
+    const multiplierCount = new Map<number, number>(); // Track how many times each multiplier (num2) appears
+
+    // Max questions per table/multiplier (ensures variety)
+    const maxPerTable = Math.ceil(questionsPerRound / Math.max(selectedTables.length, 3));
+    const maxPerMultiplier = Math.ceil(questionsPerRound / Math.max(maxMultiplier - 1, 3)); // -1 because x1 is rare
+
+    // Helper to check if we can add a pair
+    const canAddPair = (pair: [number, number]): boolean => {
+        const key = `${pair[0]}x${pair[1]}`;
+        if (usedKeys.has(key)) return false;
+        const tCount = tableCount.get(pair[0]) || 0;
+        const mCount = multiplierCount.get(pair[1]) || 0;
+        return tCount < maxPerTable && mCount < maxPerMultiplier;
+    };
+
+    // Helper to add a pair
+    const addPair = (pair: [number, number]) => {
+        const key = `${pair[0]}x${pair[1]}`;
+        selectedPairs.push(pair);
+        usedKeys.add(key);
+        tableCount.set(pair[0], (tableCount.get(pair[0]) || 0) + 1);
+        multiplierCount.set(pair[1], (multiplierCount.get(pair[1]) || 0) + 1);
+    };
+
+    // Separate weak area pairs from regular pairs
+    const weakPairs: [number, number][] = [];
+    const regularPairs: [number, number][] = [];
+
     if (stats && Object.keys(stats.weakAreas).length > 0) {
-        allPairs.sort((a, b) => {
+        uniquePairs.forEach(pair => {
+            const key = `${pair[0]}x${pair[1]}`;
+            if (stats.weakAreas[key] && stats.weakAreas[key] > 0) {
+                weakPairs.push(pair);
+            } else {
+                regularPairs.push(pair);
+            }
+        });
+        // Sort weak pairs by weakness (highest first)
+        weakPairs.sort((a, b) => {
             const keyA = `${a[0]}x${a[1]}`;
             const keyB = `${b[0]}x${b[1]}`;
-            const weaknessA = stats.weakAreas[keyA] || 0;
-            const weaknessB = stats.weakAreas[keyB] || 0;
-            return weaknessB - weaknessA; // Higher weakness first
+            return (stats.weakAreas[keyB] || 0) - (stats.weakAreas[keyA] || 0);
         });
+    } else {
+        regularPairs.push(...uniquePairs);
     }
 
-    // Select questions with bias towards weak areas
-    const selectedPairs: [number, number][] = [];
+    // 60% from weak areas (if available), rest random
+    const weakCount = Math.min(Math.floor(questionsPerRound * 0.6), weakPairs.length);
 
-    // 60% weak areas, 40% random
-    const weakCount = Math.floor(questionsPerRound * 0.6);
-    const randomCount = questionsPerRound - weakCount;
-
-    // Add weak area questions
-    for (let i = 0; i < weakCount && i < allPairs.length; i++) {
-        selectedPairs.push(allPairs[i]);
+    // Add weak area questions first (sorted by weakness)
+    for (let i = 0; i < weakPairs.length && selectedPairs.length < weakCount; i++) {
+        const pair = weakPairs[i];
+        if (canAddPair(pair)) {
+            addPair(pair);
+        }
     }
 
-    // Add random questions
-    const remainingPairs = allPairs.slice(weakCount);
-    for (let i = 0; i < randomCount; i++) {
-        const randomIndex = Math.floor(Math.random() * remainingPairs.length);
-        selectedPairs.push(remainingPairs[randomIndex]);
+    // Add remaining questions by true random selection from all available pairs
+    const availablePairs = [...regularPairs, ...weakPairs].filter(p => canAddPair(p));
+
+    let attempts = 0;
+    const maxAttempts = questionsPerRound * 20; // Prevent infinite loops
+
+    while (selectedPairs.length < questionsPerRound && availablePairs.length > 0 && attempts < maxAttempts) {
+        attempts++;
+        const randomIndex = Math.floor(Math.random() * availablePairs.length);
+        const pair = availablePairs[randomIndex];
+
+        if (canAddPair(pair)) {
+            addPair(pair);
+        }
+        // Always remove the pair from available (either used or can't use)
+        availablePairs.splice(randomIndex, 1);
     }
 
     // Shuffle and create question objects

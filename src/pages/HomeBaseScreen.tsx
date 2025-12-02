@@ -1,15 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Volume2, VolumeX, Sparkles, Star, Rocket, Play } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX, Sparkles, Star, Rocket, Play, RotateCcw } from 'lucide-react';
 import { PixelCard } from '@/components/ui/PixelCard';
+import { PixelButton } from '@/components/ui/PixelButton';
 import { audioEngine } from '@/audio';
-import { loadPlayerStats, getRankForXP, getNextRank, getXPProgress } from '@/utils/gameLogic';
+import { loadPlayerStats, getRankForXP, getNextRank, getXPProgress, savePlayerStats } from '@/utils/gameLogic';
 import { initializeCampaignProgress, getTotalStarsEarned, getCompletedWaypointsCount, getTotalWaypoints } from '@/utils/campaignLogic';
 
 const HomeBaseScreen: React.FC = () => {
     const navigate = useNavigate();
-    const [stats] = useState(() => loadPlayerStats());
+    const [stats, setStats] = useState(() => loadPlayerStats());
     const progress = stats.campaignProgress || initializeCampaignProgress();
+
+    // Reset confirmation modal state
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+    // Handle reset game progression
+    const handleResetProgress = () => {
+        const freshStats = {
+            totalXP: 0,
+            highScores: {},
+            campaignProgress: initializeCampaignProgress(),
+        };
+        savePlayerStats(freshStats);
+        setStats(freshStats);
+        setShowResetConfirm(false);
+    };
 
     // Audio volumes state
     const [volumes, setVolumes] = useState(() => audioEngine.getVolumes());
@@ -141,11 +157,10 @@ const HomeBaseScreen: React.FC = () => {
             <div
                 className="absolute inset-0 z-0"
                 style={{
-                    backgroundImage: 'url(/assets/1NewStuff/homebase.png)',
-                    backgroundSize: 'auto 100%',
+                    backgroundImage: 'url(/assets/1NewStuff/homebase2.png)',
+                    backgroundSize: 'cover',
                     backgroundPosition: 'center center',
                     backgroundRepeat: 'no-repeat',
-                    imageRendering: 'pixelated',
                 }}
             />
 
@@ -169,13 +184,13 @@ const HomeBaseScreen: React.FC = () => {
                     {/* Left column - Pilot Stats & Ship */}
                     <div className="flex flex-col gap-4 w-80">
                     <PixelCard className="p-8 bg-industrial-dark/95 backdrop-blur-sm">
-                        <h2 className="text-brand-accent font-tech text-base mb-4">
+                        <h2 className="text-brand-accent font-tech text-base mb-4 text-center">
                             PILOT STATS
                         </h2>
 
                         {/* Player Rank Badge */}
-                        <div className="flex items-center gap-4 mb-4 pb-4 border-b border-industrial-metal">
-                            <div className="w-20 h-20 rounded-lg border-2 border-brand-accent overflow-hidden bg-industrial-dark/50 p-1">
+                        <div className="flex flex-col items-center mb-4 pb-4 border-b border-industrial-metal">
+                            <div className="w-32 h-32 flex items-center justify-center mb-3">
                                 <img
                                     src={currentRank.badge}
                                     alt={currentRank.name}
@@ -183,9 +198,9 @@ const HomeBaseScreen: React.FC = () => {
                                     style={{ imageRendering: 'pixelated' }}
                                 />
                             </div>
-                            <div className="flex-1">
-                                <div className="text-brand-accent font-tech text-sm uppercase whitespace-nowrap">{currentRank.name}</div>
-                                <div className="text-industrial-highlight text-xs font-tech mt-1 whitespace-nowrap">
+                            <div className="text-center">
+                                <div className="text-brand-accent font-tech text-lg uppercase">{currentRank.name}</div>
+                                <div className="text-industrial-highlight text-sm font-tech mt-1">
                                     {stats.totalXP.toLocaleString()} XP
                                 </div>
                             </div>
@@ -243,7 +258,7 @@ const HomeBaseScreen: React.FC = () => {
                         </div>
 
                         {/* Spaceship display - now inside Pilot Stats */}
-                        <h3 className="text-brand-secondary font-tech text-sm mb-3">YOUR SHIP</h3>
+                        <h3 className="text-brand-secondary font-tech text-sm mb-3 text-center">YOUR SHIP</h3>
                         <div className="flex justify-center">
                             <video
                                 src="/assets/1NewStuff/ShipRotate.mp4"
@@ -264,7 +279,7 @@ const HomeBaseScreen: React.FC = () => {
                     {/* Right column - Audio Settings */}
                     <div className="flex flex-col gap-4 w-80">
                     <PixelCard className="p-8 bg-industrial-dark/95 backdrop-blur-sm h-fit">
-                        <h2 className="text-brand-accent font-tech text-base mb-4">
+                        <h2 className="text-brand-accent font-tech text-base mb-4 text-center">
                             AUDIO SETTINGS
                         </h2>
 
@@ -388,9 +403,55 @@ const HomeBaseScreen: React.FC = () => {
                             </div>
                         </div>
                     </PixelCard>
+
+                    {/* Reset Progress Card */}
+                    <PixelCard className="p-6 bg-industrial-dark/95 backdrop-blur-sm">
+                        <h2 className="text-brand-danger font-tech text-base mb-4 text-center">
+                            DANGER ZONE
+                        </h2>
+                        <PixelButton
+                            variant="danger"
+                            size="sm"
+                            onClick={() => setShowResetConfirm(true)}
+                            className="w-full"
+                        >
+                            <RotateCcw className="w-4 h-4 mr-2" />
+                            RESET PROGRESS
+                        </PixelButton>
+                    </PixelCard>
                     </div>
                 </div>
             </div>
+
+            {/* Reset Confirmation Modal */}
+            {showResetConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+                    <PixelCard className="p-6 bg-industrial-dark/95 max-w-sm mx-4">
+                        <h3 className="text-brand-danger font-tech text-lg mb-4 text-center">
+                            RESET PROGRESS?
+                        </h3>
+                        <p className="text-industrial-highlight text-sm mb-6 text-center font-tech">
+                            This will erase all your XP, stars, and mission progress. This action cannot be undone!
+                        </p>
+                        <div className="flex gap-3">
+                            <PixelButton
+                                variant="secondary"
+                                onClick={() => setShowResetConfirm(false)}
+                                className="flex-1"
+                            >
+                                CANCEL
+                            </PixelButton>
+                            <PixelButton
+                                variant="danger"
+                                onClick={handleResetProgress}
+                                className="flex-1"
+                            >
+                                RESET
+                            </PixelButton>
+                        </div>
+                    </PixelCard>
+                </div>
+            )}
         </div>
     );
 };

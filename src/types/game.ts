@@ -10,6 +10,7 @@ export interface GameSettings {
     selectedTables: number[];
     maxMultiplier: number;
     questionsPerRound: number;
+    destinationId?: string; // Used for progressive x1 frequency reduction
 }
 
 export interface PlayerStats {

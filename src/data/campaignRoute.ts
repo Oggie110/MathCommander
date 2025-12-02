@@ -149,7 +149,7 @@ export const celestialBodies: Record<string, CelestialBody> = {
         type: 'kuiper',
         emoji: '🥔',
         color: 'hsl(30 30% 50%)',
-        focusTables: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        focusTables: [4, 5, 6, 7, 8, 9, 10, 11, 12],
         fact: 'Arrokoth is the most distant object ever explored by a spacecraft. It looks like a snowman made of ancient space rock!',
     },
 };

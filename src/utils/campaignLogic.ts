@@ -55,6 +55,25 @@ export const getLegIndex = (legId: string): number => {
     return campaignLegs.findIndex(l => l.id === legId);
 };
 
+// Progressive max multiplier based on destination
+// Early game: 2-10, Mid game: 2-11, Late game: 2-12
+const getMaxMultiplier = (destinationId: string): number => {
+    const multiplierByDestination: Record<string, number> = {
+        // Early game (Inner System): max x10
+        moon: 10,
+        mars: 10,
+        ceres: 10,
+        // Mid game (Gas Giants): max x11
+        jupiter: 11,
+        europa: 11,
+        saturn: 11,
+        titan: 11,
+        // Late game (Ice Giants + Kuiper): max x12
+        // Everything else defaults to 12
+    };
+    return multiplierByDestination[destinationId] ?? 12;
+};
+
 export const generateCampaignMission = (legId: string, isBoss: boolean = false): GameSettings => {
     const leg = getLegById(legId);
     if (!leg) throw new Error('Leg not found');
@@ -63,8 +82,9 @@ export const generateCampaignMission = (legId: string, isBoss: boolean = false):
 
     return {
         selectedTables: toBody.focusTables,
-        maxMultiplier: 12,
+        maxMultiplier: getMaxMultiplier(leg.toBodyId),
         questionsPerRound: isBoss ? 15 : 10,
+        destinationId: leg.toBodyId, // Used for progressive x1 frequency
     };
 };
 
