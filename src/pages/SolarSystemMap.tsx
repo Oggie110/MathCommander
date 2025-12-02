@@ -6,7 +6,7 @@ import { RANKS } from '@/types/game';
 import { initializeCampaignProgress, getLegById, getLegIndex, checkForMilestone, markMilestoneSeen } from '@/utils/campaignLogic';
 import { celestialBodies, campaignLegs, getChapterName } from '@/data/campaignRoute';
 import type { CelestialBody, Leg } from '@/data/campaignRoute';
-import { ArrowLeft, Lock, Star, ChevronRight, Radio } from 'lucide-react';
+import { ArrowLeft, Lock, Star, Radio } from 'lucide-react';
 import { audioEngine } from '@/audio';
 import { speechService } from '@/audio/SpeechService';
 // import { milestoneMessages } from '@/data/narrative';
