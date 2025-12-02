@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PixelProgressBar } from '@/components/ui/PixelProgressBar';
 import { loadPlayerStats, savePlayerStats, generateQuestions, updateWeakAreas, calculateXP } from '@/utils/gameLogic';
@@ -60,6 +60,11 @@ const BattleScreen: React.FC = () => {
     const [showEscapeOverlay, setShowEscapeOverlay] = useState(false);
     const [defeatMessage, setDefeatMessage] = useState<{ message: string; encouragement: string } | null>(null);
     const [defeatSoundId, setDefeatSoundId] = useState('');
+    const [shotFired, setShotFired] = useState(false);
+
+    // Refs for cleanup
+    const escapeNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const escapeOverlayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Load game state
     useEffect(() => {
@@ -273,6 +278,18 @@ const BattleScreen: React.FC = () => {
         }
     }, [introStage, pendingNavigation, navigate]);
 
+    // Cleanup timeouts on unmount (prevents navigation after retry)
+    useEffect(() => {
+        return () => {
+            if (escapeNavigationTimeoutRef.current) {
+                clearTimeout(escapeNavigationTimeoutRef.current);
+            }
+            if (escapeOverlayTimeoutRef.current) {
+                clearTimeout(escapeOverlayTimeoutRef.current);
+            }
+        };
+    }, []);
+
     // Handle click to advance dialogue (also skips speech)
     const handleDialogueClick = useCallback(() => {
         // Stop any playing speech when clicking to advance
@@ -368,9 +385,9 @@ const BattleScreen: React.FC = () => {
         // For escape path, navigate after delay (can click to skip)
         if (scorePercentage < 70) {
             // Delay overlay to let escape animation play
-            setTimeout(() => setShowEscapeOverlay(true), 1500);
+            escapeOverlayTimeoutRef.current = setTimeout(() => setShowEscapeOverlay(true), 1500);
             // Navigate after giving time to read (or click to skip)
-            setTimeout(() => {
+            escapeNavigationTimeoutRef.current = setTimeout(() => {
                 navigate('/result', { state: navData });
             }, 7000);
         }
@@ -406,31 +423,15 @@ const BattleScreen: React.FC = () => {
                 </div>
 
                 {/* Bordered game screen frame */}
-                <div className="relative border-8 border-gray-300 bg-black shadow-2xl" style={{
-                    boxShadow: '0 0 0 4px #1a1a2e, 0 0 0 8px #4a4a5e, 0 20px 50px rgba(0,0,0,0.8)',
+                <div className="relative bg-black shadow-2xl" style={{
+                    border: '8px solid',
+                    borderImage: 'linear-gradient(180deg, #6b6b7a 0%, #3a3a4a 50%, #2a2a3a 100%) 1',
+                    boxShadow: '0 0 0 4px #1a1a2e, 0 0 0 8px #3a3a4a, 0 20px 50px rgba(0,0,0,0.8)',
                 }}>
                     {/* Inner border for depth */}
-                    <div className="border-4 border-gray-700">
+                    <div className="border-4 border-gray-600">
                         {/* Game content area */}
                         <div className="relative h-[900px] flex flex-col overflow-hidden">
-                            {/* Left cockpit frame bar */}
-                            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-800 via-gray-700 to-transparent opacity-40 pointer-events-none z-10">
-                                <div className="h-full flex flex-col justify-evenly items-center py-8">
-                                    <div className="w-2 h-2 bg-red-500 rounded-full opacity-60"></div>
-                                    <div className="w-2 h-2 bg-yellow-500 rounded-full opacity-60"></div>
-                                    <div className="w-2 h-2 bg-green-500 rounded-full opacity-60"></div>
-                                </div>
-                            </div>
-
-                            {/* Right cockpit frame bar */}
-                            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-800 via-gray-700 to-transparent opacity-40 pointer-events-none z-10">
-                                <div className="h-full flex flex-col justify-evenly items-center py-8">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full opacity-60"></div>
-                                    <div className="w-2 h-2 bg-purple-500 rounded-full opacity-60"></div>
-                                    <div className="w-2 h-2 bg-cyan-500 rounded-full opacity-60"></div>
-                                </div>
-                            </div>
-
                             {/* Main viewing area - Side-scrolling shooter */}
                             <div className="flex-1 relative flex items-center justify-center">
                                 {/* Parallax scrolling background */}
@@ -676,107 +677,87 @@ const BattleScreen: React.FC = () => {
                                 )}
                             </div>
 
-                            {/* Bottom control panel - Spaceship Console - Always visible */}
-                            <div className="relative">
-                                {/* Metallic frame top edge */}
-                                <div className="h-2 bg-gradient-to-b from-gray-500 via-gray-600 to-gray-700" />
-
-                                {/* Main console body */}
+                            {/* Bottom control panel - Retro Computer Console */}
+                            <div className="relative" style={{
+                                minHeight: '280px',
+                                borderTop: '12px solid',
+                                borderImage: 'linear-gradient(90deg, #2a2a3a 0%, #5a5a6a 50%, #2a2a3a 100%) 1',
+                            }}>
+                                {/* Panel PNG overlay - on top with transparent cutouts */}
                                 <div
-                                    className="relative p-4"
+                                    className="absolute inset-0 z-10 pointer-events-none"
                                     style={{
-                                        background: 'linear-gradient(180deg, #2a2a3a 0%, #1a1a2a 50%, #0a0a1a 100%)',
-                                        borderTop: '3px solid #4a4a5a',
+                                        backgroundImage: 'url(/assets/1NewStuff/panel/panel5.png)',
+                                        backgroundSize: '100% 100%',
+                                        backgroundPosition: 'top left',
+                                        backgroundRepeat: 'no-repeat',
+                                        imageRendering: 'pixelated',
+                                        filter: 'brightness(0.8) sepia(0.2) saturate(0.4) hue-rotate(180deg)',
                                     }}
-                                >
-                                    {/* Corner rivets */}
-                                    <div className="absolute top-3 left-3 w-3 h-3 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 border border-gray-700" />
-                                    <div className="absolute top-3 right-3 w-3 h-3 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 border border-gray-700" />
-                                    <div className="absolute bottom-3 left-3 w-3 h-3 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 border border-gray-700" />
-                                    <div className="absolute bottom-3 right-3 w-3 h-3 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 border border-gray-700" />
+                                />
+                                {/* Content layer */}
+                                <div className="relative p-4">
 
-                                    {/* Console layout */}
-                                    <div className="flex gap-4 items-stretch">
-                                        {/* Left status panel */}
-                                        <div className="hidden md:flex flex-col gap-2 w-24 pt-12">
-                                            <div className="text-[10px] text-cyan-500 uppercase tracking-wider">Systems</div>
-                                            <div className="flex items-center gap-2">
-                                                <div className={`w-2 h-2 rounded-full ${introStage === 'playing' ? 'bg-green-500 shadow-[0_0_6px_#22c55e]' : 'bg-yellow-500 shadow-[0_0_6px_#eab308] animate-pulse'}`} />
-                                                <span className="text-[10px] text-gray-400">WEAPONS</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <div className={`w-2 h-2 rounded-full ${introStage === 'playing' ? 'bg-green-500 shadow-[0_0_6px_#22c55e]' : 'bg-yellow-500 shadow-[0_0_6px_#eab308] animate-pulse'}`} />
-                                                <span className="text-[10px] text-gray-400">SHIELDS</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <div className={`w-2 h-2 rounded-full ${introStage === 'playing' ? 'bg-green-500 shadow-[0_0_6px_#22c55e]' : 'bg-yellow-500 shadow-[0_0_6px_#eab308] animate-pulse'}`} />
-                                                <span className="text-[10px] text-gray-400">TARGETING</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Center main display */}
-                                        <div className="flex-1">
-                                            {/* Main screen bezel */}
+                                    {/* Console layout - Left CRT (small), Right gauges panel */}
+                                    <div className="flex gap-2 items-start h-full">
+                                        {/* Left side - Small CRT Terminal for question (BEHIND panel cutout) */}
+                                        <div className="w-[314px] ml-[38px] mt-[-2px] z-0">
+                                            {/* CRT Screen bezel */}
                                             <div
-                                                className="relative p-4 rounded"
+                                                className="relative py-[60px] px-5 rounded-lg overflow-hidden"
                                                 style={{
-                                                    background: 'linear-gradient(135deg, #1a1a2e 0%, #0d0d1a 100%)',
-                                                    border: '3px solid #3a3a4a',
-                                                    boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8), 0 0 10px rgba(0,200,255,0.1)',
+                                                    background: 'linear-gradient(135deg, #001a00 0%, #000d00 50%, #001400 100%)',
+                                                    border: '3px solid #1a1a1a',
+                                                    borderRadius: '8px',
+                                                    boxShadow: 'inset 0 0 40px rgba(0,255,0,0.1), inset 0 0 15px rgba(0,0,0,0.8), 0 0 15px rgba(0,255,0,0.15)',
                                                 }}
                                             >
-                                                {/* Scanline effect overlay */}
+                                                {/* CRT Scanline effect */}
                                                 <div
-                                                    className="absolute inset-0 pointer-events-none opacity-10"
+                                                    className="absolute inset-0 pointer-events-none z-10"
                                                     style={{
-                                                        backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)',
+                                                        backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.4) 1px, rgba(0,0,0,0.4) 2px)',
+                                                        opacity: 0.6,
                                                     }}
                                                 />
 
-                                                {/* Screen glow */}
-                                                <div className="absolute inset-0 rounded opacity-20 pointer-events-none"
-                                                    style={{ boxShadow: 'inset 0 0 30px rgba(0,200,255,0.3)' }}
+                                                {/* Screen phosphor glow */}
+                                                <div className="absolute inset-0 rounded-lg pointer-events-none"
+                                                    style={{ boxShadow: 'inset 0 0 30px rgba(0,255,0,0.15)' }}
                                                 />
 
                                                 {introStage === 'playing' ? (
-                                                    <>
-                                                        {/* Target label */}
-                                                        <div className="text-[10px] text-cyan-600 uppercase tracking-widest mb-2 text-center">
-                                                            ◆ TARGETING COMPUTER ◆
+                                                    <div className="relative z-0">
+                                                        {/* Question Display - smaller */}
+                                                        <div className="text-2xl font-bold flex items-center justify-center gap-2 my-3 font-mono">
+                                                            <span className="text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.9)]">{currentQuestion.num1}</span>
+                                                            <span className="text-green-600">×</span>
+                                                            <span className="text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.9)]">{currentQuestion.num2}</span>
+                                                            <span className="text-green-600">=</span>
+                                                            <span className="text-green-300 drop-shadow-[0_0_10px_rgba(134,239,172,1)] animate-pulse">?</span>
                                                         </div>
 
-                                                        {/* Question Display */}
-                                                        <div className="text-3xl md:text-4xl font-bold flex items-center justify-center gap-3 mb-4 relative">
-                                                            <span className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]">{currentQuestion.num1}</span>
-                                                            <span className="text-gray-500">×</span>
-                                                            <span className="text-purple-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]">{currentQuestion.num2}</span>
-                                                            <span className="text-gray-500">=</span>
-                                                            <span className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)] animate-pulse">?</span>
-                                                        </div>
-
-                                                        {/* Answer Buttons or Feedback */}
-                                                        <div className="h-24 flex items-center justify-center">
+                                                        {/* Answer Buttons - smaller */}
+                                                        <div className="flex items-center justify-center">
                                                             {!showFeedback ? (
-                                                                <div className="grid grid-cols-3 gap-2 max-w-sm mx-auto w-full">
+                                                                <div className="grid grid-cols-3 gap-1 w-full">
                                                                     {answerChoices.map((opt, i) => (
                                                                         <button
                                                                             key={i}
                                                                             disabled={showFeedback}
                                                                             onClick={() => {
                                                                                 setUserAnswer(opt.toString());
-                                                                                // Always fire laser
                                                                                 setShowLaser(true);
+                                                                                setShotFired(true);
+                                                                                setTimeout(() => setShotFired(false), 500);
                                                                                 playSFX('laser', { volume: 0.6 });
-
                                                                                 if (opt === currentQuestion.answer) {
                                                                                     setIsCorrect(true);
                                                                                 } else {
                                                                                     setIsCorrect(false);
-                                                                                    // Randomize dodge direction for miss
                                                                                     setDodgeDirection(Math.random() > 0.5 ? 'up' : 'down');
                                                                                 }
                                                                                 setShowFeedback(true);
-
                                                                                 const updatedQuestions = [...questions];
                                                                                 updatedQuestions[currentIndex] = {
                                                                                     ...currentQuestion,
@@ -784,7 +765,6 @@ const BattleScreen: React.FC = () => {
                                                                                     correct: opt === currentQuestion.answer,
                                                                                 };
                                                                                 setQuestions(updatedQuestions);
-
                                                                                 setTimeout(() => {
                                                                                     setShowLaser(false);
                                                                                     if (currentIndex < questions.length - 1) {
@@ -796,101 +776,266 @@ const BattleScreen: React.FC = () => {
                                                                                     }
                                                                                 }, 1000);
                                                                             }}
-                                                                            className="relative py-3 text-lg font-bold text-cyan-300 uppercase transition-all duration-100 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                            className="py-2 text-sm font-bold font-mono text-green-400 hover:text-green-300 hover:scale-105 active:scale-95 disabled:opacity-50"
                                                                             style={{
-                                                                                background: 'linear-gradient(180deg, #2a3a4a 0%, #1a2a3a 50%, #0a1a2a 100%)',
-                                                                                border: '2px solid #3a5a7a',
-                                                                                borderRadius: '4px',
-                                                                                boxShadow: '0 4px 0 #0a1a2a, 0 0 10px rgba(0,200,255,0.2), inset 0 1px 0 rgba(255,255,255,0.1)',
+                                                                                background: 'linear-gradient(180deg, #0a200a 0%, #001a00 50%, #000d00 100%)',
+                                                                                border: '2px solid #1a4a1a',
+                                                                                borderRadius: '3px',
                                                                             }}
                                                                         >
-                                                                            <span className="drop-shadow-[0_0_4px_rgba(34,211,238,0.6)]">{opt}</span>
+                                                                            {opt}
                                                                         </button>
                                                                     ))}
                                                                 </div>
                                                             ) : (
-                                                                <div className={`text-center ${currentIndex === questions.length - 1 && isCorrect ? 'text-sm' : 'text-lg'}`}>
+                                                                <div className="text-center font-mono text-sm py-2">
                                                                     {isCorrect ? (
-                                                                        <span className="text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.8)]">
-                                                                            {currentIndex === questions.length - 1 ? 'ENEMY DESTROYED!' : '◆ DIRECT HIT ◆'}
-                                                                        </span>
+                                                                        <span className="text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,1)]">HIT!</span>
                                                                     ) : (
-                                                                        <div className="flex flex-col">
-                                                                            <span className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]">◆ MISS ◆</span>
-                                                                            <span className="text-[10px] text-gray-500 mt-2">CORRECT: {currentQuestion.answer}</span>
-                                                                        </div>
+                                                                        <span className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]">MISS</span>
                                                                     )}
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    </>
+
+                                                        {/* Wave indicator */}
+                                                        <div className="flex justify-center items-center gap-1 mt-2">
+                                                            <span className="text-[8px] text-green-700 font-mono">WAVE {currentIndex + 1}/{questions.length}</span>
+                                                        </div>
+                                                    </div>
                                                 ) : (
-                                                    /* Standby mode during intro/victory */
-                                                    <div className="h-[168px] flex flex-col items-center justify-center">
-                                                        <div className="text-[10px] text-yellow-600 uppercase tracking-widest mb-4 text-center">
-                                                            ◆ SYSTEMS STATUS ◆
-                                                        </div>
-                                                        <div className="text-2xl text-yellow-500 font-bold animate-pulse drop-shadow-[0_0_10px_rgba(234,179,8,0.6)]">
-                                                            {introStage === 'intro1' && 'INITIALIZING...'}
+                                                    /* Standby mode */
+                                                    <div className="h-[120px] flex flex-col items-center justify-center relative z-0">
+                                                        <div className="text-lg text-green-400 font-bold font-mono animate-pulse drop-shadow-[0_0_10px_rgba(74,222,128,0.8)]">
+                                                            {introStage === 'intro1' && 'INITIALIZING'}
                                                             {introStage === 'heroEnter' && 'DEPLOYING...'}
-                                                            {introStage === 'enemyEnter' && 'ENEMY DETECTED'}
-                                                            {introStage === 'intro2' && 'BATTLE STATIONS'}
-                                                            {introStage === 'victory' && 'MISSION COMPLETE'}
-                                                            {introStage === 'heroExit' && 'RETURNING TO BASE'}
-                                                        </div>
-                                                        <div className="flex gap-2 mt-4">
-                                                            <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_8px_#eab308] animate-pulse" />
-                                                            <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_8px_#eab308] animate-pulse" style={{ animationDelay: '0.2s' }} />
-                                                            <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_8px_#eab308] animate-pulse" style={{ animationDelay: '0.4s' }} />
+                                                            {introStage === 'enemyEnter' && 'DETECTED'}
+                                                            {introStage === 'intro2' && 'BATTLE!'}
+                                                            {introStage === 'victory' && 'VICTORY'}
+                                                            {introStage === 'heroExit' && 'RTB'}
                                                         </div>
                                                     </div>
                                                 )}
                                             </div>
-
-                                            {/* Bottom status strip */}
-                                            <div className="flex justify-between items-center mt-2 px-2">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="text-[8px] text-gray-500 uppercase">Wave</div>
-                                                    <div className="text-xs text-cyan-400 font-bold">{introStage === 'playing' ? `${currentIndex + 1}/${questions.length}` : '--/--'}</div>
-                                                </div>
-                                                <div className="flex gap-1">
-                                                    {introStage === 'playing' ? questions.map((q, i) => (
-                                                        <div
-                                                            key={i}
-                                                            className={`w-2 h-2 rounded-full ${i < currentIndex
-                                                                ? (q.correct ? 'bg-green-500 shadow-[0_0_4px_#22c55e]' : 'bg-red-500 shadow-[0_0_4px_#ef4444]')
-                                                                : i === currentIndex
-                                                                    ? 'bg-yellow-500 shadow-[0_0_4px_#eab308] animate-pulse'
-                                                                    : 'bg-gray-600'
-                                                                }`}
-                                                        />
-                                                    )) : (
-                                                        <>
-                                                            <div className="w-2 h-2 rounded-full bg-gray-600" />
-                                                            <div className="w-2 h-2 rounded-full bg-gray-600" />
-                                                            <div className="w-2 h-2 rounded-full bg-gray-600" />
-                                                        </>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="text-[8px] text-gray-500 uppercase">Score</div>
-                                                    <div className="text-xs text-green-400 font-bold">{questions.filter(q => q.correct).length * 100}</div>
-                                                </div>
-                                            </div>
                                         </div>
 
-                                        {/* Right status panel */}
-                                        <div className="hidden md:flex flex-col gap-2 w-24 items-end pt-12">
-                                            <div className="text-[10px] text-cyan-500 uppercase tracking-wider">Tactical</div>
-                                            <div className="text-[10px] text-gray-500">PWR <span className="text-green-400">98%</span></div>
-                                            <div className="text-[10px] text-gray-500">TEMP <span className="text-yellow-400">47°C</span></div>
-                                            <div className="text-[10px] text-gray-500">AMMO <span className="text-cyan-400">∞</span></div>
+                                        {/* Right side - Gauges layout (ON TOP of panel) */}
+                                        <div className="flex-1 flex flex-col z-20">
+                                            {/* Top row - Radar above disk station */}
+                                            <div className="flex justify-center ml-[-257px] mt-[22px]">
+                                                {/* Mini radar - positioned above disk station */}
+                                                <div
+                                                    className="w-[95px] h-[68px] rounded relative overflow-hidden"
+                                                    style={{
+                                                        background: 'linear-gradient(145deg, #0a1a0a, #0d1a0d)',
+                                                        border: '3px solid #1a2a1a',
+                                                    }}
+                                                >
+                                                    <div className="absolute top-1/2 left-0 right-0 h-px bg-green-900" />
+                                                    <div className="absolute left-1/2 top-0 bottom-0 w-px bg-green-900" />
+                                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_6px_#22c55e]" />
+                                                    <div
+                                                        className="absolute top-1/2 left-1/2 w-6 h-0.5 bg-gradient-to-r from-green-500 to-transparent origin-left animate-spin"
+                                                        style={{ animationDuration: '3s' }}
+                                                    />
+                                                    {introStage === 'playing' && (
+                                                        <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_6px_#ef4444] animate-pulse" />
+                                                    )}
+                                                    {/* Scanline effect */}
+                                                    <div
+                                                        className="absolute inset-0 pointer-events-none"
+                                                        style={{
+                                                            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.4) 1px, rgba(0,0,0,0.4) 2px)',
+                                                            opacity: 0.6,
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Top right rectangle - Gauges */}
+                                            <div
+                                                className="absolute right-[30px] top-[35px] w-[250px] h-[73px] overflow-hidden"
+                                                style={{
+                                                    background: 'linear-gradient(180deg, #0a0a0a, #050505)',
+                                                    border: '2px solid #1a2a1a',
+                                                }}
+                                            >
+                                                {/* Screen phosphor glow */}
+                                                <div className="absolute inset-0 pointer-events-none"
+                                                    style={{ boxShadow: 'inset 0 0 35px rgba(0,255,0,0.18)' }}
+                                                />
+                                                {/* Scanline effect */}
+                                                <div
+                                                    className="absolute inset-0 pointer-events-none z-30"
+                                                    style={{
+                                                        backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.4) 1px, rgba(0,0,0,0.4) 2px)',
+                                                        opacity: 0.6,
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="absolute right-[50px] top-[45px] flex items-center gap-[22px] z-20">
+                                                {/* Circular gauge - Power */}
+                                                <div className="flex flex-col items-center mr-[-7px]">
+                                                    <div
+                                                        className="relative w-14 h-14 rounded-full flex items-center justify-center"
+                                                        style={{
+                                                            background: 'linear-gradient(145deg, #0d1a0d, #050d05)',
+                                                            border: '3px solid #1a2a1a',
+                                                            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,255,0,0.1)',
+                                                        }}
+                                                    >
+                                                        <div className="absolute inset-1 rounded-full border border-green-900" />
+                                                        <div
+                                                            className="absolute w-0.5 h-5 origin-bottom"
+                                                            style={{
+                                                                bottom: '50%',
+                                                                background: 'linear-gradient(to top, #22c55e, #86efac)',
+                                                                boxShadow: '0 0 6px #22c55e',
+                                                                animation: shotFired
+                                                                    ? 'needleShot 0.3s ease-out, needleColorShift 1s ease-out'
+                                                                    : 'needleFluctuate 2.5s ease-in-out infinite',
+                                                            }}
+                                                        />
+                                                        <div className="w-2 h-2 rounded-full bg-green-900 border border-green-700" />
+                                                    </div>
+                                                                                                    </div>
+
+                                                {/* Vertical bar meters */}
+                                                <div className="flex gap-1">
+                                                    {['ENG', 'PWR', 'WPN', 'SHD', 'TGT'].map((label, index) => (
+                                                        <div key={label} className="flex flex-col items-center">
+                                                            <div
+                                                                className="w-3 h-12 rounded-sm relative overflow-hidden"
+                                                                style={{
+                                                                    background: 'linear-gradient(180deg, #050d05, #0d1a0d)',
+                                                                    border: '2px solid #1a2a1a',
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-green-600 to-green-400"
+                                                                    style={{
+                                                                        boxShadow: '0 0 6px #22c55e',
+                                                                        animation: `barFluctuate${index} ${1.5 + index * 0.3}s ease-in-out infinite`,
+                                                                        height: introStage === 'playing' ? '75%' : '30%',
+                                                                        transition: 'height 0.7s ease',
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <style>{`
+                                                    @keyframes barFluctuate0 { 0%, 100% { height: 75%; } 50% { height: 85%; } }
+                                                    @keyframes barFluctuate1 { 0%, 100% { height: 80%; } 50% { height: 65%; } }
+                                                    @keyframes barFluctuate2 { 0%, 100% { height: 70%; } 50% { height: 90%; } }
+                                                    @keyframes barFluctuate3 { 0%, 100% { height: 85%; } 50% { height: 70%; } }
+                                                    @keyframes barFluctuate4 { 0%, 100% { height: 65%; } 50% { height: 80%; } }
+                                                    @keyframes needleFluctuate { 0%, 100% { transform: rotate(30deg); } 25% { transform: rotate(50deg); } 50% { transform: rotate(35deg); } 75% { transform: rotate(55deg); } }
+                                                    @keyframes needleShot { 0% { transform: rotate(45deg); } 30% { transform: rotate(120deg); } 100% { transform: rotate(45deg); } }
+                                                    @keyframes needleColorShift { 0% { background: linear-gradient(to top, #22c55e, #86efac); box-shadow: 0 0 6px #22c55e; } 10% { background: linear-gradient(to top, #f97316, #fbbf24); box-shadow: 0 0 12px #f97316; } 60% { background: linear-gradient(to top, #f97316, #fbbf24); box-shadow: 0 0 12px #f97316; } 100% { background: linear-gradient(to top, #22c55e, #86efac); box-shadow: 0 0 6px #22c55e; } }
+                                                `}</style>
+
+                                                {/* Temperature display */}
+                                                <div className="flex flex-col items-center">
+                                                    <div
+                                                        className="w-12 h-12 rounded flex items-center justify-center"
+                                                        style={{
+                                                            background: 'linear-gradient(180deg, #0d1a0d, #050d05)',
+                                                            border: '3px solid #1a2a1a',
+                                                        }}
+                                                    >
+                                                        <span className="text-base text-green-400 font-bold font-mono drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]">47°</span>
+                                                    </div>
+                                                                                                    </div>
+                                            </div>
+
+                                            {/* Bottom right rectangle - Battlezone-style vector display */}
+                                            <div
+                                                className="absolute right-[30px] top-[140px] w-[250px] h-[70px] overflow-hidden"
+                                                style={{
+                                                    background: 'linear-gradient(180deg, #0a0a0a, #050505)',
+                                                    border: '2px solid #1a2a1a',
+                                                }}
+                                            >
+                                                {/* Screen phosphor glow */}
+                                                <div className="absolute inset-0 pointer-events-none"
+                                                    style={{ boxShadow: 'inset 0 0 35px rgba(0,255,0,0.18)' }}
+                                                />
+                                                {/* Perspective grid floor */}
+                                                <div
+                                                    className="absolute bottom-0 left-0 right-0 h-[50px]"
+                                                    style={{
+                                                        background: `
+                                                            linear-gradient(90deg, transparent 49%, #22c55e20 49%, #22c55e20 51%, transparent 51%),
+                                                            linear-gradient(0deg, #22c55e30 0%, transparent 100%)
+                                                        `,
+                                                        backgroundSize: '20px 100%, 100% 100%',
+                                                        transform: 'perspective(100px) rotateX(60deg)',
+                                                        transformOrigin: 'bottom',
+                                                    }}
+                                                />
+                                                {/* Horizontal grid lines */}
+                                                <div className="absolute bottom-[8px] left-0 right-0 h-px bg-green-500/30" />
+                                                <div className="absolute bottom-[16px] left-0 right-0 h-px bg-green-500/20" />
+                                                <div className="absolute bottom-[26px] left-0 right-0 h-px bg-green-500/10" />
+
+                                                {/* Mountain/pyramid shapes */}
+                                                <svg className="absolute bottom-[25px] left-0 right-0 h-[40px]" viewBox="0 0 250 40" preserveAspectRatio="none">
+                                                    {/* Left mountain */}
+                                                    <polygon
+                                                        points="15,40 40,12 65,40"
+                                                        fill="none"
+                                                        stroke="#22c55e"
+                                                        strokeWidth="1.5"
+                                                        style={{ filter: 'drop-shadow(0 0 3px #22c55e)' }}
+                                                    />
+                                                    {/* Center pyramid */}
+                                                    <polygon
+                                                        points="90,40 127,6 165,40"
+                                                        fill="none"
+                                                        stroke="#22c55e"
+                                                        strokeWidth="1.5"
+                                                        style={{ filter: 'drop-shadow(0 0 3px #22c55e)' }}
+                                                    />
+                                                    {/* Right mountain */}
+                                                    <polygon
+                                                        points="175,40 205,15 235,40"
+                                                        fill="none"
+                                                        stroke="#22c55e"
+                                                        strokeWidth="1.5"
+                                                        style={{ filter: 'drop-shadow(0 0 3px #22c55e)' }}
+                                                    />
+                                                </svg>
+
+                                                {/* Floating object (enemy tank/UFO style) */}
+                                                <div
+                                                    className="absolute top-[12px] animate-pulse"
+                                                    style={{
+                                                        left: introStage === 'playing' ? '70%' : '30%',
+                                                        transition: 'left 2s ease-in-out'
+                                                    }}
+                                                >
+                                                    <svg width="24" height="16" viewBox="0 0 24 16">
+                                                        {/* Simple geometric shape */}
+                                                        <ellipse cx="12" cy="10" rx="10" ry="4" fill="none" stroke="#22c55e" strokeWidth="1.5" style={{ filter: 'drop-shadow(0 0 4px #22c55e)' }} />
+                                                        <line x1="12" y1="6" x2="12" y2="2" stroke="#22c55e" strokeWidth="1.5" style={{ filter: 'drop-shadow(0 0 4px #22c55e)' }} />
+                                                        <circle cx="12" cy="2" r="2" fill="none" stroke="#22c55e" strokeWidth="1" style={{ filter: 'drop-shadow(0 0 4px #22c55e)' }} />
+                                                    </svg>
+                                                </div>
+
+                                                {/* Scanline effect */}
+                                                <div
+                                                    className="absolute inset-0 pointer-events-none"
+                                                    style={{
+                                                        backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.4) 1px, rgba(0,0,0,0.4) 2px)',
+                                                        opacity: 0.6,
+                                                    }}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Bottom metallic edge */}
-                                <div className="h-3 bg-gradient-to-b from-gray-700 via-gray-800 to-gray-900" />
                             </div>
                         </div>
                     </div>
