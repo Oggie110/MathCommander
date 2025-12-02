@@ -1,18 +1,28 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { audioEngine } from '@/audio';
 
 interface PixelButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'primary' | 'secondary' | 'danger' | 'warning';
     size?: 'sm' | 'md' | 'lg';
+    silent?: boolean; // Skip sound for special cases
 }
 
 export const PixelButton: React.FC<PixelButtonProps> = ({
     className,
     variant = 'primary',
     size = 'md',
+    silent = false,
     children,
+    onClick,
     ...props
 }) => {
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        if (!silent) {
+            audioEngine.playSFX('buttonClick');
+        }
+        onClick?.(e);
+    };
     const variants = {
         primary: 'bg-brand-primary text-white',
         secondary: 'bg-industrial-metal text-white border-industrial-highlight',
@@ -34,6 +44,7 @@ export const PixelButton: React.FC<PixelButtonProps> = ({
                 sizes[size],
                 className
             )}
+            onClick={handleClick}
             {...props}
         >
             {/* Scanline overlay for tech feel */}

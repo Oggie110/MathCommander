@@ -146,6 +146,13 @@ const CORE_SOUNDS: Record<string, SoundDefinition> = {
         category: 'sfx',
         volume: 0.7,
     },
+    // Star earned sound
+    starEarned: {
+        id: 'starEarned',
+        src: '/assets/audio-assets/sfx/sfx/sparkling_star.wav',
+        category: 'sfx',
+        volume: 0.1,
+    },
 };
 
 // Combined sounds registry (core + speech)

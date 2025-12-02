@@ -55,7 +55,7 @@ export const getLegIndex = (legId: string): number => {
     return campaignLegs.findIndex(l => l.id === legId);
 };
 
-export const generateCampaignMission = (legId: string): GameSettings => {
+export const generateCampaignMission = (legId: string, isBoss: boolean = false): GameSettings => {
     const leg = getLegById(legId);
     if (!leg) throw new Error('Leg not found');
 
@@ -64,7 +64,7 @@ export const generateCampaignMission = (legId: string): GameSettings => {
     return {
         selectedTables: toBody.focusTables,
         maxMultiplier: 12,
-        questionsPerRound: 2,
+        questionsPerRound: isBoss ? 15 : 10,
     };
 };
 
@@ -111,8 +111,9 @@ export const completeMission = (
 export const calculateStars = (score: number, total: number): number => {
     const percentage = score / total;
     if (percentage >= 0.9) return 3;  // 90%+
-    if (percentage >= 0.7) return 2;  // 70-89%
-    return 0;                         // <70% = fail
+    if (percentage >= 0.7) return 2;  // 70-89% (pass)
+    if (score > 0) return 1;          // 1-69% (fail but tried)
+    return 0;                         // 0% = nothing right
 };
 
 export const getCompletedWaypointsCount = (progress: CampaignProgress): number => {

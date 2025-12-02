@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
-import { PixelCard } from '@/components/ui/PixelCard';
+import { CRTDialogueBox } from '@/components/ui/CRTDialogueBox';
 import { openingNarrative } from '@/data/narrative';
 import { audioEngine } from '@/audio';
 import { Rocket, Radio } from 'lucide-react';
@@ -101,6 +101,7 @@ const StartScreen: React.FC = () => {
             'doors',
             'introData',
             'transition',
+            'starEarned',
         ]);
 
         // Start intro: play introData SFX (with stop ref) and ambience, NO music yet
@@ -171,27 +172,27 @@ const StartScreen: React.FC = () => {
                     </div>
                 </div>
             ) : (
-                // Mission Briefing
+                // Mission Briefing - CRT Monitor Style
                 <div className="relative z-10 w-full max-w-2xl" onClick={handleSkipTyping}>
-                    <PixelCard className="p-6 md:p-8">
+                    <CRTDialogueBox variant="green">
                         {/* Transmission header */}
-                        <div className="flex items-center gap-3 mb-6 border-b-2 border-industrial-metal pb-4">
-                            <div className="w-3 h-3 rounded-full bg-brand-danger animate-pulse" />
-                            <Radio className="w-5 h-5 text-brand-secondary" />
-                            <span className="text-brand-secondary text-sm font-bold tracking-widest uppercase">
+                        <div className="flex items-center gap-3 mb-6 border-b border-green-900/50 pb-4">
+                            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_#22c55e]" />
+                            <Radio className="w-5 h-5 text-green-500 drop-shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
+                            <span className="text-green-500 text-sm font-bold tracking-widest uppercase font-mono drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]">
                                 {openingNarrative.title}
                             </span>
                         </div>
 
                         {/* Speaker */}
-                        <div className="text-brand-accent text-xs font-bold mb-3 tracking-wider uppercase">
+                        <div className="text-green-500 text-xs font-bold mb-3 tracking-wider uppercase font-mono drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]">
                             [{openingNarrative.speaker}]
                         </div>
 
                         {/* Message with typewriter effect */}
-                        <div className="text-white text-left leading-relaxed mb-8 min-h-[120px] font-tech text-lg">
+                        <div className="text-green-400 text-left leading-relaxed mb-8 min-h-[120px] font-mono text-lg drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]">
                             "{displayedText}"
-                            {isTyping && <span className="animate-pulse text-brand-secondary">▊</span>}
+                            {isTyping && <span className="animate-pulse text-green-300">▊</span>}
                         </div>
 
                         {/* Continue button */}
@@ -209,11 +210,11 @@ const StartScreen: React.FC = () => {
                         )}
 
                         {isTyping && (
-                            <div className="text-industrial-highlight text-xs text-center font-tech animate-pulse">
+                            <div className="text-green-600/60 text-xs text-center font-mono animate-pulse">
                                 Click to skip transmission...
                             </div>
                         )}
-                    </PixelCard>
+                    </CRTDialogueBox>
                 </div>
             )}
         </div>

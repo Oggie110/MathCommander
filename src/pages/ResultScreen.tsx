@@ -2,6 +2,7 @@ import React, { useMemo, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
 import { PixelCard } from '@/components/ui/PixelCard';
+import { CRTDialogueBox } from '@/components/ui/CRTDialogueBox';
 import { isFinalBoss, victoryNarrative } from '@/data/narrative';
 import { getLegById, isBossLevel } from '@/utils/campaignLogic';
 import { audioEngine } from '@/audio';
@@ -147,33 +148,33 @@ const ResultScreen: React.FC = () => {
             </div>
 
             <div className="relative z-10 w-full max-w-lg">
-                {/* Final victory special screen */}
+                {/* Final victory special screen - CRT Style */}
                 {battleInfo.isFinal && passed && (
-                    <PixelCard className="mb-6 p-6 border-yellow-500 bg-gray-900/95">
-                        <div className="flex items-center gap-3 mb-4 border-b border-yellow-500/30 pb-3">
-                            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-                            <Radio className="w-5 h-5 text-yellow-400" />
-                            <span className="text-yellow-400 text-sm font-bold tracking-widest">
+                    <CRTDialogueBox variant="yellow" className="mb-6">
+                        <div className="flex items-center gap-3 mb-4 border-b border-yellow-900/50 pb-3">
+                            <div className="w-3 h-3 rounded-full bg-yellow-500 animate-pulse shadow-[0_0_8px_#eab308]" />
+                            <Radio className="w-5 h-5 text-yellow-500 drop-shadow-[0_0_6px_rgba(234,179,8,0.8)]" />
+                            <span className="text-yellow-500 text-sm font-bold tracking-widest font-mono drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]">
                                 VICTORY TRANSMISSION
                             </span>
                         </div>
-                        <p className="text-yellow-300 text-lg leading-relaxed">
+                        <p className="text-yellow-400 text-lg leading-relaxed font-mono drop-shadow-[0_0_6px_rgba(250,204,21,0.6)]">
                             "{victoryNarrative.message}"
                         </p>
-                    </PixelCard>
+                    </CRTDialogueBox>
                 )}
 
-                {/* Boss defeat quote */}
+                {/* Boss defeat quote - CRT Style */}
                 {bossDefeatDialogue && !battleInfo.isFinal && (
-                    <PixelCard className="mb-6 p-4 border-red-500/50 bg-gray-900/95">
-                        <div className="text-red-600 text-xs font-bold mb-2 tracking-wider">
+                    <CRTDialogueBox variant="red" className="mb-6">
+                        <div className="text-red-500 text-xs font-bold mb-2 tracking-wider font-mono drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">
                             [ENEMY TRANSMISSION - SIGNAL LOST]
                         </div>
-                        <p className="text-red-400 italic">
+                        <p className="text-red-400 italic font-mono drop-shadow-[0_0_6px_rgba(248,113,113,0.6)]">
                             "{bossDefeatDialogue.text}"
                         </p>
-                        <div className="text-gray-600 text-xs mt-2">*static*</div>
-                    </PixelCard>
+                        <div className="text-red-900 text-xs mt-2 font-mono">*static*</div>
+                    </CRTDialogueBox>
                 )}
 
                 <PixelCard className="w-full text-center p-8">
@@ -199,7 +200,7 @@ const ResultScreen: React.FC = () => {
                         {/* Defeat encouragement message */}
                         {encourageDialogue && (
                             <div className="mt-4 text-sm">
-                                <p className="text-cyan-400">"{encourageDialogue.text}"</p>
+                                <p className="text-green-400 font-mono drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]">"{encourageDialogue.text}"</p>
                             </div>
                         )}
                     </div>
@@ -207,7 +208,7 @@ const ResultScreen: React.FC = () => {
                     <div className="grid grid-cols-2 gap-4 mb-8">
                         <div className="bg-space-black p-4 border-2 border-gray-700">
                             <div className="text-xs text-gray-400">CORRECT</div>
-                            <div className="text-2xl text-green-400">{correctCount}</div>
+                            <div className="text-2xl text-green-400">{correctCount}/{questions.length}</div>
                         </div>
                         <div className="bg-space-black p-4 border-2 border-gray-700">
                             <div className="text-xs text-gray-400">XP EARNED</div>

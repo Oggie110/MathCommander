@@ -9,7 +9,7 @@ import { getBattleMusicForChapter } from '@/audio/sounds';
 import { speechService } from '@/audio/SpeechService';
 import { selectWaveLine, selectAlienLine, selectVictoryLine, selectDefeatLine, type BodyId } from '@/audio/speechSounds';
 import type { Question } from '@/types/game.ts';
-import { Heart, ArrowLeft } from 'lucide-react';
+import { Star, ArrowLeft } from 'lucide-react';
 
 type IntroStage = 'intro1' | 'heroEnter' | 'enemyEnter' | 'intro2' | 'playing' | 'victory' | 'heroExit';
 
@@ -57,10 +57,14 @@ const BattleScreen: React.FC = () => {
         isReplay: boolean;
     } | null>(null);
     const [dodgeDirection, setDodgeDirection] = useState<'up' | 'down'>('up');
+    const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+    const [frozenChoices, setFrozenChoices] = useState<number[] | null>(null);
     const [showEscapeOverlay, setShowEscapeOverlay] = useState(false);
     const [defeatMessage, setDefeatMessage] = useState<{ message: string; encouragement: string } | null>(null);
     const [defeatSoundId, setDefeatSoundId] = useState('');
     const [shotFired, setShotFired] = useState(false);
+    const [prevStarCount, setPrevStarCount] = useState(0);
+    const [animatingStarIndex, setAnimatingStarIndex] = useState<number | null>(null);
 
     // Refs for cleanup
     const escapeNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -75,15 +79,17 @@ const BattleScreen: React.FC = () => {
         const activeLegId = locationState?.legId || progress.currentLegId;
         const activeWaypointIndex = locationState?.waypointIndex ?? progress.currentWaypointIndex;
 
-        const settings = generateCampaignMission(activeLegId);
+        // Determine if boss level first (needed for question count)
+        const currentLeg = getLegById(activeLegId);
+        const isBoss = currentLeg ? isBossLevel(activeWaypointIndex, currentLeg.waypointsRequired) : false;
+
+        const settings = generateCampaignMission(activeLegId, isBoss);
 
         const newQuestions = generateQuestions(settings, stats);
         setQuestions(newQuestions);
 
         // Determine background based on mission type
-        const currentLeg = getLegById(activeLegId);
         if (currentLeg) {
-            const isBoss = isBossLevel(activeWaypointIndex, currentLeg.waypointsRequired);
             const isFinal = checkIsFinalBoss(currentLeg.toBodyId, isBoss);
             setIsBossBattle(isBoss);
             setIsFinalBoss(isFinal);
@@ -136,7 +142,6 @@ const BattleScreen: React.FC = () => {
 
         // Select enemy sprite - boss gets special ship, regular enemies get random from pool
         if (currentLeg) {
-            const isBoss = isBossLevel(activeWaypointIndex, currentLeg.waypointsRequired);
             if (isBoss) {
                 setEnemyImage('/assets/1Ships/BossShip1Small.png');
             } else {
@@ -229,6 +234,17 @@ const BattleScreen: React.FC = () => {
             return () => clearTimeout(timeout);
         }
     }, [gameEnding, explosionFrame, currentBodyId, isBossBattle]);
+
+    // Auto-advance after last question (no click to continue needed)
+    useEffect(() => {
+        if (showFeedback && currentIndex === questions.length - 1 && questions.length > 0) {
+            const timeout = setTimeout(() => {
+                handleGameComplete(questions);
+            }, 2500); // 2.5 second delay before auto-advancing
+
+            return () => clearTimeout(timeout);
+        }
+    }, [showFeedback, currentIndex, questions]);
 
     // Intro sequence - triggered when dialogue is ready
     useEffect(() => {
@@ -410,26 +426,91 @@ const BattleScreen: React.FC = () => {
             {/* Main interface frame - the "screen" */}
             <div className="w-full max-w-4xl">
                 {/* HUD - Above the frame */}
-                <div className="flex justify-between items-end mb-4 px-8">
+                <div className="flex justify-center items-end mb-4 px-8 gap-8">
+                    {/* Stars - show earned stars based on absolute thresholds */}
                     <div className="flex gap-2">
-                        {Array.from({ length: 3 }).map((_, i) => (
-                            <Heart key={i} className="w-8 h-8 text-red-500 fill-red-500" />
-                        ))}
+                        {(() => {
+                            // Calculate current correct count
+                            const correctCount = questions.filter(q => q.correct === true).length;
+                            const totalQuestions = questions.length;
+
+                            // Calculate thresholds based on total questions
+                            const thresholdFor2Stars = Math.ceil(totalQuestions * 0.7); // 70% = 7 for 10 questions
+                            const thresholdFor3Stars = Math.ceil(totalQuestions * 0.9); // 90% = 9 for 10 questions
+
+                            // Stars earned based on reaching absolute thresholds
+                            let earnedStars = 0;
+                            if (correctCount >= thresholdFor3Stars) earnedStars = 3;
+                            else if (correctCount >= thresholdFor2Stars) earnedStars = 2;
+                            else if (correctCount > 0) earnedStars = 1;
+
+                            // Detect if a new star was earned and trigger animation + sound
+                            // Delay so it comes after the shot/hit feedback
+                            if (earnedStars > prevStarCount) {
+                                // Update prevStarCount immediately to prevent re-triggering
+                                setPrevStarCount(earnedStars);
+                                // Delay the animation and sound to come after the hit
+                                setTimeout(() => {
+                                    setAnimatingStarIndex(earnedStars - 1);
+                                    playSFX('starEarned');
+                                    // Clear animation after it completes
+                                    setTimeout(() => setAnimatingStarIndex(null), 500);
+                                }, 800); // 800ms delay - after laser (600ms) and hit feedback
+                            }
+
+                            return Array.from({ length: 3 }).map((_, i) => (
+                                <Star
+                                    key={i}
+                                    className={`w-8 h-8 ${
+                                        i < earnedStars
+                                            ? 'text-yellow-400 fill-yellow-400'
+                                            : 'text-gray-600'
+                                    } ${animatingStarIndex === i ? 'animate-starPop' : ''}`}
+                                />
+                            ));
+                        })()}
                     </div>
-                    <div className="text-right">
+                    {/* Enemy Shield / Wave indicator - center */}
+                    <div className="text-center">
                         <div className="text-xs text-gray-400 mb-1">ENEMY SHIELD</div>
-                        <PixelProgressBar value={100 - progress} color="bg-red-500" className="w-48" />
+                        <div className="flex gap-0.5">
+                            {questions.map((q, i) => {
+                                // Determine color: answered correctly = green, answered wrong = red, current = yellow, unanswered = gray
+                                let colorClass = 'bg-gray-600'; // unanswered future questions
+                                if (i < currentIndex) {
+                                    // Already answered
+                                    colorClass = q.correct ? 'bg-green-500' : 'bg-red-500';
+                                } else if (i === currentIndex) {
+                                    colorClass = 'bg-yellow-500 animate-pulse';
+                                }
+                                return (
+                                    <div
+                                        key={i}
+                                        className={`h-2 w-6 ${colorClass}`}
+                                        style={{
+                                            borderRadius: i === 0 ? '2px 0 0 2px' : i === questions.length - 1 ? '0 2px 2px 0' : '0',
+                                        }}
+                                    />
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
 
-                {/* Bordered game screen frame */}
-                <div className="relative bg-black shadow-2xl" style={{
-                    border: '8px solid',
-                    borderImage: 'linear-gradient(180deg, #6b6b7a 0%, #3a3a4a 50%, #2a2a3a 100%) 1',
-                    boxShadow: '0 0 0 4px #1a1a2e, 0 0 0 8px #3a3a4a, 0 20px 50px rgba(0,0,0,0.8)',
+                {/* Bordered game screen frame - matching dialogue box style */}
+                <div className="relative" style={{
+                    background: 'linear-gradient(180deg, #6a6a7a 0%, #4a4a5a 20%, #3a3a4a 80%, #4a4a5a 100%)',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.15)',
                 }}>
-                    {/* Inner border for depth */}
-                    <div className="border-4 border-gray-600">
+                    {/* Inner bezel */}
+                    <div style={{
+                        background: 'linear-gradient(180deg, #1a1a2a 0%, #0a0a15 100%)',
+                        border: '3px solid #0a0a10',
+                        borderRadius: '4px',
+                        padding: '3px',
+                    }}>
                         {/* Game content area */}
                         <div className="relative h-[900px] flex flex-col overflow-hidden">
                             {/* Main viewing area - Side-scrolling shooter */}
@@ -484,57 +565,128 @@ const BattleScreen: React.FC = () => {
                                     />
                                 </div>
 
-                                {/* Intro/Victory Message Overlay */}
+                                {/* Intro/Victory Message Overlay - CRT Monitor Style - Slides up from console */}
                                 {(introStage === 'intro1' || introStage === 'intro2' || introStage === 'victory') && (
                                     <div
-                                        className="absolute inset-0 z-20 flex items-start justify-center pt-16 cursor-pointer"
+                                        className="absolute inset-0 z-20 flex items-end justify-center cursor-pointer"
                                         onClick={handleDialogueClick}
+                                        style={{ paddingBottom: '12px' }} /* Sits just above the control panel border */
                                     >
-                                        <div className={`bg-gray-900/95 border-4 ${introStage === 'intro2' ? 'border-red-500' : 'border-cyan-400'
-                                            } p-6 max-w-2xl animate-fadeIn shadow-lg flex gap-4`}
+                                        {/* CRT Monitor frame - slides up */}
+                                        <div
+                                            className="relative max-w-2xl animate-slideUpFromConsole"
                                             style={{
-                                                boxShadow:
-                                                    introStage === 'intro2' ? '0 0 20px rgba(239, 68, 68, 0.5)' :
-                                                        '0 0 20px rgba(34, 211, 238, 0.5)'
-                                            }}>
-                                            {/* Commander portrait - only for commander dialogues */}
-                                            {(introStage === 'intro1' || introStage === 'victory') && (
-                                                <div className="flex-shrink-0">
-                                                    <img
-                                                        src="/assets/1GameCharacters/Commander.png"
-                                                        alt="Commander"
-                                                        className="w-24 h-24 object-contain"
-                                                        style={{ imageRendering: 'pixelated' }}
+                                                background: 'linear-gradient(180deg, #6a6a7a 0%, #4a4a5a 20%, #3a3a4a 80%, #4a4a5a 100%)',
+                                                padding: '12px',
+                                                borderRadius: '8px 8px 0 0',
+                                                boxShadow: '0 -8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                            }}
+                                        >
+                                            {/* Support arms/pipes connecting to console */}
+                                            <div
+                                                className="absolute -bottom-8 left-[20%]"
+                                                style={{
+                                                    width: '12px',
+                                                    height: '32px',
+                                                    background: 'linear-gradient(90deg, #5a5a6a 0%, #3a3a4a 50%, #4a4a5a 100%)',
+                                                    borderRadius: '0 0 4px 4px',
+                                                    boxShadow: '2px 4px 8px rgba(0,0,0,0.4)',
+                                                }}
+                                            />
+                                            <div
+                                                className="absolute -bottom-8 right-[20%]"
+                                                style={{
+                                                    width: '12px',
+                                                    height: '32px',
+                                                    background: 'linear-gradient(90deg, #4a4a5a 0%, #3a3a4a 50%, #5a5a6a 100%)',
+                                                    borderRadius: '0 0 4px 4px',
+                                                    boxShadow: '2px 4px 8px rgba(0,0,0,0.4)',
+                                                }}
+                                            />
+                                            {/* Inner bezel */}
+                                            <div
+                                                style={{
+                                                    background: 'linear-gradient(180deg, #1a1a2a 0%, #0a0a15 100%)',
+                                                    border: '3px solid #0a0a10',
+                                                    borderRadius: '4px',
+                                                    padding: '3px',
+                                                }}
+                                            >
+                                                {/* Screen area */}
+                                                <div
+                                                    className="relative p-6 flex gap-4 overflow-hidden"
+                                                    style={{
+                                                        background: introStage === 'intro2'
+                                                            ? 'linear-gradient(135deg, #1a0000 0%, #0d0000 50%, #140000 100%)'
+                                                            : 'linear-gradient(135deg, #001a00 0%, #000d00 50%, #001400 100%)',
+                                                        borderRadius: '2px',
+                                                        minHeight: '120px',
+                                                    }}
+                                                >
+                                                    {/* CRT Scanline effect */}
+                                                    <div
+                                                        className="absolute inset-0 pointer-events-none z-10"
+                                                        style={{
+                                                            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.4) 1px, rgba(0,0,0,0.4) 2px)',
+                                                            opacity: 0.6,
+                                                        }}
                                                     />
-                                                </div>
-                                            )}
-                                            {/* Alien portrait - only for alien dialogues */}
-                                            {introStage === 'intro2' && (
-                                                <div className="flex-shrink-0">
-                                                    <img
-                                                        src={isFinalBoss ? '/assets/1GameCharacters/Zorath.png' : isBossBattle ? '/assets/1GameCharacters/AlienBoss.png' : '/assets/1GameCharacters/AlienCommander.png'}
-                                                        alt={isFinalBoss ? 'Zorath' : isBossBattle ? 'Alien Boss' : 'Alien Commander'}
-                                                        className="w-24 h-24 object-contain"
-                                                        style={{ imageRendering: 'pixelated' }}
+                                                    {/* Screen phosphor glow */}
+                                                    <div
+                                                        className="absolute inset-0 rounded pointer-events-none"
+                                                        style={{
+                                                            boxShadow: introStage === 'intro2'
+                                                                ? 'inset 0 0 40px rgba(255,0,0,0.15)'
+                                                                : 'inset 0 0 40px rgba(0,255,0,0.15)'
+                                                        }}
                                                     />
-                                                </div>
-                                            )}
-                                            <div className="flex-1">
-                                                {/* Speaker label */}
-                                                <div className={`text-xs font-bold mb-2 tracking-wider ${introStage === 'intro2' ? 'text-red-600' : 'text-cyan-600'
-                                                    }`}>
-                                                    {introStage === 'intro1' && '[COMMANDER]'}
-                                                    {introStage === 'intro2' && (alienSpeaker ? `[${alienSpeaker}]` : '[ENEMY]')}
-                                                    {introStage === 'victory' && '[COMMANDER]'}
-                                                </div>
-                                                <p className={`text-lg ${introStage === 'intro2' ? 'text-red-400' : 'text-cyan-300'
-                                                    } leading-relaxed`}>
-                                                    "{introMessage}"
-                                                </p>
-                                                {/* Click to continue hint */}
-                                                <div className={`text-xs mt-4 animate-pulse ${introStage === 'intro2' ? 'text-red-600/60' : 'text-cyan-600/60'
-                                                    }`}>
-                                                    [ Click to continue ]
+
+                                                    {/* Commander portrait - only for commander dialogues */}
+                                                    {(introStage === 'intro1' || introStage === 'victory') && (
+                                                        <div className="flex-shrink-0 relative z-0">
+                                                            <img
+                                                                src="/assets/1GameCharacters/Commander.png"
+                                                                alt="Commander"
+                                                                className="w-24 h-24 object-contain"
+                                                                style={{ imageRendering: 'pixelated' }}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    {/* Alien portrait - only for alien dialogues */}
+                                                    {introStage === 'intro2' && (
+                                                        <div className="flex-shrink-0 relative z-0">
+                                                            <img
+                                                                src={isFinalBoss ? '/assets/1GameCharacters/Zorath.png' : isBossBattle ? '/assets/1GameCharacters/AlienBoss.png' : '/assets/1GameCharacters/AlienCommander.png'}
+                                                                alt={isFinalBoss ? 'Zorath' : isBossBattle ? 'Alien Boss' : 'Alien Commander'}
+                                                                className="w-24 h-24 object-contain"
+                                                                style={{ imageRendering: 'pixelated' }}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex-1 relative z-0">
+                                                        {/* Speaker label */}
+                                                        <div className={`text-xs font-bold mb-2 tracking-wider font-mono ${introStage === 'intro2'
+                                                            ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]'
+                                                            : 'text-green-500 drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]'
+                                                            }`}>
+                                                            {introStage === 'intro1' && '[COMMANDER]'}
+                                                            {introStage === 'intro2' && (alienSpeaker ? `[${alienSpeaker}]` : '[ENEMY]')}
+                                                            {introStage === 'victory' && '[COMMANDER]'}
+                                                        </div>
+                                                        <p className={`text-lg font-mono leading-relaxed ${introStage === 'intro2'
+                                                            ? 'text-red-400 drop-shadow-[0_0_6px_rgba(248,113,113,0.6)]'
+                                                            : 'text-green-400 drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]'
+                                                            }`}>
+                                                            "{introMessage}"
+                                                        </p>
+                                                        {/* Click to continue hint */}
+                                                        <div className={`text-sm mt-4 animate-pulse font-mono ${introStage === 'intro2'
+                                                            ? 'text-red-600/70'
+                                                            : 'text-green-600/70'
+                                                            }`}>
+                                                            [ Click to continue ]
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -619,8 +771,8 @@ const BattleScreen: React.FC = () => {
                                                     className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
                                                     style={{
                                                         imageRendering: 'pixelated',
-                                                        width: '154px',
-                                                        height: '154px',
+                                                        width: isBossBattle ? '280px' : '154px',
+                                                        height: isBossBattle ? '280px' : '154px',
                                                         objectFit: 'contain',
                                                     }}
                                                 />
@@ -642,34 +794,96 @@ const BattleScreen: React.FC = () => {
                                     </div>
                                 )}
 
-                                {/* Game ending overlay - delayed to let escape animation play */}
+                                {/* Game ending overlay - delayed to let escape animation play - CRT Monitor Style - Slides up */}
                                 {gameEnding === 'escape' && showEscapeOverlay && defeatMessage && pendingNavigation && (
                                     <div
-                                        className="absolute inset-0 z-20 flex items-start justify-center pt-16 cursor-pointer"
+                                        className="absolute inset-0 z-20 flex items-end justify-center cursor-pointer"
                                         onClick={() => navigate('/result', { state: pendingNavigation })}
+                                        style={{ paddingBottom: '12px' }}
                                     >
+                                        {/* CRT Monitor frame - slides up */}
                                         <div
-                                            className="bg-gray-900/95 border-4 border-red-500 p-6 max-w-2xl animate-fadeIn shadow-lg flex gap-4"
-                                            style={{ boxShadow: '0 0 20px rgba(239, 68, 68, 0.5)' }}
+                                            className="relative max-w-2xl animate-slideUpFromConsole"
+                                            style={{
+                                                background: 'linear-gradient(180deg, #6a6a7a 0%, #4a4a5a 20%, #3a3a4a 80%, #4a4a5a 100%)',
+                                                padding: '12px',
+                                                borderRadius: '8px 8px 0 0',
+                                                boxShadow: '0 -8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                            }}
                                         >
-                                            {/* Commander portrait */}
-                                            <div className="flex-shrink-0">
-                                                <img
-                                                    src="/assets/1GameCharacters/Commander.png"
-                                                    alt="Commander"
-                                                    className="w-24 h-24 object-contain"
-                                                    style={{ imageRendering: 'pixelated' }}
-                                                />
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="text-xs font-bold mb-2 tracking-wider text-red-600">
-                                                    [COMMANDER]
-                                                </div>
-                                                <p className="text-lg text-red-400 leading-relaxed">
-                                                    "{defeatMessage.message}"
-                                                </p>
-                                                <div className="text-xs mt-4 text-red-600/60 animate-pulse">
-                                                    [ Click to continue ]
+                                            {/* Support arms/pipes connecting to console */}
+                                            <div
+                                                className="absolute -bottom-8 left-[20%]"
+                                                style={{
+                                                    width: '12px',
+                                                    height: '32px',
+                                                    background: 'linear-gradient(90deg, #5a5a6a 0%, #3a3a4a 50%, #4a4a5a 100%)',
+                                                    borderRadius: '0 0 4px 4px',
+                                                    boxShadow: '2px 4px 8px rgba(0,0,0,0.4)',
+                                                }}
+                                            />
+                                            <div
+                                                className="absolute -bottom-8 right-[20%]"
+                                                style={{
+                                                    width: '12px',
+                                                    height: '32px',
+                                                    background: 'linear-gradient(90deg, #4a4a5a 0%, #3a3a4a 50%, #5a5a6a 100%)',
+                                                    borderRadius: '0 0 4px 4px',
+                                                    boxShadow: '2px 4px 8px rgba(0,0,0,0.4)',
+                                                }}
+                                            />
+                                            {/* Inner bezel */}
+                                            <div
+                                                style={{
+                                                    background: 'linear-gradient(180deg, #1a1a2a 0%, #0a0a15 100%)',
+                                                    border: '3px solid #0a0a10',
+                                                    borderRadius: '4px',
+                                                    padding: '3px',
+                                                }}
+                                            >
+                                                {/* Screen area - red tint for defeat */}
+                                                <div
+                                                    className="relative p-6 flex gap-4 overflow-hidden"
+                                                    style={{
+                                                        background: 'linear-gradient(135deg, #1a0000 0%, #0d0000 50%, #140000 100%)',
+                                                        borderRadius: '2px',
+                                                        minHeight: '120px',
+                                                    }}
+                                                >
+                                                    {/* CRT Scanline effect */}
+                                                    <div
+                                                        className="absolute inset-0 pointer-events-none z-10"
+                                                        style={{
+                                                            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.4) 1px, rgba(0,0,0,0.4) 2px)',
+                                                            opacity: 0.6,
+                                                        }}
+                                                    />
+                                                    {/* Screen phosphor glow - red */}
+                                                    <div
+                                                        className="absolute inset-0 rounded pointer-events-none"
+                                                        style={{ boxShadow: 'inset 0 0 40px rgba(255,0,0,0.15)' }}
+                                                    />
+
+                                                    {/* Commander portrait */}
+                                                    <div className="flex-shrink-0 relative z-0">
+                                                        <img
+                                                            src="/assets/1GameCharacters/Commander.png"
+                                                            alt="Commander"
+                                                            className="w-24 h-24 object-contain"
+                                                            style={{ imageRendering: 'pixelated' }}
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1 relative z-0">
+                                                        <div className="text-xs font-bold mb-2 tracking-wider font-mono text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+                                                            [COMMANDER]
+                                                        </div>
+                                                        <p className="text-lg font-mono text-red-400 drop-shadow-[0_0_6px_rgba(248,113,113,0.6)] leading-relaxed">
+                                                            "{defeatMessage.message}"
+                                                        </p>
+                                                        <div className="text-sm mt-4 text-red-600/70 animate-pulse font-mono">
+                                                            [ Click to continue ]
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -677,8 +891,8 @@ const BattleScreen: React.FC = () => {
                                 )}
                             </div>
 
-                            {/* Bottom control panel - Retro Computer Console */}
-                            <div className="relative" style={{
+                            {/* Bottom control panel - Retro Computer Console - z-30 to stay above dialogue */}
+                            <div className="relative z-30" style={{
                                 minHeight: '280px',
                                 borderTop: '12px solid',
                                 borderImage: 'linear-gradient(90deg, #2a2a3a 0%, #5a5a6a 50%, #2a2a3a 100%) 1',
@@ -728,25 +942,37 @@ const BattleScreen: React.FC = () => {
 
                                                 {introStage === 'playing' ? (
                                                     <div className="relative z-0">
-                                                        {/* Question Display - smaller */}
-                                                        <div className="text-2xl font-bold flex items-center justify-center gap-2 my-3 font-mono">
+                                                        {/* Question Display */}
+                                                        <div className="text-2xl font-bold flex items-center justify-center gap-2 font-mono mb-3">
                                                             <span className="text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.9)]">{currentQuestion.num1}</span>
                                                             <span className="text-green-600">×</span>
                                                             <span className="text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.9)]">{currentQuestion.num2}</span>
                                                             <span className="text-green-600">=</span>
-                                                            <span className="text-green-300 drop-shadow-[0_0_10px_rgba(134,239,172,1)] animate-pulse">?</span>
+                                                            {showFeedback ? (
+                                                                <span className="text-green-300 drop-shadow-[0_0_10px_rgba(134,239,172,1)]">{currentQuestion.answer}</span>
+                                                            ) : (
+                                                                <span className="text-green-300 drop-shadow-[0_0_10px_rgba(134,239,172,1)] animate-pulse">?</span>
+                                                            )}
                                                         </div>
 
-                                                        {/* Answer Buttons - smaller */}
+                                                        {/* Answer Buttons */}
                                                         <div className="flex items-center justify-center">
-                                                            {!showFeedback ? (
-                                                                <div className="grid grid-cols-3 gap-1 w-full">
-                                                                    {answerChoices.map((opt, i) => (
+                                                            <div className="grid grid-cols-3 gap-1 w-full">
+                                                                {(frozenChoices || answerChoices).map((opt, i) => {
+                                                                    const isSelected = showFeedback && selectedAnswer === opt;
+                                                                    const isCorrectAnswer = opt === currentQuestion.answer;
+                                                                    const showAsWrong = isSelected && !isCorrectAnswer;
+                                                                    const showAsCorrect = showFeedback && isCorrectAnswer;
+
+                                                                    return (
                                                                         <button
                                                                             key={i}
                                                                             disabled={showFeedback}
                                                                             onClick={() => {
+                                                                                playSFX('buttonClick');
                                                                                 setUserAnswer(opt.toString());
+                                                                                setSelectedAnswer(opt);
+                                                                                setFrozenChoices([...answerChoices]); // Freeze the current choices
                                                                                 setShowLaser(true);
                                                                                 setShotFired(true);
                                                                                 setTimeout(() => setShotFired(false), 500);
@@ -765,42 +991,57 @@ const BattleScreen: React.FC = () => {
                                                                                     correct: opt === currentQuestion.answer,
                                                                                 };
                                                                                 setQuestions(updatedQuestions);
-                                                                                setTimeout(() => {
-                                                                                    setShowLaser(false);
-                                                                                    if (currentIndex < questions.length - 1) {
-                                                                                        setCurrentIndex(currentIndex + 1);
-                                                                                        setUserAnswer('');
-                                                                                        setShowFeedback(false);
-                                                                                    } else {
-                                                                                        handleGameComplete(updatedQuestions);
-                                                                                    }
-                                                                                }, 1000);
+                                                                                // Stop laser animation after a short delay
+                                                                                setTimeout(() => setShowLaser(false), 600);
                                                                             }}
-                                                                            className="py-2 text-sm font-bold font-mono text-green-400 hover:text-green-300 hover:scale-105 active:scale-95 disabled:opacity-50"
+                                                                            className={`py-2 text-sm font-bold font-mono transition-all ${
+                                                                                showAsWrong
+                                                                                    ? 'text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]'
+                                                                                    : showAsCorrect
+                                                                                        ? 'text-green-300 drop-shadow-[0_0_8px_rgba(134,239,172,0.8)]'
+                                                                                        : 'text-green-400 hover:text-green-300 hover:scale-105 active:scale-95'
+                                                                            } disabled:cursor-default`}
                                                                             style={{
-                                                                                background: 'linear-gradient(180deg, #0a200a 0%, #001a00 50%, #000d00 100%)',
-                                                                                border: '2px solid #1a4a1a',
+                                                                                background: showAsWrong
+                                                                                    ? 'linear-gradient(180deg, #200a0a 0%, #1a0000 50%, #0d0000 100%)'
+                                                                                    : showAsCorrect
+                                                                                        ? 'linear-gradient(180deg, #0a300a 0%, #002a00 50%, #001a00 100%)'
+                                                                                        : 'linear-gradient(180deg, #0a200a 0%, #001a00 50%, #000d00 100%)',
+                                                                                border: showAsWrong
+                                                                                    ? '2px solid #4a1a1a'
+                                                                                    : showAsCorrect
+                                                                                        ? '2px solid #1a5a1a'
+                                                                                        : '2px solid #1a4a1a',
                                                                                 borderRadius: '3px',
                                                                             }}
                                                                         >
                                                                             {opt}
                                                                         </button>
-                                                                    ))}
-                                                                </div>
-                                                            ) : (
-                                                                <div className="text-center font-mono text-sm py-2">
-                                                                    {isCorrect ? (
-                                                                        <span className="text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,1)]">HIT!</span>
-                                                                    ) : (
-                                                                        <span className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]">MISS</span>
-                                                                    )}
-                                                                </div>
-                                                            )}
+                                                                    );
+                                                                })}
+                                                            </div>
                                                         </div>
 
-                                                        {/* Wave indicator */}
-                                                        <div className="flex justify-center items-center gap-1 mt-2">
-                                                            <span className="text-[8px] text-green-700 font-mono">WAVE {currentIndex + 1}/{questions.length}</span>
+                                                        {/* Click to continue (replaces wave indicator when showing) - not shown on last question */}
+                                                        <div
+                                                            className={`flex justify-center items-center mt-4 ${showFeedback && currentIndex < questions.length - 1 ? 'cursor-pointer' : ''}`}
+                                                            onClick={showFeedback && currentIndex < questions.length - 1 ? () => {
+                                                                setCurrentIndex(currentIndex + 1);
+                                                                setUserAnswer('');
+                                                                setShowFeedback(false);
+                                                                setSelectedAnswer(null);
+                                                                setFrozenChoices(null);
+                                                            } : undefined}
+                                                        >
+                                                            {showFeedback && currentIndex < questions.length - 1 ? (
+                                                                <span className="text-sm text-green-600/70 font-mono animate-pulse">
+                                                                    [ Click to continue ]
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-sm text-green-600/50 font-mono">
+                                                                    — — —
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 ) : (
