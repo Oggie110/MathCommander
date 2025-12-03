@@ -60,6 +60,12 @@ class AudioEngine {
         try {
             this.context = new AudioContext();
 
+            // iOS Safari requires explicit resume after user interaction
+            if (this.context.state === 'suspended') {
+                await this.context.resume();
+                console.log('[AudioEngine] Context resumed after creation (iOS fix)');
+            }
+
             // Create gain nodes for each category
             this.masterGain = this.context.createGain();
             this.masterGain.connect(this.context.destination);
@@ -128,6 +134,17 @@ class AudioEngine {
 
             this._isInitialized = true;
             console.log('[AudioEngine] Initialized');
+
+            // iOS Safari: Add touch/click listener to unlock audio on any subsequent interaction
+            const unlockAudio = async () => {
+                if (this.context?.state === 'suspended') {
+                    await this.context.resume();
+                    console.log('[AudioEngine] Context unlocked via user gesture');
+                }
+            };
+            document.addEventListener('touchstart', unlockAudio, { once: true });
+            document.addEventListener('touchend', unlockAudio, { once: true });
+            document.addEventListener('click', unlockAudio, { once: true });
         } catch (error) {
             console.error('[AudioEngine] Failed to initialize:', error);
         }
