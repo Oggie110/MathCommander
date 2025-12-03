@@ -70,7 +70,6 @@ class AudioEngine {
 
         // On iOS, use HTML5 Audio fallback
         if (isIOS()) {
-            console.log('[AudioEngine] iOS detected, using HTML5 Audio fallback');
             this.useHTML5Fallback = true;
             this._isInitialized = true;
             return;
@@ -84,7 +83,6 @@ class AudioEngine {
             // iOS Safari requires explicit resume after user interaction
             if (this.context.state === 'suspended') {
                 await this.context.resume();
-                console.log('[AudioEngine] Context resumed after creation (iOS fix)');
             }
 
             // iOS unlock trick: play a silent buffer to fully unlock audio
@@ -93,17 +91,14 @@ class AudioEngine {
             silentSource.buffer = silentBuffer;
             silentSource.connect(this.context.destination);
             silentSource.start(0);
-            console.log('[AudioEngine] Silent buffer played (iOS unlock)');
 
             // Additional iOS unlock: create and play a silent HTML5 Audio element
-            // This helps unlock audio on some iOS versions
             try {
                 const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
                 silentAudio.volume = 0.01;
                 silentAudio.play().catch(() => { /* ignore */ });
-                console.log('[AudioEngine] HTML5 Audio unlock attempted');
-            } catch (e) {
-                console.log('[AudioEngine] HTML5 Audio unlock failed (non-critical)');
+            } catch {
+                // Non-critical
             }
 
             // Create gain nodes for each category
@@ -113,15 +108,15 @@ class AudioEngine {
 
             // Music compressor for consistent volume levels (gentle, preserves dynamics)
             this.musicCompressor = this.context.createDynamicsCompressor();
-            this.musicCompressor.threshold.value = -18; // Start compressing at -18dB (higher threshold)
-            this.musicCompressor.knee.value = 10;       // Soft knee for very smooth compression
-            this.musicCompressor.ratio.value = 3;       // 3:1 compression ratio (gentle)
-            this.musicCompressor.attack.value = 0.01;   // 10ms attack (slower to preserve transients)
-            this.musicCompressor.release.value = 0.2;   // 200ms release (smooth)
+            this.musicCompressor.threshold.value = -18;
+            this.musicCompressor.knee.value = 10;
+            this.musicCompressor.ratio.value = 3;
+            this.musicCompressor.attack.value = 0.01;
+            this.musicCompressor.release.value = 0.2;
 
             // Makeup gain after music compressor
             this.musicMakeupGain = this.context.createGain();
-            this.musicMakeupGain.gain.value = 0.7;      // Gentle reduction
+            this.musicMakeupGain.gain.value = 0.7;
             this.musicMakeupGain.connect(this.masterGain);
 
             this.musicCompressor.connect(this.musicMakeupGain);
@@ -130,17 +125,17 @@ class AudioEngine {
             this.musicGain.connect(this.musicCompressor);
             this.musicGain.gain.value = this.volumes.music;
 
-            // SFX compressor for consistent volume levels (lighter than speech)
+            // SFX compressor for consistent volume levels
             this.sfxCompressor = this.context.createDynamicsCompressor();
-            this.sfxCompressor.threshold.value = -24; // Start compressing at -24dB
-            this.sfxCompressor.knee.value = 6;        // Soft knee for smooth compression
-            this.sfxCompressor.ratio.value = 4;       // 4:1 compression ratio (lighter than speech)
-            this.sfxCompressor.attack.value = 0.003;  // 3ms attack (fast, catches transients)
-            this.sfxCompressor.release.value = 0.25;  // 250ms release (smooth)
+            this.sfxCompressor.threshold.value = -24;
+            this.sfxCompressor.knee.value = 6;
+            this.sfxCompressor.ratio.value = 4;
+            this.sfxCompressor.attack.value = 0.003;
+            this.sfxCompressor.release.value = 0.25;
 
             // Makeup gain after SFX compressor
             this.sfxMakeupGain = this.context.createGain();
-            this.sfxMakeupGain.gain.value = 0.5;      // Reduce post-compressed signal
+            this.sfxMakeupGain.gain.value = 0.5;
             this.sfxMakeupGain.connect(this.masterGain);
 
             this.sfxCompressor.connect(this.sfxMakeupGain);
@@ -155,15 +150,15 @@ class AudioEngine {
 
             // Speech compressor for consistent volume levels
             this.speechCompressor = this.context.createDynamicsCompressor();
-            this.speechCompressor.threshold.value = -24; // Start compressing at -24dB
-            this.speechCompressor.knee.value = 6;        // Soft knee for smooth compression
-            this.speechCompressor.ratio.value = 6;       // 6:1 compression ratio
-            this.speechCompressor.attack.value = 0.003;  // 3ms attack (fast, catches transients)
-            this.speechCompressor.release.value = 0.25;  // 250ms release (smooth)
+            this.speechCompressor.threshold.value = -24;
+            this.speechCompressor.knee.value = 6;
+            this.speechCompressor.ratio.value = 6;
+            this.speechCompressor.attack.value = 0.003;
+            this.speechCompressor.release.value = 0.25;
 
             // Makeup gain after compressor to reduce overall level
             this.speechMakeupGain = this.context.createGain();
-            this.speechMakeupGain.gain.value = 0.5;      // Reduce post-compressed signal
+            this.speechMakeupGain.gain.value = 0.5;
             this.speechMakeupGain.connect(this.masterGain);
 
             this.speechCompressor.connect(this.speechMakeupGain);
@@ -173,20 +168,18 @@ class AudioEngine {
             this.speechGain.gain.value = this.volumes.speech;
 
             this._isInitialized = true;
-            console.log('[AudioEngine] Initialized');
 
             // iOS Safari: Add touch/click listener to unlock audio on any subsequent interaction
             const unlockAudio = async () => {
                 if (this.context?.state === 'suspended') {
                     await this.context.resume();
-                    console.log('[AudioEngine] Context unlocked via user gesture');
                 }
             };
             document.addEventListener('touchstart', unlockAudio, { once: true });
             document.addEventListener('touchend', unlockAudio, { once: true });
             document.addEventListener('click', unlockAudio, { once: true });
-        } catch (error) {
-            console.error('[AudioEngine] Failed to initialize:', error);
+        } catch {
+            // Failed to initialize
         }
     }
 
@@ -196,7 +189,6 @@ class AudioEngine {
     async resume(): Promise<void> {
         if (this.context?.state === 'suspended') {
             await this.context.resume();
-            console.log('[AudioEngine] Context resumed');
         }
     }
 
@@ -215,9 +207,7 @@ class AudioEngine {
         if (this.useHTML5Fallback) {
             return false;
         }
-        const suspended = this.context?.state === 'suspended';
-        console.log(`[AudioEngine] isSuspended check: context=${this.context?.state}, result=${suspended}`);
-        return suspended;
+        return this.context?.state === 'suspended';
     }
 
     /**
@@ -237,10 +227,7 @@ class AudioEngine {
      */
     async preload(soundId: string): Promise<void> {
         const sound = SOUNDS[soundId];
-        if (!sound) {
-            console.warn(`[AudioEngine] Unknown sound: ${soundId}`);
-            return;
-        }
+        if (!sound) return;
 
         if (this.buffers.has(soundId)) return; // Already loaded
 
@@ -259,9 +246,8 @@ class AudioEngine {
                 );
             });
             this.buffers.set(soundId, audioBuffer);
-            console.log(`[AudioEngine] Preloaded: ${soundId}`);
-        } catch (error) {
-            console.error(`[AudioEngine] Failed to preload ${soundId}:`, error);
+        } catch {
+            // Failed to preload
         }
     }
 
@@ -289,20 +275,16 @@ class AudioEngine {
      */
     private playHTML5SFX(soundId: string, options: PlayOptions = {}): void {
         const sound = SOUNDS[soundId];
-        if (!sound) {
-            console.warn(`[AudioEngine] Unknown sound: ${soundId}`);
-            return;
-        }
+        if (!sound) return;
 
         try {
             const audio = new Audio(sound.src);
             const volume = (options.volume ?? sound.volume ?? 1) * this.volumes.sfx * this.volumes.master;
             audio.volume = Math.min(1, Math.max(0, volume));
             audio.playbackRate = options.pitch ?? 1;
-            audio.play().catch(e => console.warn(`[AudioEngine] HTML5 SFX play failed: ${e.message}`));
-            console.log(`[AudioEngine] HTML5 SFX playing: ${soundId}`);
-        } catch (e) {
-            console.error(`[AudioEngine] HTML5 SFX error:`, e);
+            audio.play().catch(() => { /* ignore */ });
+        } catch {
+            // Failed to play
         }
     }
 
@@ -311,10 +293,7 @@ class AudioEngine {
      */
     private playHTML5Music(soundId: string, options: MusicOptions = {}): void {
         const sound = SOUNDS[soundId];
-        if (!sound) {
-            console.warn(`[AudioEngine] Unknown music: ${soundId}`);
-            return;
-        }
+        if (!sound) return;
 
         // Skip if same music already playing
         if (this.html5MusicId === soundId && this.html5Music) {
@@ -345,13 +324,12 @@ class AudioEngine {
                         clearInterval(fadeInterval);
                     }
                 }, stepTime);
-            }).catch(e => console.warn(`[AudioEngine] HTML5 music play failed: ${e.message}`));
+            }).catch(() => { /* ignore */ });
 
             this.html5Music = audio;
             this.html5MusicId = soundId;
-            console.log(`[AudioEngine] HTML5 music playing: ${soundId}`);
-        } catch (e) {
-            console.error(`[AudioEngine] HTML5 music error:`, e);
+        } catch {
+            // Failed to play
         }
     }
 
@@ -386,10 +364,7 @@ class AudioEngine {
      */
     private startHTML5Ambience(soundId: string, fadeIn = 1000): void {
         const sound = SOUNDS[soundId];
-        if (!sound) {
-            console.warn(`[AudioEngine] Unknown ambience: ${soundId}`);
-            return;
-        }
+        if (!sound) return;
 
         // Skip if already playing
         if (this.html5Ambience.has(soundId)) return;
@@ -412,12 +387,11 @@ class AudioEngine {
                         clearInterval(fadeInterval);
                     }
                 }, stepTime);
-            }).catch(e => console.warn(`[AudioEngine] HTML5 ambience play failed: ${e.message}`));
+            }).catch(() => { /* ignore */ });
 
             this.html5Ambience.set(soundId, audio);
-            console.log(`[AudioEngine] HTML5 ambience started: ${soundId}`);
-        } catch (e) {
-            console.error(`[AudioEngine] HTML5 ambience error:`, e);
+        } catch {
+            // Failed to play
         }
     }
 
@@ -444,7 +418,6 @@ class AudioEngine {
         }, stepTime);
 
         this.html5Ambience.delete(soundId);
-        console.log(`[AudioEngine] HTML5 ambience stopped: ${soundId}`);
     }
 
     /**
@@ -454,7 +427,6 @@ class AudioEngine {
         return new Promise((resolve) => {
             const sound = SOUNDS[soundId];
             if (!sound) {
-                console.warn(`[AudioEngine] Unknown speech: ${soundId}`);
                 resolve();
                 return;
             }
@@ -482,15 +454,10 @@ class AudioEngine {
                     resolve();
                 };
 
-                audio.play().catch(e => {
-                    console.warn(`[AudioEngine] HTML5 speech play failed: ${e.message}`);
-                    resolve();
-                });
+                audio.play().catch(() => resolve());
 
                 this.html5Speech = audio;
-                console.log(`[AudioEngine] HTML5 speech playing: ${soundId}`);
-            } catch (e) {
-                console.error(`[AudioEngine] HTML5 speech error:`, e);
+            } catch {
                 resolve();
             }
         });
@@ -500,34 +467,24 @@ class AudioEngine {
      * Play a sound effect (one-shot, can overlap)
      */
     playSFX(soundId: string, options: PlayOptions = {}): void {
-        console.log(`[AudioEngine] playSFX called: ${soundId}, html5=${this.useHTML5Fallback}, initialized: ${this._isInitialized}`);
-
         // iOS HTML5 fallback
         if (this.useHTML5Fallback) {
             this.playHTML5SFX(soundId, options);
             return;
         }
 
-        if (!this.context || !this.sfxGain) {
-            console.warn(`[AudioEngine] playSFX skipped - no context or sfxGain`);
-            return;
-        }
+        if (!this.context || !this.sfxGain) return;
 
         // If context is suspended, wait for resume then retry
         if (this.context.state === 'suspended') {
-            console.log(`[AudioEngine] Context suspended, resuming...`);
             this.context.resume().then(() => {
-                console.log(`[AudioEngine] Context resumed, retrying playSFX`);
                 this.playSFX(soundId, options);
             });
             return;
         }
 
         const sound = SOUNDS[soundId];
-        if (!sound) {
-            console.warn(`[AudioEngine] Unknown sound: ${soundId}`);
-            return;
-        }
+        if (!sound) return;
 
         // Load on demand if not preloaded
         const buffer = this.buffers.get(soundId);
@@ -585,16 +542,12 @@ class AudioEngine {
         // iOS HTML5 fallback
         if (this.useHTML5Fallback) {
             const sound = SOUNDS[soundId];
-            if (!sound) {
-                console.warn(`[AudioEngine] Unknown sound: ${soundId}`);
-                return null;
-            }
+            if (!sound) return null;
             try {
                 const audio = new Audio(sound.src);
                 const volume = (options.volume ?? sound.volume ?? 1) * this.volumes.sfx * this.volumes.master;
                 audio.volume = Math.min(1, Math.max(0, volume));
-                audio.play().catch(e => console.warn(`[AudioEngine] HTML5 SFXWithStop play failed: ${e.message}`));
-                console.log(`[AudioEngine] HTML5 SFXWithStop playing: ${soundId}`);
+                audio.play().catch(() => { /* ignore */ });
                 // Return stop function
                 return (fadeOut = 300) => {
                     // Simple fade out for HTML5
@@ -611,21 +564,15 @@ class AudioEngine {
                         }
                     }, stepTime);
                 };
-            } catch (e) {
-                console.error(`[AudioEngine] HTML5 SFXWithStop error:`, e);
+            } catch {
                 return null;
             }
         }
 
-        if (!this.context || !this.sfxGain) {
-            return null;
-        }
+        if (!this.context || !this.sfxGain) return null;
 
         const sound = SOUNDS[soundId];
-        if (!sound) {
-            console.warn(`[AudioEngine] Unknown sound: ${soundId}`);
-            return null;
-        }
+        if (!sound) return null;
 
         const buffer = this.buffers.get(soundId);
         if (!buffer) {
@@ -710,7 +657,6 @@ class AudioEngine {
 
             const sound = SOUNDS[soundId];
             if (!sound) {
-                console.warn(`[AudioEngine] Unknown speech: ${soundId}`);
                 resolve();
                 return;
             }
@@ -735,48 +681,41 @@ class AudioEngine {
             gainNode.gain.value = volume;
 
             // === HEAVY RADIO/DISTORTED TRANSMISSION EQ CHAIN ===
-            // More aggressive highpass (cuts more bass - thin/tinny sound)
             const highpass = this.context.createBiquadFilter();
             highpass.type = 'highpass';
             highpass.frequency.value = 550;
             highpass.Q.value = 1.0;
 
-            // More aggressive lowpass (cuts more highs - muffled)
             const lowpass = this.context.createBiquadFilter();
             lowpass.type = 'lowpass';
             lowpass.frequency.value = 3200;
             lowpass.Q.value = 1.0;
 
-            // Add a peaking filter for that "radio resonance" sound
             const resonance = this.context.createBiquadFilter();
             resonance.type = 'peaking';
             resonance.frequency.value = 1800;
             resonance.Q.value = 2.0;
-            resonance.gain.value = 4; // Boost the mid-range harshly
+            resonance.gain.value = 4;
 
-            // Heavier reverb using delay feedback (more "broken" sounding)
             const delay = this.context.createDelay();
-            delay.delayTime.value = 0.045; // 45ms delay
+            delay.delayTime.value = 0.045;
             const feedback = this.context.createGain();
-            feedback.gain.value = 0.3; // More feedback
+            feedback.gain.value = 0.3;
             const wetGain = this.context.createGain();
-            wetGain.gain.value = 0.25; // More wet signal
+            wetGain.gain.value = 0.25;
             const dryGain = this.context.createGain();
             dryGain.gain.value = 0.8;
 
-            // Connect: source -> highpass -> lowpass -> resonance -> dry/wet mix -> gain -> speechGain
             source.connect(highpass);
             highpass.connect(lowpass);
             lowpass.connect(resonance);
 
-            // Dry path
             resonance.connect(dryGain);
             dryGain.connect(gainNode);
 
-            // Wet path (heavier reverb)
             resonance.connect(delay);
             delay.connect(feedback);
-            feedback.connect(delay); // Feedback loop
+            feedback.connect(delay);
             delay.connect(wetGain);
             wetGain.connect(gainNode);
 
@@ -805,7 +744,6 @@ class AudioEngine {
             this.currentSpeechGain = gainNode;
 
             source.start();
-            console.log(`[AudioEngine] Playing heavy radio speech: ${soundId}`);
         });
     }
 
@@ -834,7 +772,6 @@ class AudioEngine {
 
             const sound = SOUNDS[soundId];
             if (!sound) {
-                console.warn(`[AudioEngine] Unknown speech: ${soundId}`);
                 resolve();
                 return;
             }
@@ -859,40 +796,34 @@ class AudioEngine {
             gainNode.gain.value = volume;
 
             // === SUBTLE RADIO/TRANSMISSION EQ CHAIN ===
-            // Highpass filter (cuts bass for radio effect)
             const highpass = this.context.createBiquadFilter();
             highpass.type = 'highpass';
             highpass.frequency.value = 350;
             highpass.Q.value = 0.7;
 
-            // Lowpass filter (cuts highs for telephone/radio effect)
             const lowpass = this.context.createBiquadFilter();
             lowpass.type = 'lowpass';
             lowpass.frequency.value = 4500;
             lowpass.Q.value = 0.7;
 
-            // Subtle reverb using delay feedback
             const delay = this.context.createDelay();
-            delay.delayTime.value = 0.03; // 30ms short delay
+            delay.delayTime.value = 0.03;
             const feedback = this.context.createGain();
-            feedback.gain.value = 0.15; // Very subtle feedback
+            feedback.gain.value = 0.15;
             const wetGain = this.context.createGain();
-            wetGain.gain.value = 0.12; // Mix in just a touch of reverb
+            wetGain.gain.value = 0.12;
             const dryGain = this.context.createGain();
             dryGain.gain.value = 0.9;
 
-            // Connect: source -> highpass -> lowpass -> dry/wet mix -> gain -> speechGain
             source.connect(highpass);
             highpass.connect(lowpass);
 
-            // Dry path
             lowpass.connect(dryGain);
             dryGain.connect(gainNode);
 
-            // Wet path (subtle reverb)
             lowpass.connect(delay);
             delay.connect(feedback);
-            feedback.connect(delay); // Feedback loop
+            feedback.connect(delay);
             delay.connect(wetGain);
             wetGain.connect(gainNode);
 
@@ -921,7 +852,6 @@ class AudioEngine {
             this.currentSpeechGain = gainNode;
 
             source.start();
-            console.log(`[AudioEngine] Playing alien speech with EQ: ${soundId}`);
         });
     }
 
@@ -944,7 +874,6 @@ class AudioEngine {
             // If context is suspended, wait for resume then retry
             if (this.context.state === 'suspended') {
                 this.context.resume().then(() => {
-                    console.log('[AudioEngine] Context resumed, retrying playSpeech');
                     this.playSpeech(soundId, options).then(resolve);
                 });
                 return;
@@ -952,7 +881,6 @@ class AudioEngine {
 
             const sound = SOUNDS[soundId];
             if (!sound) {
-                console.warn(`[AudioEngine] Unknown speech: ${soundId}`);
                 resolve();
                 return;
             }
@@ -1009,7 +937,6 @@ class AudioEngine {
             this.currentSpeechGain = gainNode;
 
             source.start();
-            console.log(`[AudioEngine] Playing speech: ${soundId}`);
         });
     }
 
@@ -1075,15 +1002,11 @@ class AudioEngine {
             return;
         }
 
-        if (!this.context || !this.musicGain) {
-            // Silently skip - audio will work after user interaction initializes the engine
-            return;
-        }
+        if (!this.context || !this.musicGain) return;
 
         // If context is suspended, wait for resume then retry
         if (this.context.state === 'suspended') {
             this.context.resume().then(() => {
-                console.log('[AudioEngine] Context resumed, retrying playMusic');
                 this.playMusic(soundId, options);
             });
             return;
@@ -1095,10 +1018,7 @@ class AudioEngine {
         }
 
         const sound = SOUNDS[soundId];
-        if (!sound || sound.category !== 'music') {
-            console.warn(`[AudioEngine] Invalid music: ${soundId}`);
-            return;
-        }
+        if (!sound || sound.category !== 'music') return;
 
         const buffer = this.buffers.get(soundId);
         if (!buffer) {
@@ -1145,8 +1065,6 @@ class AudioEngine {
         this.currentMusic = source;
         this.currentMusicId = soundId;
         this.currentMusicGain = gainNode;
-
-        console.log(`[AudioEngine] Playing music: ${soundId}`);
     }
 
     /**
@@ -1171,10 +1089,10 @@ class AudioEngine {
     playMusicTransition(
         soundId: string,
         options: {
-            overlapDuration?: number;  // How long both tracks play together (ms)
-            fadeOutCurrent?: number;   // Fade out duration for current track (ms)
-            fadeInNew?: number;        // Fade in duration for new track (ms)
-            newTrackVolume?: number;   // Volume for the new track (0-1)
+            overlapDuration?: number;
+            fadeOutCurrent?: number;
+            fadeInNew?: number;
+            newTrackVolume?: number;
         } = {}
     ): void {
         // iOS HTML5 fallback - just use simple transition
@@ -1183,9 +1101,7 @@ class AudioEngine {
             return;
         }
 
-        if (!this.context || !this.musicGain) {
-            return;
-        }
+        if (!this.context || !this.musicGain) return;
 
         const {
             overlapDuration = 2000,
@@ -1195,10 +1111,7 @@ class AudioEngine {
         } = options;
 
         const sound = SOUNDS[soundId];
-        if (!sound || sound.category !== 'music') {
-            console.warn(`[AudioEngine] Invalid music: ${soundId}`);
-            return;
-        }
+        if (!sound || sound.category !== 'music') return;
 
         const buffer = this.buffers.get(soundId);
         if (!buffer) {
@@ -1266,8 +1179,6 @@ class AudioEngine {
                 }, fadeOutCurrent);
             }, overlapDuration);
         }
-
-        console.log(`[AudioEngine] Music transition: ${soundId} (overlap: ${overlapDuration}ms)`);
     }
 
     private fadeOutMusic(duration: number): void {
@@ -1304,15 +1215,11 @@ class AudioEngine {
             return;
         }
 
-        if (!this.context || !this.ambienceGain) {
-            // Silently skip - audio will work after user interaction initializes the engine
-            return;
-        }
+        if (!this.context || !this.ambienceGain) return;
 
         // If context is suspended, wait for resume then retry
         if (this.context.state === 'suspended') {
             this.context.resume().then(() => {
-                console.log('[AudioEngine] Context resumed, retrying startAmbience');
                 this.startAmbience(soundId, fadeIn);
             });
             return;
@@ -1322,10 +1229,7 @@ class AudioEngine {
         if (this.ambienceLayers.has(soundId)) return;
 
         const sound = SOUNDS[soundId];
-        if (!sound) {
-            console.warn(`[AudioEngine] Unknown sound: ${soundId}`);
-            return;
-        }
+        if (!sound) return;
 
         const buffer = this.buffers.get(soundId);
         if (!buffer) {
@@ -1359,7 +1263,6 @@ class AudioEngine {
         );
 
         this.ambienceLayers.set(soundId, { source, gain: gainNode });
-        console.log(`[AudioEngine] Started ambience: ${soundId}`);
     }
 
     /**
@@ -1389,8 +1292,6 @@ class AudioEngine {
             }
             this.ambienceLayers.delete(soundId);
         }, fadeOut);
-
-        console.log(`[AudioEngine] Stopped ambience: ${soundId}`);
     }
 
     /**
