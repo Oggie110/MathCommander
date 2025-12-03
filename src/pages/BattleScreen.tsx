@@ -67,9 +67,10 @@ const BattleScreen: React.FC = () => {
     const [animatingStarIndex, setAnimatingStarIndex] = useState<number | null>(null);
     const [dialogueSlidingOut, setDialogueSlidingOut] = useState(false);
 
-    // Refs for cleanup
+    // Refs for cleanup and stable callbacks
     const escapeNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const escapeOverlayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const dialogueSlidingOutRef = useRef(false);
 
     // Load game state
     useEffect(() => {
@@ -281,16 +282,18 @@ const BattleScreen: React.FC = () => {
 
     // Handle click to advance dialogue (also skips speech)
     const handleDialogueClick = useCallback(() => {
-        // Prevent double-clicks while sliding out
-        if (dialogueSlidingOut) return;
+        // Prevent double-clicks while sliding out (use ref to avoid callback instability)
+        if (dialogueSlidingOutRef.current) return;
 
         // Stop any playing speech when clicking to advance
         speechService.stopCurrentSpeech();
 
         if (introStage === 'intro1') {
             // Commander dialogue clicked - slide out, then start ship entrance sequence
+            dialogueSlidingOutRef.current = true;
             setDialogueSlidingOut(true);
             setTimeout(() => {
+                dialogueSlidingOutRef.current = false;
                 setDialogueSlidingOut(false);
                 setIntroStage('heroEnter');
                 playSFX('shipSlide1', { volume: 0.5 }); // Hero ship enters
@@ -305,21 +308,25 @@ const BattleScreen: React.FC = () => {
             }, 500); // Wait for slide-out animation
         } else if (introStage === 'intro2') {
             // Enemy dialogue clicked - slide out, then start playing
+            dialogueSlidingOutRef.current = true;
             setDialogueSlidingOut(true);
             setTimeout(() => {
+                dialogueSlidingOutRef.current = false;
                 setDialogueSlidingOut(false);
                 setIntroStage('playing');
             }, 500); // Wait for slide-out animation
         } else if (introStage === 'victory') {
             // Victory dialogue clicked - slide out, then hero exits
+            dialogueSlidingOutRef.current = true;
             setDialogueSlidingOut(true);
             setTimeout(() => {
+                dialogueSlidingOutRef.current = false;
                 setDialogueSlidingOut(false);
                 setIntroStage('heroExit');
                 playSFX('shipSlide3', { volume: 0.5 }); // Hero ship exits
             }, 500); // Wait for slide-out animation
         }
-    }, [introStage, alienLine, dialogueSlidingOut]);
+    }, [introStage, alienLine]);
 
     // Intro sequence - triggered when dialogue is ready
     useEffect(() => {
