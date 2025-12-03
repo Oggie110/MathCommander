@@ -353,7 +353,7 @@ class AudioEngine {
     /**
      * Preload SFX into HTML5 audio pool for instant playback on iOS
      */
-    private async preloadHTML5SFX(soundId: string, poolSize: number = 3): Promise<void> {
+    private async preloadHTML5SFX(soundId: string, poolSize: number = 5): Promise<void> {
         const sound = SOUNDS[soundId];
         if (!sound) return;
 

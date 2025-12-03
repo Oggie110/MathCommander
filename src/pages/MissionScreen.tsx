@@ -5,8 +5,9 @@ import { loadPlayerStats } from '@/utils/gameLogic';
 import { initializeCampaignProgress, getLegById, getLegIndex, isBossLevel } from '@/utils/campaignLogic';
 import { celestialBodies } from '@/data/campaignRoute';
 import { ArrowLeft, Star } from 'lucide-react';
-import { useSFX } from '@/audio';
+import { useSFX, audioEngine } from '@/audio';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { getBattleSpeechIds, type BodyId } from '@/audio/speechSounds';
 
 // Animated planet sprite mapping - folder path and frame count
 const animatedPlanets: Record<string, { folder: string; frames: number }> = {
@@ -99,6 +100,14 @@ const MissionScreen: React.FC = () => {
     const isCurrentLeg = legId === progress.currentLegId;
     const isCompletedLeg = legIndex < currentLegIndex;
 
+    // Preload speech for this destination when entering the mission screen
+    useEffect(() => {
+        const speechIds = getBattleSpeechIds(destination.id as BodyId);
+        audioEngine.preloadAll(speechIds).catch(() => {
+            // Ignore preload errors - audio will load on demand if needed
+        });
+    }, [destination.id]);
+
     const getWaypointStatus = (waypointIndex: number) => {
         if (isCompletedLeg) {
             // All waypoints in completed legs are playable
@@ -122,8 +131,15 @@ const MissionScreen: React.FC = () => {
         return progress.starsEarned[key] || 0;
     };
 
-    const handleStartMission = (waypointIndex: number) => {
+    const handleStartMission = async (waypointIndex: number) => {
         play('doors');
+
+        // Preload speech for this battle (don't await - let it load while transitioning)
+        const speechIds = getBattleSpeechIds(destination.id as BodyId);
+        audioEngine.preloadAll(speechIds).catch(() => {
+            // Ignore preload errors - audio will load on demand if needed
+        });
+
         navigate('/battle', {
             state: {
                 legId,

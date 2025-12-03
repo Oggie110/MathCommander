@@ -674,3 +674,37 @@ export const selectBossDefeatLine = (bodyId: BodyId): DialogueLine => {
     const soundId = getAlienBossDefeatId(bodyId);
     return { soundId, text: ALIEN_BOSS_DEFEAT_TEXT[soundId] || '' };
 };
+
+/**
+ * Get all speech sound IDs needed for a battle at a specific body
+ * Used for preloading before entering battle
+ */
+export const getBattleSpeechIds = (bodyId: BodyId): string[] => {
+    const ids: string[] = [];
+
+    // Commander wave lines (sector + generic)
+    ids.push(...getWaveSectorIds(bodyId));
+    ids.push(...WAVE_GENERIC_IDS);
+
+    // Boss encounter line
+    ids.push(getBossEncounterId(bodyId));
+
+    // Alien taunts (sector + generic)
+    ids.push(...getAlienSectorTauntIds(bodyId));
+    ids.push(...ALIEN_GENERIC_TAUNT_IDS);
+
+    // Alien boss lines
+    ids.push(getAlienBossIntroId(bodyId));
+    ids.push(getAlienBossDefeatId(bodyId));
+
+    // Victory lines
+    ids.push(...VICTORY_GENERIC_IDS);
+    ids.push(VICTORY_BOSS_ID);
+
+    // Defeat & encouragement
+    ids.push(...DEFEAT_GENERIC_IDS);
+    ids.push(DEFEAT_BOSS_ID);
+    ids.push(...ENCOURAGE_IDS);
+
+    return ids;
+};
