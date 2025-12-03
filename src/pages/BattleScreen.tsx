@@ -334,63 +334,84 @@ const BattleScreen: React.FC = () => {
     // Play commander speech when intro1 starts - auto-advance when done (minimum 3s display)
     useEffect(() => {
         if (introStage === 'intro1' && commanderSoundId) {
+            let cancelled = false;
+            let timeoutId: ReturnType<typeof setTimeout>;
             const startTime = Date.now();
             const minDisplayTime = 3000; // Minimum 3 seconds display
 
             speechService.playById(commanderSoundId).then(() => {
+                if (cancelled) return;
                 // Ensure minimum display time before auto-advancing
                 const elapsed = Date.now() - startTime;
                 const remainingTime = Math.max(0, minDisplayTime - elapsed);
 
-                setTimeout(() => {
-                    // Auto-advance after speech ends (if still on intro1)
-                    if (introStage === 'intro1') {
+                timeoutId = setTimeout(() => {
+                    if (!cancelled) {
                         handleDialogueClick();
                     }
                 }, remainingTime);
             });
+
+            return () => {
+                cancelled = true;
+                if (timeoutId) clearTimeout(timeoutId);
+            };
         }
     }, [introStage, commanderSoundId, handleDialogueClick]);
 
     // Play alien speech when intro2 starts - auto-advance when done (minimum 3s display)
     useEffect(() => {
         if (introStage === 'intro2' && alienSoundId) {
+            let cancelled = false;
+            let timeoutId: ReturnType<typeof setTimeout>;
             const startTime = Date.now();
             const minDisplayTime = 3000; // Minimum 3 seconds display
 
             speechService.playAlienById(alienSoundId).then(() => {
+                if (cancelled) return;
                 // Ensure minimum display time before auto-advancing
                 const elapsed = Date.now() - startTime;
                 const remainingTime = Math.max(0, minDisplayTime - elapsed);
 
-                setTimeout(() => {
-                    // Auto-advance after speech ends (if still on intro2)
-                    if (introStage === 'intro2') {
+                timeoutId = setTimeout(() => {
+                    if (!cancelled) {
                         handleDialogueClick();
                     }
                 }, remainingTime);
             });
+
+            return () => {
+                cancelled = true;
+                if (timeoutId) clearTimeout(timeoutId);
+            };
         }
     }, [introStage, alienSoundId, handleDialogueClick]);
 
     // Play victory speech when victory dialogue appears - auto-advance when done (minimum 3s display)
     useEffect(() => {
         if (introStage === 'victory' && victorySoundId) {
+            let cancelled = false;
+            let timeoutId: ReturnType<typeof setTimeout>;
             const startTime = Date.now();
             const minDisplayTime = 3000; // Minimum 3 seconds display
 
             speechService.playById(victorySoundId).then(() => {
+                if (cancelled) return;
                 // Ensure minimum display time before auto-advancing
                 const elapsed = Date.now() - startTime;
                 const remainingTime = Math.max(0, minDisplayTime - elapsed);
 
-                setTimeout(() => {
-                    // Auto-advance after speech ends (if still on victory)
-                    if (introStage === 'victory') {
+                timeoutId = setTimeout(() => {
+                    if (!cancelled) {
                         handleDialogueClick();
                     }
                 }, remainingTime);
             });
+
+            return () => {
+                cancelled = true;
+                if (timeoutId) clearTimeout(timeoutId);
+            };
         }
     }, [introStage, victorySoundId, handleDialogueClick]);
 
