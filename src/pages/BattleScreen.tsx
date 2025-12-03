@@ -497,13 +497,14 @@ const BattleScreen: React.FC = () => {
 
         // Update stats (only advance campaign if not replaying a completed level)
         const isReplay = locationState?.isReplay || false;
+        const playedWaypointIndex = locationState?.waypointIndex ?? currentProgress.currentWaypointIndex;
         const newStats = {
             ...stats,
             totalXP: stats.totalXP + xpEarned,
             weakAreas: updateWeakAreas(finalQuestions, stats.weakAreas),
             campaignProgress: isReplay
                 ? currentProgress  // Don't advance progression on replay
-                : completeMission(currentProgress, correctCount, finalQuestions.length),
+                : completeMission(currentProgress, correctCount, finalQuestions.length, activeLegId, playedWaypointIndex),
         };
 
         savePlayerStats(newStats);

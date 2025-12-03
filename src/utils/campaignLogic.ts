@@ -95,13 +95,29 @@ export const isBossLevel = (waypointIndex: number, totalWaypoints: number): bool
 export const completeMission = (
     progress: CampaignProgress,
     score: number,
-    totalQuestions: number
+    totalQuestions: number,
+    playedLegId?: string,
+    playedWaypointIndex?: number
 ): CampaignProgress => {
     const newProgress = { ...progress };
     const stars = calculateStars(score, totalQuestions);
 
-    const key = `${progress.currentLegId}_${progress.currentWaypointIndex}`;
+    // Use the actually played leg/waypoint for star tracking
+    const actualLegId = playedLegId ?? progress.currentLegId;
+    const actualWaypointIndex = playedWaypointIndex ?? progress.currentWaypointIndex;
+
+    // Store stars for the mission that was actually played
+    const key = `${actualLegId}_${actualWaypointIndex}`;
     newProgress.starsEarned[key] = Math.max(newProgress.starsEarned[key] || 0, stars);
+
+    // Only advance campaign progress if playing the CURRENT mission (not replaying old ones)
+    const isCurrentMission = actualLegId === progress.currentLegId &&
+                             actualWaypointIndex === progress.currentWaypointIndex;
+
+    if (!isCurrentMission) {
+        // Just return with updated stars, don't advance progress
+        return newProgress;
+    }
 
     const currentLeg = getLegById(progress.currentLegId);
     if (!currentLeg) return newProgress;

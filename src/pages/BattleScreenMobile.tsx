@@ -424,13 +424,14 @@ const BattleScreenMobile: React.FC = () => {
         }
 
         const isReplay = locationState?.isReplay || false;
+        const playedWaypointIndex = locationState?.waypointIndex ?? currentProgress.currentWaypointIndex;
         const newStats = {
             ...stats,
             totalXP: stats.totalXP + xpEarned,
             weakAreas: updateWeakAreas(finalQuestions, stats.weakAreas),
             campaignProgress: isReplay
                 ? currentProgress
-                : completeMission(currentProgress, correctCount, finalQuestions.length),
+                : completeMission(currentProgress, correctCount, finalQuestions.length, activeLegId, playedWaypointIndex),
         };
         savePlayerStats(newStats);
 
