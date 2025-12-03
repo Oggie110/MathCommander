@@ -65,6 +65,7 @@ const BattleScreen: React.FC = () => {
     const [shotFired, setShotFired] = useState(false);
     const [prevStarCount, setPrevStarCount] = useState(0);
     const [animatingStarIndex, setAnimatingStarIndex] = useState<number | null>(null);
+    const [dialogueSlidingOut, setDialogueSlidingOut] = useState(false);
 
     // Refs for cleanup
     const escapeNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -280,30 +281,45 @@ const BattleScreen: React.FC = () => {
 
     // Handle click to advance dialogue (also skips speech)
     const handleDialogueClick = useCallback(() => {
+        // Prevent double-clicks while sliding out
+        if (dialogueSlidingOut) return;
+
         // Stop any playing speech when clicking to advance
         speechService.stopCurrentSpeech();
 
         if (introStage === 'intro1') {
-            // Commander dialogue clicked - start ship entrance sequence
-            setIntroStage('heroEnter');
-            playSFX('shipSlide1', { volume: 0.5 }); // Hero ship enters
+            // Commander dialogue clicked - slide out, then start ship entrance sequence
+            setDialogueSlidingOut(true);
             setTimeout(() => {
-                setIntroStage('enemyEnter');
-                playSFX('shipSlide2', { volume: 0.5 }); // Enemy ship enters
-            }, 1200); // Extended to let hero slide-in complete
-            setTimeout(() => {
-                setIntroStage('intro2');
-                setIntroMessage(alienLine);
-            }, 2400); // Extended to let enemy slide-in complete
+                setDialogueSlidingOut(false);
+                setIntroStage('heroEnter');
+                playSFX('shipSlide1', { volume: 0.5 }); // Hero ship enters
+                setTimeout(() => {
+                    setIntroStage('enemyEnter');
+                    playSFX('shipSlide2', { volume: 0.5 }); // Enemy ship enters
+                }, 1200); // Extended to let hero slide-in complete
+                setTimeout(() => {
+                    setIntroStage('intro2');
+                    setIntroMessage(alienLine);
+                }, 2400); // Extended to let enemy slide-in complete
+            }, 500); // Wait for slide-out animation
         } else if (introStage === 'intro2') {
-            // Enemy dialogue clicked - start playing
-            setIntroStage('playing');
+            // Enemy dialogue clicked - slide out, then start playing
+            setDialogueSlidingOut(true);
+            setTimeout(() => {
+                setDialogueSlidingOut(false);
+                setIntroStage('playing');
+            }, 500); // Wait for slide-out animation
         } else if (introStage === 'victory') {
-            // Victory dialogue clicked - hero exits
-            setIntroStage('heroExit');
-            playSFX('shipSlide3', { volume: 0.5 }); // Hero ship exits
+            // Victory dialogue clicked - slide out, then hero exits
+            setDialogueSlidingOut(true);
+            setTimeout(() => {
+                setDialogueSlidingOut(false);
+                setIntroStage('heroExit');
+                playSFX('shipSlide3', { volume: 0.5 }); // Hero ship exits
+            }, 500); // Wait for slide-out animation
         }
-    }, [introStage, alienLine]);
+    }, [introStage, alienLine, dialogueSlidingOut]);
 
     // Intro sequence - triggered when dialogue is ready
     useEffect(() => {
@@ -641,16 +657,16 @@ const BattleScreen: React.FC = () => {
                                     />
                                 </div>
 
-                                {/* Intro/Victory Message Overlay - CRT Monitor Style - Slides up from console */}
+                                {/* Intro/Victory Message Overlay - CRT Monitor Style - Slides up/down from console */}
                                 {(introStage === 'intro1' || introStage === 'intro2' || introStage === 'victory') && (
                                     <div
                                         className="absolute inset-0 z-20 flex items-end justify-center cursor-pointer"
                                         onClick={handleDialogueClick}
                                         style={{ paddingBottom: '12px' }} /* Sits just above the control panel border */
                                     >
-                                        {/* CRT Monitor frame - slides up */}
+                                        {/* CRT Monitor frame - slides up/down */}
                                         <div
-                                            className="relative max-w-2xl animate-slideUpFromConsole"
+                                            className={`relative max-w-2xl ${dialogueSlidingOut ? 'animate-slideDownToConsole' : 'animate-slideUpFromConsole'}`}
                                             style={{
                                                 background: 'linear-gradient(180deg, #6a6a7a 0%, #4a4a5a 20%, #3a3a4a 80%, #4a4a5a 100%)',
                                                 padding: '12px',

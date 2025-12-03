@@ -322,6 +322,25 @@
   animation: slideUpFromConsole 0.6s ease-out;
 }
 
+/* Slide down behind console animation */
+@keyframes slideDownToConsole {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(350px);
+    opacity: 0;
+  }
+}
+
+.animate-slideDownToConsole {
+  animation: slideDownToConsole 0.5s ease-in forwards;
+}
+
 /* Dodge Animations */
 @keyframes dodgeUp {
   0% { transform: translateY(0); }
