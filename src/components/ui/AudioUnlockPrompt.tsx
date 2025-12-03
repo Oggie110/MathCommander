@@ -9,18 +9,26 @@ import { audioEngine } from '@/audio';
  */
 export const AudioUnlockPrompt: React.FC = () => {
     const [showPrompt, setShowPrompt] = useState(false);
+    const [debugInfo, setDebugInfo] = useState('checking...');
+    const [showDebug] = useState(true); // Set to true for debugging iOS
 
     useEffect(() => {
         // Check if audio needs unlocking after a short delay
         const checkAudio = () => {
-            if (audioEngine.isInitialized() && audioEngine.isSuspended()) {
+            const initialized = audioEngine.isInitialized();
+            const suspended = initialized ? audioEngine.isSuspended() : false;
+            setDebugInfo(`init=${initialized}, suspended=${suspended}`);
+
+            if (initialized && suspended) {
                 setShowPrompt(true);
+            } else if (initialized && !suspended) {
+                setShowPrompt(false);
             }
         };
 
         // Check after mount and periodically
         const timeout = setTimeout(checkAudio, 1000);
-        const interval = setInterval(checkAudio, 3000);
+        const interval = setInterval(checkAudio, 2000);
 
         return () => {
             clearTimeout(timeout);
@@ -29,19 +37,31 @@ export const AudioUnlockPrompt: React.FC = () => {
     }, []);
 
     const handleUnlock = async () => {
+        await audioEngine.init();
         await audioEngine.resume();
         setShowPrompt(false);
+        setDebugInfo('unlocked!');
     };
 
-    if (!showPrompt) return null;
-
     return (
-        <button
-            onClick={handleUnlock}
-            className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-lg shadow-lg animate-pulse"
-        >
-            <Volume2 className="w-5 h-5" />
-            Tap to enable sound
-        </button>
+        <>
+            {/* Debug info - always visible for now */}
+            {showDebug && (
+                <div className="fixed top-2 left-2 z-50 px-2 py-1 bg-black/80 text-green-400 text-xs font-mono rounded">
+                    Audio: {debugInfo}
+                </div>
+            )}
+
+            {/* Unlock button - shows when suspended */}
+            {showPrompt && (
+                <button
+                    onClick={handleUnlock}
+                    className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-lg shadow-lg animate-pulse"
+                >
+                    <Volume2 className="w-5 h-5" />
+                    Tap to enable sound
+                </button>
+            )}
+        </>
     );
 };
