@@ -13,7 +13,6 @@ const isIOS = (): boolean => {
 class AudioEngine {
     private context: AudioContext | null = null;
     private useHTML5Fallback = false; // Will be set to true on iOS if Web Audio fails
-    private html5AudioPool: Map<string, HTMLAudioElement[]> = new Map(); // Pool of audio elements for iOS
     private html5Music: HTMLAudioElement | null = null; // Current music element for iOS
     private html5MusicId: string | null = null;
     private html5Ambience: Map<string, HTMLAudioElement> = new Map(); // Ambience elements for iOS
