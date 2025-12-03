@@ -135,8 +135,11 @@ class AudioEngine {
     async init(): Promise<void> {
         if (this._isInitialized) return;
 
+        console.log('[AudioEngine] init called, isIOS:', isIOS());
+
         // On iOS, use HTML5 Audio fallback
         if (isIOS()) {
+            console.log('[AudioEngine] Using HTML5 fallback for iOS');
             this.useHTML5Fallback = true;
             this._isInitialized = true;
             return;
@@ -298,8 +301,10 @@ class AudioEngine {
 
         // On iOS with HTML5 fallback, preload SFX into pool for instant playback
         if (this.useHTML5Fallback && sound.category === 'sfx') {
+            console.log('[AudioEngine] preload iOS SFX:', soundId);
             if (!this.html5SFXPool.has(soundId)) {
                 await this.preloadHTML5SFX(soundId);
+                console.log('[AudioEngine] preloaded iOS SFX pool:', soundId, this.html5SFXPool.get(soundId)?.length);
             }
             return;
         }
@@ -412,15 +417,22 @@ class AudioEngine {
         if (!sound) return;
 
         try {
+            const pool = this.html5SFXPool.get(soundId);
+            console.log('[AudioEngine] playHTML5SFX:', { soundId, poolSize: pool?.length ?? 0, hasPool: !!pool });
+
             const audio = this.getHTML5SFXFromPool(soundId);
-            if (!audio) return;
+            if (!audio) {
+                console.log('[AudioEngine] playHTML5SFX: no audio element from pool');
+                return;
+            }
 
             const volume = (options.volume ?? sound.volume ?? 1) * this.volumes.sfx * this.volumes.master;
             audio.volume = Math.min(1, Math.max(0, volume));
             audio.playbackRate = options.pitch ?? 1;
-            audio.play().catch(() => { /* ignore */ });
-        } catch {
-            // Failed to play
+            console.log('[AudioEngine] playHTML5SFX playing:', { soundId, volume: audio.volume, readyState: audio.readyState });
+            audio.play().catch((e) => { console.log('[AudioEngine] playHTML5SFX play error:', e); });
+        } catch (e) {
+            console.log('[AudioEngine] playHTML5SFX exception:', e);
         }
     }
 
@@ -1473,6 +1485,9 @@ class AudioEngine {
         if (this.html5Music) {
             const volume = this.html5MusicBaseVolume * this.volumes.music * this.volumes.master;
             this.html5Music.volume = Math.min(1, Math.max(0, volume));
+            console.log('[AudioEngine] setMusicVolume iOS:', { value, baseVol: this.html5MusicBaseVolume, master: this.volumes.master, finalVol: this.html5Music.volume });
+        } else {
+            console.log('[AudioEngine] setMusicVolume: no html5Music element', { useHTML5Fallback: this.useHTML5Fallback });
         }
         this.saveSettings();
     }
