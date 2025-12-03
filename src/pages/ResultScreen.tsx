@@ -8,7 +8,7 @@ import { getLegById, isBossLevel } from '@/utils/campaignLogic';
 import { audioEngine } from '@/audio';
 import { selectVictoryLine, selectDefeatLine, selectEncourageLine, selectBossDefeatLine, type BodyId, type DialogueLine } from '@/audio/speechSounds';
 import type { Question } from '@/types/game.ts';
-import { Star, RotateCcw, Map, ChevronLeft, Radio } from 'lucide-react';
+import { Star, RotateCcw, Map, ChevronLeft, Radio, ClipboardList, ArrowLeft } from 'lucide-react';
 
 interface LocationState {
     questions: Question[];
@@ -37,6 +37,9 @@ const ResultScreen: React.FC = () => {
         const isFinal = isFinalBoss(leg.toBodyId, isBoss);
         return { isBoss, bodyId: leg.toBodyId, isFinal };
     }, [legId, waypointIndex]);
+
+    // State for showing answers view
+    const [showAnswers, setShowAnswers] = useState(false);
 
     // Use unified selection for all dialogue (synced text + audio)
     const [_victoryDialogue, setVictoryDialogue] = useState<DialogueLine | null>(null);
@@ -266,8 +269,75 @@ const ResultScreen: React.FC = () => {
                                 </div>
                             </PixelButton>
                         )}
+
+                        <PixelButton
+                            onClick={() => setShowAnswers(true)}
+                            variant="secondary"
+                            className="w-full"
+                        >
+                            <div className="flex items-center justify-center gap-2">
+                                <ClipboardList className="w-4 h-4" />
+                                VIEW ALL ANSWERS
+                            </div>
+                        </PixelButton>
                     </div>
                 </PixelCard>
+
+                {/* Answers View Modal */}
+                {showAnswers && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
+                        <PixelCard className="w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+                            <div className="flex items-center justify-between p-4 border-b-2 border-gray-700">
+                                <h3 className="text-lg text-green-400">MISSION ANSWERS</h3>
+                                <PixelButton
+                                    onClick={() => setShowAnswers(false)}
+                                    variant="secondary"
+                                    size="sm"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <ArrowLeft className="w-4 h-4" />
+                                        BACK
+                                    </div>
+                                </PixelButton>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                                {questions.map((q, i) => (
+                                    <div
+                                        key={i}
+                                        className={`p-3 border-2 ${q.correct
+                                            ? 'border-green-600 bg-green-900/20'
+                                            : 'border-red-600 bg-red-900/20'
+                                            }`}
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-xs text-gray-400">Q{i + 1}</span>
+                                            <span className={`text-xs font-bold ${q.correct ? 'text-green-400' : 'text-red-400'}`}>
+                                                {q.correct ? '✓ CORRECT' : '✗ WRONG'}
+                                            </span>
+                                        </div>
+                                        <div className="text-lg text-white mb-1">
+                                            {q.num1} × {q.num2} = ?
+                                        </div>
+                                        <div className="text-sm">
+                                            <span className="text-gray-400">Answer: </span>
+                                            <span className="text-green-400 font-bold">{q.num1 * q.num2}</span>
+                                            {!q.correct && q.userAnswer !== undefined && (
+                                                <span className="text-red-400 ml-2">
+                                                    (You answered: {q.userAnswer})
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="p-4 border-t-2 border-gray-700">
+                                <div className="text-center text-sm text-gray-400">
+                                    {correctCount} of {questions.length} correct ({percentage}%)
+                                </div>
+                            </div>
+                        </PixelCard>
+                    </div>
+                )}
             </div>
         </div>
     );
