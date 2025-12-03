@@ -250,12 +250,22 @@ const BattleScreen: React.FC = () => {
         }
     }, [gameEnding, explosionFrame, currentBodyId, isBossBattle]);
 
-    // Auto-advance after last question (no click to continue needed)
+    // Auto-advance after each question (3 second delay)
     useEffect(() => {
-        if (showFeedback && currentIndex === questions.length - 1 && questions.length > 0) {
+        if (showFeedback && questions.length > 0) {
+            const isLastQuestion = currentIndex === questions.length - 1;
             const timeout = setTimeout(() => {
-                handleGameComplete(questions);
-            }, 2500); // 2.5 second delay before auto-advancing
+                if (isLastQuestion) {
+                    handleGameComplete(questions);
+                } else {
+                    // Advance to next question
+                    setCurrentIndex(currentIndex + 1);
+                    setUserAnswer('');
+                    setShowFeedback(false);
+                    setSelectedAnswer(null);
+                    setFrozenChoices(null);
+                }
+            }, 3000); // 3 second delay before auto-advancing
 
             return () => clearTimeout(timeout);
         }
@@ -1035,26 +1045,11 @@ const BattleScreen: React.FC = () => {
                                                             </div>
                                                         </div>
 
-                                                        {/* Click to continue (replaces wave indicator when showing) - not shown on last question */}
-                                                        <div
-                                                            className={`flex justify-center items-center mt-4 ${showFeedback && currentIndex < questions.length - 1 ? 'cursor-pointer' : ''}`}
-                                                            onClick={showFeedback && currentIndex < questions.length - 1 ? () => {
-                                                                setCurrentIndex(currentIndex + 1);
-                                                                setUserAnswer('');
-                                                                setShowFeedback(false);
-                                                                setSelectedAnswer(null);
-                                                                setFrozenChoices(null);
-                                                            } : undefined}
-                                                        >
-                                                            {showFeedback && currentIndex < questions.length - 1 ? (
-                                                                <span className="text-sm text-green-600/70 font-mono animate-pulse">
-                                                                    [ Click to continue ]
-                                                                </span>
-                                                            ) : (
-                                                                <span className="text-sm text-green-600/50 font-mono">
-                                                                    — — —
-                                                                </span>
-                                                            )}
+                                                        {/* Wave indicator */}
+                                                        <div className="flex justify-center items-center mt-4">
+                                                            <span className="text-sm text-green-600/50 font-mono">
+                                                                — — —
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 ) : (
