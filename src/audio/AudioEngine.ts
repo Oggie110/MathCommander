@@ -76,6 +76,17 @@ class AudioEngine {
             silentSource.start(0);
             console.log('[AudioEngine] Silent buffer played (iOS unlock)');
 
+            // Additional iOS unlock: create and play a silent HTML5 Audio element
+            // This helps unlock audio on some iOS versions
+            try {
+                const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+                silentAudio.volume = 0.01;
+                silentAudio.play().catch(() => { /* ignore */ });
+                console.log('[AudioEngine] HTML5 Audio unlock attempted');
+            } catch (e) {
+                console.log('[AudioEngine] HTML5 Audio unlock failed (non-critical)');
+            }
+
             // Create gain nodes for each category
             this.masterGain = this.context.createGain();
             this.masterGain.connect(this.context.destination);

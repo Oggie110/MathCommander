@@ -84,7 +84,8 @@ const StartScreen: React.FC = () => {
 
         setIsAudioLoading(true);
 
-        // Initialize audio engine (requires user interaction)
+        // iOS CRITICAL: Initialize audio engine SYNCHRONOUSLY during user gesture
+        // The init() creates AudioContext and plays silent buffer - must happen immediately
         await audioEngine.init();
 
         // Preload essential sounds for the start screen and beyond
@@ -103,6 +104,9 @@ const StartScreen: React.FC = () => {
             'transition',
             'starEarned',
         ]);
+
+        // Ensure context is running before playing audio
+        await audioEngine.resume();
 
         // Start intro: play introData SFX (with stop ref) and ambience, NO music yet
         stopIntroDataRef.current = audioEngine.playSFXWithStop('introData');
