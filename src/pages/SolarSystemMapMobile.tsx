@@ -6,7 +6,7 @@ import { RANKS } from '@/types/game';
 import { initializeCampaignProgress, getLegById, getLegIndex, checkForMilestone, markMilestoneSeen } from '@/utils/campaignLogic';
 import { celestialBodies, campaignLegs, getChapterName } from '@/data/campaignRoute';
 import type { CelestialBody, Leg } from '@/data/campaignRoute';
-import { ArrowLeft, Lock, Star, Radio, ChevronRight, Home } from 'lucide-react';
+import { ArrowLeft, Lock, Star, Radio, Home } from 'lucide-react';
 import { audioEngine } from '@/audio';
 import { speechService } from '@/audio/SpeechService';
 import { MILESTONE_TEXT } from '@/audio/speechSounds';
@@ -50,151 +50,181 @@ const animatedPlanets: Record<string, { folder: string; frames: number }> = {
     arrokoth: { folder: '/assets/helianthus/AnimatedPlanetsFull/Barren_or_Moon/1', frames: 60 },
 };
 
-// Planet card component for mobile
-interface PlanetCardProps {
+// Planet sizes for the vertical map (similar to desktop but scaled for mobile)
+const planetSizes: Record<string, number> = {
+    earth: 72,
+    moon: 48,
+    mars: 60,
+    ceres: 40,
+    jupiter: 88,
+    europa: 44,
+    saturn: 84,
+    titan: 48,
+    uranus: 68,
+    neptune: 68,
+    pluto: 44,
+    haumea: 38,
+    makemake: 44,
+    eris: 48,
+    arrokoth: 32,
+};
+
+// Animated Planet Component
+const AnimatedPlanet: React.FC<{
+    planetId: string;
+    size: number;
+    isLocked?: boolean;
+}> = ({ planetId, size, isLocked = false }) => {
+    const [frame, setFrame] = useState(1);
+    const planetData = animatedPlanets[planetId];
+
+    useEffect(() => {
+        if (!planetData || isLocked) return;
+
+        const interval = setInterval(() => {
+            setFrame(prev => (prev % planetData.frames) + 1);
+        }, 100);
+
+        return () => clearInterval(interval);
+    }, [planetData, isLocked]);
+
+    if (!planetData) {
+        return (
+            <img
+                src={planetImages[planetId]}
+                alt={planetId}
+                style={{
+                    width: size,
+                    height: size,
+                    imageRendering: 'pixelated',
+                    filter: isLocked ? 'brightness(0.3) grayscale(1)' : 'none',
+                }}
+            />
+        );
+    }
+
+    return (
+        <img
+            src={`${planetData.folder}/${frame}.png`}
+            alt={planetId}
+            style={{
+                width: size,
+                height: size,
+                imageRendering: 'pixelated',
+                filter: isLocked ? 'brightness(0.3) grayscale(1)' : 'none',
+            }}
+        />
+    );
+};
+
+// Waypoint Node for vertical map
+interface WaypointNodeProps {
     body: CelestialBody;
     leg: Leg | null;
     isCompleted: boolean;
     isCurrent: boolean;
     isLocked: boolean;
-    isSelected: boolean;
     onClick: () => void;
     waypointProgress?: { current: number; total: number };
     starsEarned?: number;
-    chapter: string;
-    isLastInChapter: boolean; // In reversed display, shows header after (below) this item
 }
 
-const PlanetCard: React.FC<PlanetCardProps> = ({
+const WaypointNode: React.FC<WaypointNodeProps> = ({
     body,
     isCompleted,
     isCurrent,
     isLocked,
-    isSelected,
     onClick,
     waypointProgress,
     starsEarned = 0,
-    chapter,
-    isLastInChapter,
 }) => {
-    const [frame, setFrame] = useState(1);
-    const planetData = animatedPlanets[body.id];
-    const shouldAnimate = (isCurrent || isSelected) && planetData && !isLocked;
-
-    useEffect(() => {
-        if (!shouldAnimate) return;
-        const interval = setInterval(() => {
-            setFrame(prev => (prev % planetData.frames) + 1);
-        }, 100);
-        return () => clearInterval(interval);
-    }, [shouldAnimate, planetData]);
-
-    const planetSrc = shouldAnimate && planetData
-        ? `${planetData.folder}/${frame}.png`
-        : planetImages[body.id];
+    const size = planetSizes[body.id] || 56;
+    const canClick = !isLocked;
 
     return (
-        <>
-            <div
-                className={`flex items-center gap-3 p-3 border-b border-industrial-metal/20 transition-all
-                    ${isLocked ? 'opacity-50' : 'active:bg-white/5'}
-                    ${isCurrent ? 'bg-brand-secondary/10 border-l-4 border-l-brand-secondary' : ''}
-                    ${isSelected && !isCurrent ? 'bg-brand-accent/10 border-l-4 border-l-brand-accent' : ''}
-                    ${isCompleted && !isCurrent && !isSelected ? 'bg-brand-success/5' : ''}
-                `}
-                onClick={!isLocked ? onClick : undefined}
-            >
-                {/* Planet image */}
-                <div className="relative flex-shrink-0">
-                    <img
-                        src={planetSrc}
-                        alt={body.name}
-                        className="w-14 h-14"
+        <div
+            className={`relative flex flex-col items-center cursor-pointer transition-all duration-300 ${
+                canClick ? 'active:scale-95' : 'cursor-not-allowed'
+            }`}
+            onClick={canClick ? onClick : undefined}
+            style={{ marginBottom: '20px' }}
+        >
+            {/* Planet image */}
+            <div className="relative">
+                {/* Selection ring for current (pulsing) - positioned relative to planet */}
+                {isCurrent && (
+                    <div
+                        className="absolute rounded-full animate-ping pointer-events-none"
                         style={{
-                            imageRendering: 'pixelated',
-                            filter: isLocked ? 'brightness(0.3) grayscale(1)' : 'none',
+                            width: size + 8,
+                            height: size + 8,
+                            left: -4,
+                            top: -4,
+                            border: '2px solid var(--color-brand-secondary)',
+                            opacity: 0.5,
                         }}
                     />
-                    {isLocked && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <Lock className="w-5 h-5 text-industrial-highlight" />
-                        </div>
-                    )}
-                    {isCurrent && (
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-brand-secondary rounded-full animate-pulse" />
-                    )}
-                </div>
+                )}
 
-                {/* Planet info */}
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                        <span className={`font-bold text-sm uppercase tracking-wide
-                            ${isLocked ? 'text-industrial-metal' :
-                              isCurrent ? 'text-brand-secondary' :
-                              isCompleted ? 'text-brand-success' : 'text-white'}
-                        `}>
-                            {body.name}
-                        </span>
-                        {body.id === 'earth' && (
-                            <Home className="w-3 h-3 text-brand-secondary" />
-                        )}
+                <AnimatedPlanet
+                    planetId={body.id}
+                    size={size}
+                    isLocked={isLocked}
+                />
+
+                {/* Lock icon */}
+                {isLocked && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <Lock className="w-6 h-6 text-industrial-highlight" />
                     </div>
-
-                    {/* Stars for completed */}
-                    {isCompleted && body.id !== 'earth' && (
-                        <div className="flex gap-0.5 mt-1">
-                            {[1, 2, 3].map((starIndex) => (
-                                <Star
-                                    key={starIndex}
-                                    className={`w-3 h-3 ${
-                                        starIndex <= starsEarned
-                                            ? 'text-brand-accent fill-brand-accent'
-                                            : 'text-industrial-metal fill-none'
-                                    }`}
-                                />
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Progress dots for current */}
-                    {isCurrent && waypointProgress && (
-                        <div className="flex gap-1 mt-1">
-                            {Array.from({ length: waypointProgress.total }).map((_, i) => (
-                                <div
-                                    key={i}
-                                    className={`w-2 h-2 rounded-full ${
-                                        i < waypointProgress.current
-                                            ? 'bg-brand-success'
-                                            : i === waypointProgress.current
-                                                ? 'bg-brand-accent animate-pulse'
-                                                : 'bg-industrial-metal'
-                                    }`}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* Right side indicator */}
-                <div className="flex-shrink-0">
-                    {!isLocked && (
-                        <ChevronRight className={`w-5 h-5 ${
-                            isCurrent ? 'text-brand-secondary' :
-                            isCompleted ? 'text-brand-success' : 'text-industrial-metal'
-                        }`} />
-                    )}
-                </div>
+                )}
             </div>
 
-            {/* Chapter header - shown below the last item of each chapter (which appears first in reversed list) */}
-            {isLastInChapter && (
-                <div className="px-4 py-2 bg-space-dark/80 border-b border-industrial-metal/30">
-                    <span className="text-xs text-brand-secondary font-bold uppercase tracking-wider">
-                        {chapter}
-                    </span>
+            {/* Planet name label */}
+            <div
+                className={`text-[11px] font-bold uppercase tracking-wider whitespace-nowrap mt-1 font-tech ${
+                    isLocked ? 'text-industrial-metal' :
+                    isCurrent ? 'text-brand-secondary' :
+                    isCompleted ? 'text-brand-success' : 'text-industrial-highlight'
+                }`}
+            >
+                {body.name}
+            </div>
+
+            {/* Star ratings for completed planets */}
+            {isCompleted && body.id !== 'earth' && (
+                <div className="flex gap-0.5 mt-0.5">
+                    {[1, 2, 3].map((starIndex) => (
+                        <Star
+                            key={starIndex}
+                            className={`w-3 h-3 ${
+                                starIndex <= starsEarned
+                                    ? 'text-brand-accent fill-brand-accent'
+                                    : 'text-industrial-metal fill-none'
+                            }`}
+                        />
+                    ))}
                 </div>
             )}
-        </>
+
+            {/* Waypoint progress dots for current planet */}
+            {isCurrent && waypointProgress && (
+                <div className="flex gap-1 mt-0.5">
+                    {Array.from({ length: waypointProgress.total }).map((_, i) => (
+                        <div
+                            key={i}
+                            className={`w-2 h-2 rounded-full ${
+                                i < waypointProgress.current
+                                    ? 'bg-brand-success shadow-[0_0_4px_var(--color-brand-success)]'
+                                    : i === waypointProgress.current
+                                        ? 'bg-brand-accent shadow-[0_0_4px_var(--color-brand-accent)] animate-pulse'
+                                        : 'bg-industrial-metal'
+                            }`}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
     );
 };
 
@@ -245,33 +275,33 @@ const SolarSystemMapMobile: React.FC = () => {
         }
     }, [stats.totalXP, activeMilestone]);
 
-    // Scroll to bottom on mount (Earth area - where the journey starts)
-    // Use useLayoutEffect to run before browser paint
+    // Ref for the current planet element
+    const currentPlanetRef = useRef<HTMLDivElement>(null);
+
+    // Scroll to current planet on mount
     useLayoutEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
+        requestAnimationFrame(() => {
+            if (currentPlanetRef.current) {
+                currentPlanetRef.current.scrollIntoView({ behavior: 'instant', block: 'center' });
+            }
+        });
     }, []);
 
-    // Also try after render with useEffect as backup
+    // Additional scroll attempts for reliability
     useEffect(() => {
-        const scrollToBottom = () => {
-            if (scrollRef.current) {
-                scrollRef.current.scrollTo({
-                    top: scrollRef.current.scrollHeight,
-                    behavior: 'instant'
-                });
+        const scrollToCurrent = () => {
+            if (currentPlanetRef.current) {
+                currentPlanetRef.current.scrollIntoView({ behavior: 'instant', block: 'center' });
             }
         };
 
-        // Multiple attempts to ensure it works after all content loads
-        scrollToBottom();
-        const timer1 = setTimeout(scrollToBottom, 50);
-        const timer2 = setTimeout(scrollToBottom, 150);
+        scrollToCurrent();
+        const t1 = setTimeout(scrollToCurrent, 100);
+        const t2 = setTimeout(scrollToCurrent, 300);
 
         return () => {
-            clearTimeout(timer1);
-            clearTimeout(timer2);
+            clearTimeout(t1);
+            clearTimeout(t2);
         };
     }, []);
 
@@ -394,30 +424,129 @@ const SolarSystemMapMobile: React.FC = () => {
                 }}
             />
 
-            {/* Planet list - reversed so Earth is at bottom, scroll up to progress */}
-            {/* Add padding top/bottom to account for fixed header/footer */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto pt-14" style={{ paddingBottom: '326px' }}>
-                {/* Campaign planets (in reversed order - distant planets at top) */}
-                <div>
-                    {planetList.map((planet) => planet && (
-                        <div key={planet.body.id} id={`planet-${planet.body.id}`}>
-                            <PlanetCard
-                                body={planet.body}
-                                leg={planet.leg}
-                                isCompleted={planet.isCompleted}
-                                isCurrent={planet.isCurrent}
-                                isLocked={planet.isLocked}
-                                isSelected={false}
-                                onClick={() => handlePlanetClick(planet)}
-                                waypointProgress={planet.waypointProgress}
-                                starsEarned={planet.starsEarned}
-                                chapter={planet.chapter}
-                                isLastInChapter={planet.isLastInChapter}
-                            />
-                        </div>
-                    ))}
+            {/* Scrollable map area with space background */}
+            <div ref={scrollRef} className="flex-1 overflow-y-auto pt-14 relative" style={{ paddingBottom: '326px' }}>
+                {/* Parallax space background - fixed inside scroll container */}
+                <div className="absolute inset-0 z-0 pointer-events-none">
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            backgroundImage: 'url(/assets/helianthus/SpaceBackgrounds/1.png)',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            backgroundAttachment: 'local',
+                        }}
+                    />
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            backgroundImage: 'url(/assets/helianthus/SpaceBackgrounds/stars_blue.png)',
+                            backgroundRepeat: 'repeat',
+                            backgroundSize: '512px',
+                            opacity: 0.6,
+                            imageRendering: 'pixelated',
+                        }}
+                    />
                 </div>
 
+                {/* Vertical path SVG - connecting all planets */}
+                <svg
+                    className="absolute left-1/2 top-0 -translate-x-1/2 pointer-events-none z-5"
+                    style={{ width: '4px', height: `${planetList.length * 140 + 100}px` }}
+                >
+                    <defs>
+                        <filter id="pathGlow">
+                            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                            <feMerge>
+                                <feMergeNode in="coloredBlur" />
+                                <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    {/* We'll draw lines between each planet pair below */}
+                </svg>
+
+                {/* Campaign planets (in reversed order - distant planets at top) */}
+                <div className="relative z-10 flex flex-col items-center pt-8 pb-8">
+                    {planetList.map((planet, index) => {
+                        if (!planet) return null;
+
+                        // Get the next planet for drawing the path line
+                        const nextPlanet = index < planetList.length - 1 ? planetList[index + 1] : null;
+
+                        // Determine line status based on the NEXT planet's status (the one below)
+                        // Line is green if next planet is completed, cyan if next is current, gray otherwise
+                        const getLineStatus = () => {
+                            if (!nextPlanet) return 'locked';
+                            if (nextPlanet.isCompleted) return 'completed';
+                            if (nextPlanet.isCurrent) return 'current';
+                            return 'locked';
+                        };
+                        const lineStatus = getLineStatus();
+
+                        return (
+                            <React.Fragment key={planet.body.id}>
+                                {/* Planet node */}
+                                <div
+                                    id={`planet-${planet.body.id}`}
+                                    ref={planet.isCurrent ? currentPlanetRef : undefined}
+                                >
+                                    <WaypointNode
+                                        body={planet.body}
+                                        leg={planet.leg}
+                                        isCompleted={planet.isCompleted}
+                                        isCurrent={planet.isCurrent}
+                                        isLocked={planet.isLocked}
+                                        onClick={() => handlePlanetClick(planet)}
+                                        waypointProgress={planet.waypointProgress}
+                                        starsEarned={planet.starsEarned}
+                                    />
+                                </div>
+
+                                {/* Path line to next planet (below) */}
+                                {nextPlanet && (
+                                    <div
+                                        className="w-1 relative z-0"
+                                        style={{
+                                            height: '60px',
+                                            background: lineStatus === 'completed'
+                                                ? 'var(--color-brand-success)'
+                                                : lineStatus === 'current'
+                                                    ? 'var(--color-brand-secondary)'
+                                                    : 'var(--color-industrial-metal)',
+                                            opacity: lineStatus === 'completed' ? 0.6 : lineStatus === 'current' ? 0.8 : 0.3,
+                                            boxShadow: lineStatus === 'current' ? '0 0 8px var(--color-brand-secondary)' : 'none',
+                                        }}
+                                    />
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
+
+                    {/* Earth at the bottom */}
+                    <div
+                        className="w-1 relative z-0"
+                        style={{
+                            height: '60px',
+                            background: 'var(--color-brand-success)',
+                            opacity: 0.6,
+                        }}
+                    />
+                    <div
+                        className="relative flex flex-col items-center cursor-pointer transition-all duration-300 active:scale-95"
+                        onClick={() => navigate('/homebase')}
+                    >
+                        <div className="relative">
+                            <AnimatedPlanet planetId="earth" size={72} />
+                        </div>
+                        <div className="text-[11px] font-bold uppercase tracking-wider whitespace-nowrap mt-1 font-tech text-brand-success">
+                            Earth
+                        </div>
+                        <div className="text-[9px] text-brand-secondary font-normal tracking-wide whitespace-nowrap">
+                            (Home Base)
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Fixed Bottom Menu Bar */}
