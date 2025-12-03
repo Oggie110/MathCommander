@@ -418,36 +418,11 @@ const SolarSystemMapMobile: React.FC = () => {
                     ))}
                 </div>
 
-                {/* Earth - Home base (always at bottom) */}
-                <div className="px-4 py-2 bg-space-dark/80 border-b border-industrial-metal/30">
-                    <span className="text-xs text-brand-secondary font-bold uppercase tracking-wider">
-                        Home Base
-                    </span>
-                </div>
-                <div
-                    id="planet-earth"
-                    className="flex items-center gap-3 p-3 border-b border-industrial-metal/20 transition-all active:bg-white/5"
-                    onClick={() => navigate('/homebase')}
-                >
-                    <img
-                        src={planetImages.earth}
-                        alt="Earth"
-                        className="w-14 h-14"
-                        style={{ imageRendering: 'pixelated' }}
-                    />
-                    <div className="flex-1">
-                        <span className="font-bold text-sm uppercase tracking-wide text-brand-success">
-                            Earth
-                        </span>
-                        <div className="text-xs text-industrial-highlight">Command Center</div>
-                    </div>
-                    <Home className="w-5 h-5 text-brand-secondary" />
-                </div>
             </div>
 
             {/* Fixed Bottom Menu Bar */}
             <div
-                className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center justify-center"
+                className="fixed bottom-0 left-0 right-0 z-20"
                 style={{
                     height: '326px',
                     paddingBottom: 'var(--safe-area-bottom)',
@@ -465,15 +440,137 @@ const SolarSystemMapMobile: React.FC = () => {
                         filter: 'brightness(0.8) sepia(0.2) saturate(0.4) hue-rotate(180deg)',
                     }}
                 />
-                {/* Rank badge */}
-                <div className="relative z-10 flex items-center justify-center gap-4">
-                    <div className="text-center">
-                        <div className="text-xs text-industrial-highlight uppercase">{currentRank.name}</div>
-                        <div className="w-24 h-2 bg-space-black rounded-full overflow-hidden border border-industrial-metal/50">
+
+                {/* Upper CRT screen effects (green phosphor + scanlines) */}
+                <div
+                    className="absolute pointer-events-none z-20"
+                    style={{
+                        left: '42px',
+                        right: 'calc(100% - 392px)',
+                        bottom: '184px',
+                        height: '102px',
+                    }}
+                >
+                    {/* Phosphor glow */}
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            boxShadow: 'inset 0 0 30px rgba(0,255,0,0.4)',
+                            background: 'radial-gradient(ellipse at center, rgba(0,255,0,0.15) 0%, transparent 70%)',
+                        }}
+                    />
+                    {/* Scanlines */}
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.5) 1px, rgba(0,0,0,0.5) 2px)',
+                            opacity: 0.7,
+                        }}
+                    />
+                </div>
+
+                {/* Lower CRT screen effects (green phosphor + scanlines) */}
+                <div
+                    className="absolute pointer-events-none z-20"
+                    style={{
+                        left: '42px',
+                        right: 'calc(100% - 392px)',
+                        bottom: '34px',
+                        height: '100px',
+                    }}
+                >
+                    {/* Phosphor glow */}
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            boxShadow: 'inset 0 0 30px rgba(0,255,0,0.4)',
+                            background: 'radial-gradient(ellipse at center, rgba(0,255,0,0.15) 0%, transparent 70%)',
+                        }}
+                    />
+                    {/* Scanlines */}
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.5) 1px, rgba(0,0,0,0.5) 2px)',
+                            opacity: 0.7,
+                        }}
+                    />
+                </div>
+
+                {/* Upper CRT content - Earth / Home Base */}
+                <div
+                    className="absolute left-0 right-0 flex items-center justify-center gap-4"
+                    style={{
+                        top: '31px', // Position in upper CRT area
+                        height: '120px',
+                        paddingLeft: '18px',
+                        paddingRight: '78px',
+                    }}
+                    onClick={() => navigate('/homebase')}
+                >
+                    {/* Earth image - LEFT */}
+                    <div className="relative z-10">
+                        <img
+                            src={planetImages.earth}
+                            alt="Earth"
+                            className="w-20 h-20"
+                            style={{ imageRendering: 'pixelated' }}
+                        />
+                    </div>
+
+                    {/* Home info - RIGHT */}
+                    <div className="relative z-10 flex flex-col">
+                        <div className="text-sm text-green-400 uppercase tracking-wider font-bold mb-1 drop-shadow-[0_0_6px_rgba(74,222,128,0.6)] whitespace-nowrap">
+                            Earth
+                        </div>
+                        <div className="text-xs text-green-300/70 font-mono whitespace-nowrap">
+                            Command Center
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                            <Home className="w-4 h-4 text-green-400" />
+                            <span className="text-xs text-green-400/80">Home Base</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Lower CRT content - Rank display (horizontal layout) */}
+                <div
+                    className="absolute left-0 right-0 flex items-center justify-center gap-6"
+                    style={{
+                        bottom: '24px', // Position in lower CRT area
+                        height: '120px',
+                        paddingLeft: '48px',
+                        paddingRight: '48px',
+                    }}
+                >
+                    {/* Rank badge image - LEFT */}
+                    <div className="relative z-10">
+                        <img
+                            src={currentRank.badge}
+                            alt={currentRank.name}
+                            className="w-20 h-20"
+                            style={{ imageRendering: 'pixelated' }}
+                        />
+                    </div>
+
+                    {/* Rank info - RIGHT */}
+                    <div className="relative z-10 flex flex-col">
+                        {/* Rank name */}
+                        <div className="text-sm text-cyan-400 uppercase tracking-wider font-bold mb-2 drop-shadow-[0_0_6px_rgba(34,211,238,0.6)] whitespace-nowrap">
+                            {currentRank.name}
+                        </div>
+
+                        {/* XP Progress bar */}
+                        <div className="w-48 h-3 bg-black/60 rounded-sm overflow-hidden border border-cyan-900/50 mb-1">
                             <div
-                                className="h-full bg-brand-accent transition-all"
+                                className="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 transition-all"
                                 style={{ width: `${xpProgress.progress * 100}%` }}
                             />
+                        </div>
+
+                        {/* XP text */}
+                        <div className="text-xs text-cyan-300/70 font-mono">
+                            {stats.totalXP.toLocaleString()} XP
                         </div>
                     </div>
                 </div>
