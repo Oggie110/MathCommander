@@ -250,26 +250,33 @@ const BattleScreen: React.FC = () => {
         }
     }, [gameEnding, explosionFrame, currentBodyId, isBossBattle]);
 
-    // Auto-advance after each question (3 second delay)
+    // Handle advancing to next question (called by click or auto-advance timer)
+    const advanceToNextQuestion = useCallback(() => {
+        if (!showFeedback || questions.length === 0) return;
+
+        const isLastQuestion = currentIndex === questions.length - 1;
+        if (isLastQuestion) {
+            handleGameComplete(questions);
+        } else {
+            // Advance to next question
+            setCurrentIndex(currentIndex + 1);
+            setUserAnswer('');
+            setShowFeedback(false);
+            setSelectedAnswer(null);
+            setFrozenChoices(null);
+        }
+    }, [showFeedback, currentIndex, questions]);
+
+    // Auto-advance after each question (3 second delay) - click anywhere to skip
     useEffect(() => {
         if (showFeedback && questions.length > 0) {
-            const isLastQuestion = currentIndex === questions.length - 1;
             const timeout = setTimeout(() => {
-                if (isLastQuestion) {
-                    handleGameComplete(questions);
-                } else {
-                    // Advance to next question
-                    setCurrentIndex(currentIndex + 1);
-                    setUserAnswer('');
-                    setShowFeedback(false);
-                    setSelectedAnswer(null);
-                    setFrozenChoices(null);
-                }
+                advanceToNextQuestion();
             }, 3000); // 3 second delay before auto-advancing
 
             return () => clearTimeout(timeout);
         }
-    }, [showFeedback, currentIndex, questions]);
+    }, [showFeedback, questions.length, advanceToNextQuestion]);
 
     // Handle click to advance dialogue (also skips speech)
     const handleDialogueClick = useCallback(() => {
@@ -308,38 +315,65 @@ const BattleScreen: React.FC = () => {
         // Waits for click to continue...
     }, [commanderLine, alienLine]);
 
-    // Play commander speech when intro1 starts - auto-advance when done
+    // Play commander speech when intro1 starts - auto-advance when done (minimum 3s display)
     useEffect(() => {
         if (introStage === 'intro1' && commanderSoundId) {
+            const startTime = Date.now();
+            const minDisplayTime = 3000; // Minimum 3 seconds display
+
             speechService.playById(commanderSoundId).then(() => {
-                // Auto-advance after speech ends (if still on intro1)
-                if (introStage === 'intro1') {
-                    handleDialogueClick();
-                }
+                // Ensure minimum display time before auto-advancing
+                const elapsed = Date.now() - startTime;
+                const remainingTime = Math.max(0, minDisplayTime - elapsed);
+
+                setTimeout(() => {
+                    // Auto-advance after speech ends (if still on intro1)
+                    if (introStage === 'intro1') {
+                        handleDialogueClick();
+                    }
+                }, remainingTime);
             });
         }
     }, [introStage, commanderSoundId, handleDialogueClick]);
 
-    // Play alien speech when intro2 starts - auto-advance when done
+    // Play alien speech when intro2 starts - auto-advance when done (minimum 3s display)
     useEffect(() => {
         if (introStage === 'intro2' && alienSoundId) {
+            const startTime = Date.now();
+            const minDisplayTime = 3000; // Minimum 3 seconds display
+
             speechService.playAlienById(alienSoundId).then(() => {
-                // Auto-advance after speech ends (if still on intro2)
-                if (introStage === 'intro2') {
-                    handleDialogueClick();
-                }
+                // Ensure minimum display time before auto-advancing
+                const elapsed = Date.now() - startTime;
+                const remainingTime = Math.max(0, minDisplayTime - elapsed);
+
+                setTimeout(() => {
+                    // Auto-advance after speech ends (if still on intro2)
+                    if (introStage === 'intro2') {
+                        handleDialogueClick();
+                    }
+                }, remainingTime);
             });
         }
     }, [introStage, alienSoundId, handleDialogueClick]);
 
-    // Play victory speech when victory dialogue appears - auto-advance when done
+    // Play victory speech when victory dialogue appears - auto-advance when done (minimum 3s display)
     useEffect(() => {
         if (introStage === 'victory' && victorySoundId) {
+            const startTime = Date.now();
+            const minDisplayTime = 3000; // Minimum 3 seconds display
+
             speechService.playById(victorySoundId).then(() => {
-                // Auto-advance after speech ends (if still on victory)
-                if (introStage === 'victory') {
-                    handleDialogueClick();
-                }
+                // Ensure minimum display time before auto-advancing
+                const elapsed = Date.now() - startTime;
+                const remainingTime = Math.max(0, minDisplayTime - elapsed);
+
+                setTimeout(() => {
+                    // Auto-advance after speech ends (if still on victory)
+                    if (introStage === 'victory') {
+                        handleDialogueClick();
+                    }
+                }, remainingTime);
             });
         }
     }, [introStage, victorySoundId, handleDialogueClick]);
@@ -827,6 +861,14 @@ const BattleScreen: React.FC = () => {
                                             ? (currentIndex === questions.length - 1 ? 'ENEMY DESTROYED!' : 'HIT!')
                                             : 'MISS!'}
                                     </div>
+                                )}
+
+                                {/* Click anywhere to advance overlay (during feedback, before game ending) */}
+                                {showFeedback && introStage === 'playing' && !gameEnding && (
+                                    <div
+                                        className="absolute inset-0 z-16 cursor-pointer"
+                                        onClick={advanceToNextQuestion}
+                                    />
                                 )}
 
                                 {/* Game ending overlay - delayed to let escape animation play - CRT Monitor Style - Slides up */}
