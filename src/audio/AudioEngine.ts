@@ -235,14 +235,18 @@ class AudioEngine {
      * Play a sound effect (one-shot, can overlap)
      */
     playSFX(soundId: string, options: PlayOptions = {}): void {
+        console.log(`[AudioEngine] playSFX called: ${soundId}, context: ${this.context?.state}, initialized: ${this._isInitialized}`);
+
         if (!this.context || !this.sfxGain) {
-            // Silently skip - audio will work after user interaction initializes the engine
+            console.warn(`[AudioEngine] playSFX skipped - no context or sfxGain`);
             return;
         }
 
         // If context is suspended, wait for resume then retry
         if (this.context.state === 'suspended') {
+            console.log(`[AudioEngine] Context suspended, resuming...`);
             this.context.resume().then(() => {
+                console.log(`[AudioEngine] Context resumed, retrying playSFX`);
                 this.playSFX(soundId, options);
             });
             return;
