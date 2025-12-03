@@ -17,6 +17,7 @@ class AudioEngine {
     private html5MusicId: string | null = null;
     private html5Ambience: Map<string, HTMLAudioElement> = new Map(); // Ambience elements for iOS
     private html5Speech: HTMLAudioElement | null = null; // Current speech element for iOS
+    private html5SFXPool: Map<string, HTMLAudioElement[]> = new Map(); // Pool of preloaded SFX for iOS
     private masterGain: GainNode | null = null;
     private musicGain: GainNode | null = null;
     private sfxGain: GainNode | null = null;
@@ -110,13 +111,17 @@ class AudioEngine {
             this.context.resume();
         }
 
-        // Resume HTML5 audio elements
-        if (this.html5Music) {
-            this.html5Music.play().catch(() => { /* ignore */ });
-        }
-        for (const audio of this.html5Ambience.values()) {
-            audio.play().catch(() => { /* ignore */ });
-        }
+        // Resume HTML5 audio elements - small delay helps iOS
+        setTimeout(() => {
+            if (this.html5Music && this.html5Music.paused) {
+                this.html5Music.play().catch(() => { /* ignore autoplay restrictions */ });
+            }
+            for (const audio of this.html5Ambience.values()) {
+                if (audio.paused) {
+                    audio.play().catch(() => { /* ignore */ });
+                }
+            }
+        }, 100);
         // Don't auto-resume speech - it's usually one-shot dialogue
     }
 
@@ -289,6 +294,14 @@ class AudioEngine {
         const sound = SOUNDS[soundId];
         if (!sound) return;
 
+        // On iOS with HTML5 fallback, preload SFX into pool for instant playback
+        if (this.useHTML5Fallback && sound.category === 'sfx') {
+            if (!this.html5SFXPool.has(soundId)) {
+                this.preloadHTML5SFX(soundId);
+            }
+            return;
+        }
+
         if (this.buffers.has(soundId)) return; // Already loaded
 
         try {
@@ -331,6 +344,49 @@ class AudioEngine {
     // === SFX PLAYBACK ===
 
     /**
+     * Preload SFX into HTML5 audio pool for instant playback on iOS
+     */
+    private preloadHTML5SFX(soundId: string, poolSize: number = 3): void {
+        const sound = SOUNDS[soundId];
+        if (!sound) return;
+
+        const pool: HTMLAudioElement[] = [];
+        for (let i = 0; i < poolSize; i++) {
+            const audio = new Audio(sound.src);
+            audio.preload = 'auto';
+            audio.load(); // Force preload
+            pool.push(audio);
+        }
+        this.html5SFXPool.set(soundId, pool);
+    }
+
+    /**
+     * Get an available audio element from the pool (or create new one)
+     */
+    private getHTML5SFXFromPool(soundId: string): HTMLAudioElement | null {
+        const sound = SOUNDS[soundId];
+        if (!sound) return null;
+
+        const pool = this.html5SFXPool.get(soundId);
+        if (pool) {
+            // Find one that's not playing
+            for (const audio of pool) {
+                if (audio.paused || audio.ended) {
+                    audio.currentTime = 0;
+                    return audio;
+                }
+            }
+            // All busy, create a new one and add to pool
+            const audio = new Audio(sound.src);
+            pool.push(audio);
+            return audio;
+        }
+
+        // No pool, create new audio element
+        return new Audio(sound.src);
+    }
+
+    /**
      * Play a sound effect using HTML5 Audio (iOS fallback)
      */
     private playHTML5SFX(soundId: string, options: PlayOptions = {}): void {
@@ -338,7 +394,9 @@ class AudioEngine {
         if (!sound) return;
 
         try {
-            const audio = new Audio(sound.src);
+            const audio = this.getHTML5SFXFromPool(soundId);
+            if (!audio) return;
+
             const volume = (options.volume ?? sound.volume ?? 1) * this.volumes.sfx * this.volumes.master;
             audio.volume = Math.min(1, Math.max(0, volume));
             audio.playbackRate = options.pitch ?? 1;
