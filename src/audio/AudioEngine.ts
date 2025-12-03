@@ -15,7 +15,9 @@ class AudioEngine {
     private useHTML5Fallback = false; // Will be set to true on iOS if Web Audio fails
     private html5Music: HTMLAudioElement | null = null; // Current music element for iOS
     private html5MusicId: string | null = null;
+    private html5MusicBaseVolume: number = 1; // Base volume for current music track (before user volume applied)
     private html5Ambience: Map<string, HTMLAudioElement> = new Map(); // Ambience elements for iOS
+    private html5AmbienceBaseVolumes: Map<string, number> = new Map(); // Base volumes for ambience tracks
     private html5Speech: HTMLAudioElement | null = null; // Current speech element for iOS
     private html5SFXPool: Map<string, HTMLAudioElement[]> = new Map(); // Pool of preloaded SFX for iOS
     private masterGain: GainNode | null = null;
@@ -442,18 +444,21 @@ class AudioEngine {
         try {
             const audio = new Audio(sound.src);
             audio.loop = sound.loop ?? true;
-            const volume = (sound.volume ?? 1) * this.volumes.music * this.volumes.master;
+            const baseVolume = sound.volume ?? 1;
+            this.html5MusicBaseVolume = baseVolume;
             audio.volume = 0; // Start at 0 for fade in
 
             audio.play().then(() => {
-                // Fade in
+                // Fade in - use current user volume settings
                 const fadeIn = options.fadeIn ?? options.crossfade ?? 800;
                 const steps = 20;
                 const stepTime = fadeIn / steps;
                 let step = 0;
                 const fadeInterval = setInterval(() => {
                     step++;
-                    audio.volume = Math.min(1, Math.max(0, (step / steps) * volume));
+                    // Always use current volume settings during fade
+                    const targetVolume = this.html5MusicBaseVolume * this.volumes.music * this.volumes.master;
+                    audio.volume = Math.min(1, Math.max(0, (step / steps) * targetVolume));
                     if (step >= steps) {
                         clearInterval(fadeInterval);
                     }
@@ -506,17 +511,19 @@ class AudioEngine {
         try {
             const audio = new Audio(sound.src);
             audio.loop = true;
-            const volume = (sound.volume ?? 0.2) * this.volumes.ambience * this.volumes.master;
+            const baseVolume = sound.volume ?? 0.2;
+            this.html5AmbienceBaseVolumes.set(soundId, baseVolume);
             audio.volume = 0; // Start at 0 for fade in
 
             audio.play().then(() => {
-                // Fade in
+                // Fade in - use current user volume settings
                 const steps = 20;
                 const stepTime = fadeIn / steps;
                 let step = 0;
                 const fadeInterval = setInterval(() => {
                     step++;
-                    audio.volume = Math.min(1, Math.max(0, (step / steps) * volume));
+                    const targetVolume = baseVolume * this.volumes.ambience * this.volumes.master;
+                    audio.volume = Math.min(1, Math.max(0, (step / steps) * targetVolume));
                     if (step >= steps) {
                         clearInterval(fadeInterval);
                     }
@@ -1462,9 +1469,10 @@ class AudioEngine {
         if (this.musicGain) {
             this.musicGain.gain.value = this.volumes.music;
         }
-        // Update HTML5 music volume on iOS
+        // Update HTML5 music volume on iOS (include base track volume)
         if (this.html5Music) {
-            this.html5Music.volume = this.volumes.music * this.volumes.master;
+            const volume = this.html5MusicBaseVolume * this.volumes.music * this.volumes.master;
+            this.html5Music.volume = Math.min(1, Math.max(0, volume));
         }
         this.saveSettings();
     }
@@ -1483,9 +1491,11 @@ class AudioEngine {
         if (this.ambienceGain) {
             this.ambienceGain.gain.value = this.volumes.ambience;
         }
-        // Update HTML5 ambience volumes on iOS
-        for (const audio of this.html5Ambience.values()) {
-            audio.volume = this.volumes.ambience * this.volumes.master;
+        // Update HTML5 ambience volumes on iOS (include base track volume)
+        for (const [soundId, audio] of this.html5Ambience.entries()) {
+            const baseVolume = this.html5AmbienceBaseVolumes.get(soundId) ?? 0.2;
+            const volume = baseVolume * this.volumes.ambience * this.volumes.master;
+            audio.volume = Math.min(1, Math.max(0, volume));
         }
         this.saveSettings();
     }
@@ -1507,13 +1517,16 @@ class AudioEngine {
      */
     private updateHTML5Volumes(): void {
         if (this.html5Music) {
-            this.html5Music.volume = this.volumes.music * this.volumes.master;
+            const volume = this.html5MusicBaseVolume * this.volumes.music * this.volumes.master;
+            this.html5Music.volume = Math.min(1, Math.max(0, volume));
         }
-        for (const audio of this.html5Ambience.values()) {
-            audio.volume = this.volumes.ambience * this.volumes.master;
+        for (const [soundId, audio] of this.html5Ambience.entries()) {
+            const baseVolume = this.html5AmbienceBaseVolumes.get(soundId) ?? 0.2;
+            const volume = baseVolume * this.volumes.ambience * this.volumes.master;
+            audio.volume = Math.min(1, Math.max(0, volume));
         }
         if (this.html5Speech) {
-            this.html5Speech.volume = this.volumes.speech * this.volumes.master;
+            this.html5Speech.volume = Math.min(1, Math.max(0, this.volumes.speech * this.volumes.master));
         }
     }
 
