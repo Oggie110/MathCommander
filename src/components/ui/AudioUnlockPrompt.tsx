@@ -17,7 +17,8 @@ export const AudioUnlockPrompt: React.FC = () => {
         const checkAudio = () => {
             const initialized = audioEngine.isInitialized();
             const suspended = initialized ? audioEngine.isSuspended() : false;
-            setDebugInfo(`init=${initialized}, suspended=${suspended}`);
+            const volumes = audioEngine.getVolumes();
+            setDebugInfo(`init=${initialized}, susp=${suspended}, vol=${Math.round(volumes.master*100)}%`);
 
             if (initialized && suspended) {
                 setShowPrompt(true);
@@ -43,12 +44,39 @@ export const AudioUnlockPrompt: React.FC = () => {
         setDebugInfo('unlocked!');
     };
 
+    // Test beep using raw Web Audio API
+    const playTestBeep = () => {
+        try {
+            const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            oscillator.frequency.value = 440;
+            oscillator.type = 'sine';
+            gainNode.gain.value = 0.3;
+            oscillator.start();
+            oscillator.stop(ctx.currentTime + 0.2);
+            setDebugInfo('BEEP played!');
+        } catch (e) {
+            setDebugInfo(`BEEP error: ${e}`);
+        }
+    };
+
     return (
         <>
             {/* Debug info - always visible for now */}
             {showDebug && (
-                <div className="fixed top-2 left-2 z-50 px-2 py-1 bg-black/80 text-green-400 text-xs font-mono rounded">
-                    Audio: {debugInfo}
+                <div className="fixed top-2 left-2 z-50 flex gap-2 items-center">
+                    <div className="px-2 py-1 bg-black/80 text-green-400 text-xs font-mono rounded">
+                        Audio: {debugInfo}
+                    </div>
+                    <button
+                        onClick={playTestBeep}
+                        className="px-2 py-1 bg-yellow-500 text-black text-xs font-bold rounded"
+                    >
+                        TEST BEEP
+                    </button>
                 </div>
             )}
 
