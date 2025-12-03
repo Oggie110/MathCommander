@@ -17,8 +17,8 @@ export const AudioUnlockPrompt: React.FC = () => {
         const checkAudio = () => {
             const initialized = audioEngine.isInitialized();
             const suspended = initialized ? audioEngine.isSuspended() : false;
-            const volumes = audioEngine.getVolumes();
-            setDebugInfo(`init=${initialized}, susp=${suspended}, vol=${Math.round(volumes.master*100)}%`);
+            const debugState = audioEngine.getDebugState();
+            setDebugInfo(debugState);
 
             if (initialized && suspended) {
                 setShowPrompt(true);
