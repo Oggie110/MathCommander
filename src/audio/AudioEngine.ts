@@ -197,7 +197,14 @@ class AudioEngine {
 
             if (!this.context) await this.init();
 
-            const audioBuffer = await this.context!.decodeAudioData(arrayBuffer);
+            // iOS Safari: decodeAudioData needs callback style on older versions
+            const audioBuffer = await new Promise<AudioBuffer>((resolve, reject) => {
+                this.context!.decodeAudioData(
+                    arrayBuffer,
+                    (buffer) => resolve(buffer),
+                    (error) => reject(error)
+                );
+            });
             this.buffers.set(soundId, audioBuffer);
             console.log(`[AudioEngine] Preloaded: ${soundId}`);
         } catch (error) {
