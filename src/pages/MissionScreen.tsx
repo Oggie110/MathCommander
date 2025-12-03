@@ -161,8 +161,8 @@ const MissionScreen: React.FC = () => {
                 />
             </div>
 
-            {/* Header */}
-            <div className="relative z-30 flex justify-between items-center p-4 bg-gradient-to-b from-black/80 to-transparent">
+            {/* Header - fixed at top */}
+            <div className="fixed top-0 left-0 right-0 z-30 flex justify-between items-center p-4 bg-gradient-to-b from-black/80 to-transparent">
                 <PixelButton variant="secondary" onClick={() => navigate('/map')} className="px-4 py-2">
                     <ArrowLeft className="w-4 h-4" />
                 </PixelButton>
@@ -175,7 +175,7 @@ const MissionScreen: React.FC = () => {
             </div>
 
             {/* Main content */}
-            <div className="flex-1 relative z-10 flex flex-col items-center justify-start md:justify-center p-4 md:p-8 overflow-y-auto">
+            <div className="flex-1 relative z-10 flex flex-col items-center justify-start md:justify-center p-4 md:p-8 pt-20 overflow-y-auto">
                 {/* Journey visualization - vertical on mobile, horizontal on desktop */}
                 <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 mb-6 md:mb-12">
                     {/* Origin - desktop: left side, mobile: bottom */}
