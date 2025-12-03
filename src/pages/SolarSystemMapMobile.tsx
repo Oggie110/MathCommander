@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
 import { loadPlayerStats, savePlayerStats, getRankForXP, getXPProgress } from '@/utils/gameLogic';
@@ -246,13 +246,33 @@ const SolarSystemMapMobile: React.FC = () => {
     }, [stats.totalXP, activeMilestone]);
 
     // Scroll to bottom on mount (Earth area - where the journey starts)
+    // Use useLayoutEffect to run before browser paint
+    useLayoutEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, []);
+
+    // Also try after render with useEffect as backup
     useEffect(() => {
-        const timer = setTimeout(() => {
+        const scrollToBottom = () => {
             if (scrollRef.current) {
-                scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+                scrollRef.current.scrollTo({
+                    top: scrollRef.current.scrollHeight,
+                    behavior: 'instant'
+                });
             }
-        }, 100);
-        return () => clearTimeout(timer);
+        };
+
+        // Multiple attempts to ensure it works after all content loads
+        scrollToBottom();
+        const timer1 = setTimeout(scrollToBottom, 50);
+        const timer2 = setTimeout(scrollToBottom, 150);
+
+        return () => {
+            clearTimeout(timer1);
+            clearTimeout(timer2);
+        };
     }, []);
 
     const currentLeg = progress.currentLegId ? getLegById(progress.currentLegId) : null;
@@ -353,18 +373,32 @@ const SolarSystemMapMobile: React.FC = () => {
             >
                 <button
                     onClick={() => navigate('/homebase')}
-                    className="flex items-center gap-1 px-2 py-1 text-sm text-white/80 active:text-white"
+                    className="flex items-center gap-1 px-2 py-1 text-sm text-white/80 active:text-white w-16"
                 >
                     <ArrowLeft className="w-4 h-4" />
                     <span>Home</span>
                 </button>
+                <div className="flex-1 text-center text-xs text-industrial-highlight uppercase tracking-wider">Mission Map</div>
+                <div className="w-16" /> {/* Spacer to balance the title */}
             </div>
+
+            {/* Screen frame border - fixed overlay on top of everything */}
+            {/* Solid grey border on all sides, rounded top corners only */}
+            <div
+                className="fixed top-0 left-0 right-0 z-30 pointer-events-none"
+                style={{
+                    bottom: '326px',
+                    border: '6px solid #4a4a5a',
+                    borderBottom: 'none',
+                    borderRadius: '12px 12px 0 0',
+                }}
+            />
 
             {/* Planet list - reversed so Earth is at bottom, scroll up to progress */}
             {/* Add padding top/bottom to account for fixed header/footer */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto flex flex-col pt-14 pb-52">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto pt-14" style={{ paddingBottom: '326px' }}>
                 {/* Campaign planets (in reversed order - distant planets at top) */}
-                <div className="flex-1">
+                <div>
                     {planetList.map((planet) => planet && (
                         <div key={planet.body.id} id={`planet-${planet.body.id}`}>
                             <PlanetCard
@@ -413,28 +447,24 @@ const SolarSystemMapMobile: React.FC = () => {
 
             {/* Fixed Bottom Menu Bar */}
             <div
-                className="fixed bottom-0 left-0 right-0 z-20 flex flex-col px-10 py-10"
+                className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center justify-center"
                 style={{
-                    paddingBottom: 'calc(var(--safe-area-bottom) + 2.5rem)',
+                    height: '326px',
+                    paddingBottom: 'var(--safe-area-bottom)',
                 }}
             >
-                {/* Panel background with grayscale + green tint */}
+                {/* Panel background with battle screen style filter */}
                 <div
                     className="absolute inset-0"
                     style={{
-                        backgroundImage: 'url(/assets/1NewStuff/panel/mobile_panel.png)',
-                        backgroundSize: '100% 100%',
+                        backgroundImage: 'url(/assets/1NewStuff/panel/mobile_panel2.png)',
+                        backgroundSize: 'calc(100% + 16px) auto',
+                        backgroundPosition: 'center bottom',
                         backgroundRepeat: 'no-repeat',
                         imageRendering: 'pixelated',
-                        filter: 'grayscale(100%)',
+                        filter: 'brightness(0.8) sepia(0.2) saturate(0.4) hue-rotate(180deg)',
                     }}
                 />
-                <div
-                    className="absolute inset-0 bg-green-500/20"
-                    style={{ mixBlendMode: 'overlay' }}
-                />
-                <div className="relative z-10 text-xs text-industrial-highlight uppercase tracking-wider text-center mb-6">Mission Map</div>
-
                 {/* Rank badge */}
                 <div className="relative z-10 flex items-center justify-center gap-4">
                     <div className="text-center">
