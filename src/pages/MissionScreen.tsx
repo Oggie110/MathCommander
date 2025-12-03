@@ -69,27 +69,6 @@ interface LocationState {
     isReplay?: boolean;
 }
 
-// Animated enemy ship sprite (currently unused but kept for potential future use)
-const _AnimatedShip: React.FC<{ isLocked: boolean }> = ({ isLocked }) => {
-    const [frame, setFrame] = useState(1);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setFrame(f => f >= 6 ? 1 : f + 1);
-        }, 150); // 150ms per frame
-        return () => clearInterval(interval);
-    }, []);
-
-    return (
-        <img
-            src={`/assets/helianthus/ShooterFull/Ships/2/Pattern1/Red/Left/${frame}.png`}
-            alt="Wave"
-            className={`w-10 h-10 object-contain ${isLocked ? 'opacity-30 grayscale' : ''}`}
-            style={{ imageRendering: 'pixelated' }}
-        />
-    );
-};
-
 const MissionScreen: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
