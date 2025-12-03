@@ -271,6 +271,33 @@ const BattleScreen: React.FC = () => {
         }
     }, [showFeedback, currentIndex, questions]);
 
+    // Handle click to advance dialogue (also skips speech)
+    const handleDialogueClick = useCallback(() => {
+        // Stop any playing speech when clicking to advance
+        speechService.stopCurrentSpeech();
+
+        if (introStage === 'intro1') {
+            // Commander dialogue clicked - start ship entrance sequence
+            setIntroStage('heroEnter');
+            playSFX('shipSlide1', { volume: 0.5 }); // Hero ship enters
+            setTimeout(() => {
+                setIntroStage('enemyEnter');
+                playSFX('shipSlide2', { volume: 0.5 }); // Enemy ship enters
+            }, 1200); // Extended to let hero slide-in complete
+            setTimeout(() => {
+                setIntroStage('intro2');
+                setIntroMessage(alienLine);
+            }, 2400); // Extended to let enemy slide-in complete
+        } else if (introStage === 'intro2') {
+            // Enemy dialogue clicked - start playing
+            setIntroStage('playing');
+        } else if (introStage === 'victory') {
+            // Victory dialogue clicked - hero exits
+            setIntroStage('heroExit');
+            playSFX('shipSlide3', { volume: 0.5 }); // Hero ship exits
+        }
+    }, [introStage, alienLine]);
+
     // Intro sequence - triggered when dialogue is ready
     useEffect(() => {
         if (!commanderLine || !alienLine) return;
@@ -349,33 +376,6 @@ const BattleScreen: React.FC = () => {
             }
         };
     }, []);
-
-    // Handle click to advance dialogue (also skips speech)
-    const handleDialogueClick = useCallback(() => {
-        // Stop any playing speech when clicking to advance
-        speechService.stopCurrentSpeech();
-
-        if (introStage === 'intro1') {
-            // Commander dialogue clicked - start ship entrance sequence
-            setIntroStage('heroEnter');
-            playSFX('shipSlide1', { volume: 0.5 }); // Hero ship enters
-            setTimeout(() => {
-                setIntroStage('enemyEnter');
-                playSFX('shipSlide2', { volume: 0.5 }); // Enemy ship enters
-            }, 1200); // Extended to let hero slide-in complete
-            setTimeout(() => {
-                setIntroStage('intro2');
-                setIntroMessage(alienLine);
-            }, 2400); // Extended to let enemy slide-in complete
-        } else if (introStage === 'intro2') {
-            // Enemy dialogue clicked - start playing
-            setIntroStage('playing');
-        } else if (introStage === 'victory') {
-            // Victory dialogue clicked - hero exits
-            setIntroStage('heroExit');
-            playSFX('shipSlide3', { volume: 0.5 }); // Hero ship exits
-        }
-    }, [introStage, alienLine]);
 
     // Generate answer choices once per question to prevent flickering
     // MUST be before early return to maintain hook order
