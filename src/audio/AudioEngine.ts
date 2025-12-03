@@ -55,9 +55,69 @@ class AudioEngine {
     };
 
     private _isInitialized = false;
+    private _isPaused = false; // Track if audio is paused due to visibility
 
     constructor() {
         this.loadSettings();
+        this.setupVisibilityHandling();
+    }
+
+    /**
+     * Set up page visibility change handling to pause/resume audio
+     */
+    private setupVisibilityHandling(): void {
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                this.pauseAll();
+            } else {
+                this.resumeAll();
+            }
+        });
+    }
+
+    /**
+     * Pause all audio when page is hidden
+     */
+    private pauseAll(): void {
+        this._isPaused = true;
+
+        // Pause Web Audio context
+        if (this.context && this.context.state === 'running') {
+            this.context.suspend();
+        }
+
+        // Pause HTML5 audio elements
+        if (this.html5Music) {
+            this.html5Music.pause();
+        }
+        for (const audio of this.html5Ambience.values()) {
+            audio.pause();
+        }
+        if (this.html5Speech) {
+            this.html5Speech.pause();
+        }
+    }
+
+    /**
+     * Resume all audio when page is visible again
+     */
+    private resumeAll(): void {
+        if (!this._isPaused) return;
+        this._isPaused = false;
+
+        // Resume Web Audio context
+        if (this.context && this.context.state === 'suspended') {
+            this.context.resume();
+        }
+
+        // Resume HTML5 audio elements
+        if (this.html5Music) {
+            this.html5Music.play().catch(() => { /* ignore */ });
+        }
+        for (const audio of this.html5Ambience.values()) {
+            audio.play().catch(() => { /* ignore */ });
+        }
+        // Don't auto-resume speech - it's usually one-shot dialogue
     }
 
     // === INITIALIZATION ===
