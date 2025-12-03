@@ -200,7 +200,7 @@ class AudioEngine {
     /**
      * Get current audio context state for debugging
      */
-    getState(): string {
+    getDebugState(): string {
         return `initialized=${this._isInitialized}, context=${this.context?.state ?? 'null'}`;
     }
 
