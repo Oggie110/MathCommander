@@ -525,8 +525,16 @@ const BattleScreen: React.FC = () => {
 
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-4">
+            {/* Full-screen click overlay to skip question feedback wait */}
+            {showFeedback && introStage === 'playing' && !gameEnding && (
+                <div
+                    className="fixed inset-0 z-50 cursor-pointer"
+                    onClick={advanceToNextQuestion}
+                />
+            )}
+
             {/* Back button - positioned absolutely outside the frame */}
-            <div className="absolute top-4 left-4">
+            <div className="absolute top-4 left-4 z-[60]">
                 <button
                     onClick={() => navigate('/map')}
                     className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded border-2 border-gray-600 transition-colors"
@@ -900,13 +908,6 @@ const BattleScreen: React.FC = () => {
                                     </div>
                                 )}
 
-                                {/* Click anywhere to advance overlay (during feedback, before game ending) */}
-                                {showFeedback && introStage === 'playing' && !gameEnding && (
-                                    <div
-                                        className="absolute inset-0 z-16 cursor-pointer"
-                                        onClick={advanceToNextQuestion}
-                                    />
-                                )}
 
                                 {/* Game ending overlay - delayed to let escape animation play - CRT Monitor Style - Slides up */}
                                 {gameEnding === 'escape' && showEscapeOverlay && defeatMessage && pendingNavigation && (
