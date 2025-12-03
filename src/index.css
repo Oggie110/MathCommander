@@ -2,6 +2,14 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
+/* iOS Safe Area Support */
+:root {
+  --safe-area-top: env(safe-area-inset-top);
+  --safe-area-bottom: env(safe-area-inset-bottom);
+  --safe-area-left: env(safe-area-inset-left);
+  --safe-area-right: env(safe-area-inset-right);
+}
+
 
 @theme {
   /* Colors */
@@ -137,7 +145,7 @@
 /* Ship Animations */
 @keyframes slideDown {
   0% {
-    transform: translateY(-100vh);
+    transform: translateY(-100svh);
     opacity: 0;
   }
   100% {
@@ -152,7 +160,7 @@
 
 @keyframes slideInFromRight {
   0% {
-    transform: translateX(100vw);
+    transform: translateX(100svw);
     opacity: 0;
   }
   100% {
@@ -226,7 +234,7 @@
     opacity: 1;
   }
   100% {
-    transform: translateX(100vw);
+    transform: translateX(100svw);
     opacity: 0;
   }
 }
@@ -241,7 +249,7 @@
     opacity: 1;
   }
   100% {
-    transform: translateX(100vw) translateY(-50vh);
+    transform: translateX(100svw) translateY(-50svh);
     opacity: 0;
   }
 }

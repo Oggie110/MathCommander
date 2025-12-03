@@ -40,8 +40,16 @@ export const Layout: React.FC = () => {
                 ))}
             </div>
 
-            {/* Content */}
-            <div className="relative z-10 min-h-screen flex flex-col">
+            {/* Content - with safe area padding for iOS */}
+            <div
+                className="relative z-10 min-h-screen flex flex-col"
+                style={{
+                    paddingTop: 'var(--safe-area-top)',
+                    paddingBottom: 'var(--safe-area-bottom)',
+                    paddingLeft: 'var(--safe-area-left)',
+                    paddingRight: 'var(--safe-area-right)',
+                }}
+            >
                 <Outlet />
             </div>
 
