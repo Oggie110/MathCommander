@@ -1318,6 +1318,8 @@ class AudioEngine {
         if (this.masterGain) {
             this.masterGain.gain.value = this.volumes.master;
         }
+        // Update HTML5 audio elements on iOS
+        this.updateHTML5Volumes();
         this.saveSettings();
     }
 
@@ -1325,6 +1327,10 @@ class AudioEngine {
         this.volumes.music = Math.max(0, Math.min(1, value));
         if (this.musicGain) {
             this.musicGain.gain.value = this.volumes.music;
+        }
+        // Update HTML5 music volume on iOS
+        if (this.html5Music) {
+            this.html5Music.volume = this.volumes.music * this.volumes.master;
         }
         this.saveSettings();
     }
@@ -1334,6 +1340,7 @@ class AudioEngine {
         if (this.sfxGain) {
             this.sfxGain.gain.value = this.volumes.sfx;
         }
+        // SFX are short-lived, volume will apply to next play
         this.saveSettings();
     }
 
@@ -1341,6 +1348,10 @@ class AudioEngine {
         this.volumes.ambience = Math.max(0, Math.min(1, value));
         if (this.ambienceGain) {
             this.ambienceGain.gain.value = this.volumes.ambience;
+        }
+        // Update HTML5 ambience volumes on iOS
+        for (const audio of this.html5Ambience.values()) {
+            audio.volume = this.volumes.ambience * this.volumes.master;
         }
         this.saveSettings();
     }
@@ -1350,7 +1361,26 @@ class AudioEngine {
         if (this.speechGain) {
             this.speechGain.gain.value = this.volumes.speech;
         }
+        // Update HTML5 speech volume on iOS
+        if (this.html5Speech) {
+            this.html5Speech.volume = this.volumes.speech * this.volumes.master;
+        }
         this.saveSettings();
+    }
+
+    /**
+     * Update all HTML5 audio element volumes (called when master volume changes)
+     */
+    private updateHTML5Volumes(): void {
+        if (this.html5Music) {
+            this.html5Music.volume = this.volumes.music * this.volumes.master;
+        }
+        for (const audio of this.html5Ambience.values()) {
+            audio.volume = this.volumes.ambience * this.volumes.master;
+        }
+        if (this.html5Speech) {
+            this.html5Speech.volume = this.volumes.speech * this.volumes.master;
+        }
     }
 
     getVolumes(): CategoryVolumes {
