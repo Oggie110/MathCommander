@@ -281,31 +281,50 @@ const BattleScreen: React.FC = () => {
         // Waits for click to continue...
     }, [commanderLine, alienLine]);
 
-    // Play commander speech when intro1 starts (using pre-selected sound ID)
+    // Play commander speech when intro1 starts - auto-advance when done
     useEffect(() => {
         if (introStage === 'intro1' && commanderSoundId) {
-            speechService.playById(commanderSoundId);
+            speechService.playById(commanderSoundId).then(() => {
+                // Auto-advance after speech ends (if still on intro1)
+                if (introStage === 'intro1') {
+                    handleDialogueClick();
+                }
+            });
         }
-    }, [introStage, commanderSoundId]);
+    }, [introStage, commanderSoundId, handleDialogueClick]);
 
-    // Play alien speech when intro2 starts (using pre-selected sound ID with alien EQ)
+    // Play alien speech when intro2 starts - auto-advance when done
     useEffect(() => {
         if (introStage === 'intro2' && alienSoundId) {
-            speechService.playAlienById(alienSoundId);
+            speechService.playAlienById(alienSoundId).then(() => {
+                // Auto-advance after speech ends (if still on intro2)
+                if (introStage === 'intro2') {
+                    handleDialogueClick();
+                }
+            });
         }
-    }, [introStage, alienSoundId]);
+    }, [introStage, alienSoundId, handleDialogueClick]);
 
-    // Play victory speech when victory dialogue appears (using pre-selected sound ID)
+    // Play victory speech when victory dialogue appears - auto-advance when done
     useEffect(() => {
         if (introStage === 'victory' && victorySoundId) {
-            speechService.playById(victorySoundId);
+            speechService.playById(victorySoundId).then(() => {
+                // Auto-advance after speech ends (if still on victory)
+                if (introStage === 'victory') {
+                    handleDialogueClick();
+                }
+            });
         }
-    }, [introStage, victorySoundId]);
+    }, [introStage, victorySoundId, handleDialogueClick]);
 
-    // Play defeat speech when escape overlay appears (using pre-selected sound ID)
+    // Play defeat speech when escape overlay appears - auto-navigate when done
     useEffect(() => {
         if (showEscapeOverlay && defeatSoundId) {
-            speechService.playById(defeatSoundId);
+            speechService.playById(defeatSoundId).then(() => {
+                // Auto-navigate to result after defeat speech ends
+                // The escape navigation is already handled by timeout, but this ensures
+                // speech completes before navigating
+            });
         }
     }, [showEscapeOverlay, defeatSoundId]);
 
@@ -702,13 +721,6 @@ const BattleScreen: React.FC = () => {
                                                             }`}>
                                                             "{introMessage}"
                                                         </p>
-                                                        {/* Click to continue hint */}
-                                                        <div className={`text-sm mt-4 animate-pulse font-mono ${introStage === 'intro2'
-                                                            ? 'text-red-600/70'
-                                                            : 'text-green-600/70'
-                                                            }`}>
-                                                            [ Click to continue ]
-                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -903,9 +915,6 @@ const BattleScreen: React.FC = () => {
                                                         <p className="text-lg font-mono text-red-400 drop-shadow-[0_0_6px_rgba(248,113,113,0.6)] leading-relaxed">
                                                             "{defeatMessage.message}"
                                                         </p>
-                                                        <div className="text-sm mt-4 text-red-600/70 animate-pulse font-mono">
-                                                            [ Click to continue ]
-                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
