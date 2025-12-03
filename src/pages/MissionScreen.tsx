@@ -69,8 +69,8 @@ interface LocationState {
     isReplay?: boolean;
 }
 
-// Animated enemy ship sprite
-const AnimatedShip: React.FC<{ isLocked: boolean }> = ({ isLocked }) => {
+// Animated enemy ship sprite (currently unused but kept for potential future use)
+const _AnimatedShip: React.FC<{ isLocked: boolean }> = ({ isLocked }) => {
     const [frame, setFrame] = useState(1);
 
     useEffect(() => {

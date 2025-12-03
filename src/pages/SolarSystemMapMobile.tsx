@@ -245,15 +245,13 @@ const SolarSystemMapMobile: React.FC = () => {
         }
     }, [stats.totalXP, activeMilestone]);
 
-    // Scroll to current planet on mount (with reversed list, current planet should be near bottom)
+    // Scroll to bottom on mount (Earth area - where the journey starts)
     useEffect(() => {
         const timer = setTimeout(() => {
-            // Get the current leg to find the target planet
-            const leg = progress.currentLegId ? getLegById(progress.currentLegId) : null;
-            const targetBodyId = leg?.toBodyId || 'moon';
-            const currentElement = document.getElementById(`planet-${targetBodyId}`);
-            currentElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 300);
+            if (scrollRef.current) {
+                scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            }
+        }, 100);
         return () => clearTimeout(timer);
     }, []);
 
@@ -282,12 +280,6 @@ const SolarSystemMapMobile: React.FC = () => {
         setRankUpModal({ show: false, rank: null });
     };
 
-    // Get chapter for a planet
-    const getChapterForPlanet = (bodyId: string): string => {
-        const leg = campaignLegs.find(l => l.toBodyId === bodyId);
-        if (!leg) return 'Chapter 1';
-        return getChapterName(leg.chapter);
-    };
 
     // Build planet list in campaign order, then reverse so distant planets are at top
     const planetListForward = campaignLegs.map((leg, index) => {
@@ -305,8 +297,15 @@ const SolarSystemMapMobile: React.FC = () => {
         // In reversed order, show chapter header after the last item of each chapter
         const isLastInChapter = !nextLeg || nextLeg.chapter !== leg.chapter;
 
-        // Get stars earned for this leg
-        const starsEarned = progress.completedLegs?.[leg.id]?.stars || 0;
+        // Get stars earned for this leg (stored in starsEarned with format legId_waypointIndex)
+        // Get the max stars for this leg by checking all waypoints
+        let starsEarned = 0;
+        if (progress.starsEarned) {
+            for (let i = 0; i < leg.waypointsRequired; i++) {
+                const key = `${leg.id}_${i}`;
+                starsEarned = Math.max(starsEarned, progress.starsEarned[key] || 0);
+            }
+        }
 
         // Waypoint progress for current planet
         const waypointProgress = isCurrent ? {
@@ -346,9 +345,12 @@ const SolarSystemMapMobile: React.FC = () => {
     };
 
     return (
-        <div className="flex-1 flex flex-col bg-space-black">
-            {/* Header */}
-            <div className="flex items-center justify-between p-3 bg-industrial-dark border-b border-industrial-metal/30">
+        <div className="h-full flex flex-col bg-space-black">
+            {/* Fixed Header */}
+            <div
+                className="fixed top-0 left-0 right-0 z-20 flex items-center p-3 bg-industrial-dark border-b border-industrial-metal/30"
+                style={{ paddingTop: 'calc(var(--safe-area-top) + 0.75rem)' }}
+            >
                 <button
                     onClick={() => navigate('/homebase')}
                     className="flex items-center gap-1 px-2 py-1 text-sm text-white/80 active:text-white"
@@ -356,27 +358,11 @@ const SolarSystemMapMobile: React.FC = () => {
                     <ArrowLeft className="w-4 h-4" />
                     <span>Home</span>
                 </button>
-
-                <div className="text-center">
-                    <div className="text-xs text-industrial-highlight uppercase tracking-wider">Mission Map</div>
-                </div>
-
-                {/* Rank badge */}
-                <div className="flex items-center gap-2">
-                    <div className="text-right">
-                        <div className="text-[10px] text-industrial-highlight uppercase">{currentRank.name}</div>
-                        <div className="w-16 h-1.5 bg-industrial-dark rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-brand-accent transition-all"
-                                style={{ width: `${xpProgress.progress * 100}%` }}
-                            />
-                        </div>
-                    </div>
-                </div>
             </div>
 
             {/* Planet list - reversed so Earth is at bottom, scroll up to progress */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto flex flex-col">
+            {/* Add padding top/bottom to account for fixed header/footer */}
+            <div ref={scrollRef} className="flex-1 overflow-y-auto flex flex-col pt-14 pb-52">
                 {/* Campaign planets (in reversed order - distant planets at top) */}
                 <div className="flex-1">
                     {planetList.map((planet) => planet && (
@@ -425,6 +411,43 @@ const SolarSystemMapMobile: React.FC = () => {
                 </div>
             </div>
 
+            {/* Fixed Bottom Menu Bar */}
+            <div
+                className="fixed bottom-0 left-0 right-0 z-20 flex flex-col px-10 py-10"
+                style={{
+                    paddingBottom: 'calc(var(--safe-area-bottom) + 2.5rem)',
+                }}
+            >
+                {/* Panel background with grayscale + green tint */}
+                <div
+                    className="absolute inset-0"
+                    style={{
+                        backgroundImage: 'url(/assets/1NewStuff/panel/mobile_panel.png)',
+                        backgroundSize: '100% 100%',
+                        backgroundRepeat: 'no-repeat',
+                        imageRendering: 'pixelated',
+                        filter: 'grayscale(100%)',
+                    }}
+                />
+                <div
+                    className="absolute inset-0 bg-green-500/20"
+                    style={{ mixBlendMode: 'overlay' }}
+                />
+                <div className="relative z-10 text-xs text-industrial-highlight uppercase tracking-wider text-center mb-6">Mission Map</div>
+
+                {/* Rank badge */}
+                <div className="relative z-10 flex items-center justify-center gap-4">
+                    <div className="text-center">
+                        <div className="text-xs text-industrial-highlight uppercase">{currentRank.name}</div>
+                        <div className="w-24 h-2 bg-space-black rounded-full overflow-hidden border border-industrial-metal/50">
+                            <div
+                                className="h-full bg-brand-accent transition-all"
+                                style={{ width: `${xpProgress.progress * 100}%` }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* Milestone Modal */}
             {activeMilestone && (
@@ -465,11 +488,8 @@ const SolarSystemMapMobile: React.FC = () => {
                                 style={{ imageRendering: 'pixelated' }}
                             />
                         </div>
-                        <div className="text-white font-bold uppercase tracking-wider mb-1">
+                        <div className="text-white font-bold uppercase tracking-wider mb-4">
                             {rankUpModal.rank.name}
-                        </div>
-                        <div className="text-industrial-highlight text-xs mb-4">
-                            {rankUpModal.rank.description}
                         </div>
                         <PixelButton onClick={handleDismissRankUp} size="sm" className="w-full">
                             Continue

@@ -61,7 +61,7 @@ const BattleScreenMobile: React.FC = () => {
     const [showEscapeOverlay, setShowEscapeOverlay] = useState(false);
     const [defeatMessage, setDefeatMessage] = useState<{ message: string; encouragement: string } | null>(null);
     const [defeatSoundId, setDefeatSoundId] = useState('');
-    const [shotFired, setShotFired] = useState(false);
+    const [_shotFired, setShotFired] = useState(false);
     const [prevStarCount, setPrevStarCount] = useState(0);
     const [animatingStarIndex, setAnimatingStarIndex] = useState<number | null>(null);
     const [dialogueSlidingOut, setDialogueSlidingOut] = useState(false);
