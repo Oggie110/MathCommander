@@ -48,18 +48,33 @@ export const AudioUnlockPrompt: React.FC = () => {
     const playTestBeep = () => {
         try {
             const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-            const oscillator = ctx.createOscillator();
-            const gainNode = ctx.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(ctx.destination);
-            oscillator.frequency.value = 440;
-            oscillator.type = 'sine';
-            gainNode.gain.value = 0.3;
-            oscillator.start();
-            oscillator.stop(ctx.currentTime + 0.2);
-            setDebugInfo('BEEP played!');
+            ctx.resume().then(() => {
+                const oscillator = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                oscillator.frequency.value = 440;
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.5;
+                oscillator.start();
+                oscillator.stop(ctx.currentTime + 0.3);
+                setDebugInfo(`BEEP! ctx=${ctx.state}`);
+            });
         } catch (e) {
             setDebugInfo(`BEEP error: ${e}`);
+        }
+    };
+
+    // Test using HTML5 Audio element (different from Web Audio API)
+    const playHTML5Audio = () => {
+        try {
+            const audio = new Audio('/assets/audio-assets/sfx/sfx/mc_button_click1.wav');
+            audio.volume = 1.0;
+            audio.play()
+                .then(() => setDebugInfo('HTML5 Audio playing!'))
+                .catch((e) => setDebugInfo(`HTML5 error: ${e.message}`));
+        } catch (e) {
+            setDebugInfo(`HTML5 error: ${e}`);
         }
     };
 
@@ -75,7 +90,13 @@ export const AudioUnlockPrompt: React.FC = () => {
                         onClick={playTestBeep}
                         className="px-2 py-1 bg-yellow-500 text-black text-xs font-bold rounded"
                     >
-                        TEST BEEP
+                        BEEP
+                    </button>
+                    <button
+                        onClick={playHTML5Audio}
+                        className="px-2 py-1 bg-green-500 text-black text-xs font-bold rounded"
+                    >
+                        HTML5
                     </button>
                 </div>
             )}
