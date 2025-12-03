@@ -158,17 +158,28 @@ const StartScreen: React.FC = () => {
                     </div>
 
                     <div className="space-y-6">
-                        <PixelButton
+                        {/* Custom button without PixelButton's auto-sound - this first tap unlocks iOS audio */}
+                        <button
                             onClick={handleStartMission}
-                            className="text-xl px-12 py-6 animate-pulse"
                             disabled={isAudioLoading}
-                            size="lg"
+                            className={`
+                                text-xl px-12 py-6 animate-pulse
+                                bg-gradient-to-b from-blue-500 to-blue-700
+                                border-4 border-blue-400
+                                text-white font-bold
+                                shadow-[0_4px_0_0_#1e40af,0_6px_0_0_#1e3a8a]
+                                hover:from-blue-400 hover:to-blue-600
+                                active:translate-y-1 active:shadow-[0_2px_0_0_#1e40af]
+                                disabled:opacity-50 disabled:cursor-not-allowed
+                                transition-all
+                                font-pixel uppercase tracking-wider
+                            `}
                         >
                             <div className="flex items-center gap-4">
                                 <Rocket className={`w-8 h-8 ${isAudioLoading ? 'animate-spin' : ''}`} />
                                 {isAudioLoading ? 'LOADING...' : 'START MISSION'}
                             </div>
-                        </PixelButton>
+                        </button>
 
                         <div className="text-industrial-highlight text-xs mt-8 font-tech tracking-widest">
                             v1.0.0 - INDUSTRIAL EDITION

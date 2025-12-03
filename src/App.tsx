@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/Layout";
+import { AudioUnlockPrompt } from "@/components/ui/AudioUnlockPrompt";
 import StartScreen from "@/pages/StartScreen";
 import SolarSystemMap from "@/pages/SolarSystemMap";
 import MissionScreen from "@/pages/MissionScreen";
@@ -10,6 +11,8 @@ import HomeBaseScreen from "@/pages/HomeBaseScreen";
 
 const App = () => (
   <BrowserRouter>
+    {/* Global iOS audio unlock prompt - shows when AudioContext is suspended */}
+    <AudioUnlockPrompt />
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<StartScreen />} />

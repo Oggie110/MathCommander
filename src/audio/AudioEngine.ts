@@ -188,6 +188,13 @@ class AudioEngine {
         return this._isInitialized;
     }
 
+    /**
+     * Check if audio context is suspended (iOS Safari issue)
+     */
+    isSuspended(): boolean {
+        return this.context?.state === 'suspended';
+    }
+
     // === PRELOADING ===
 
     /**
