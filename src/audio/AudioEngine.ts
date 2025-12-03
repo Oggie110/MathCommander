@@ -58,13 +58,23 @@ class AudioEngine {
         if (this._isInitialized) return;
 
         try {
-            this.context = new AudioContext();
+            // Use webkitAudioContext for older iOS Safari
+            const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+            this.context = new AudioContextClass();
 
             // iOS Safari requires explicit resume after user interaction
             if (this.context.state === 'suspended') {
                 await this.context.resume();
                 console.log('[AudioEngine] Context resumed after creation (iOS fix)');
             }
+
+            // iOS unlock trick: play a silent buffer to fully unlock audio
+            const silentBuffer = this.context.createBuffer(1, 1, 22050);
+            const silentSource = this.context.createBufferSource();
+            silentSource.buffer = silentBuffer;
+            silentSource.connect(this.context.destination);
+            silentSource.start(0);
+            console.log('[AudioEngine] Silent buffer played (iOS unlock)');
 
             // Create gain nodes for each category
             this.masterGain = this.context.createGain();
