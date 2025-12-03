@@ -297,7 +297,7 @@ class AudioEngine {
         // On iOS with HTML5 fallback, preload SFX into pool for instant playback
         if (this.useHTML5Fallback && sound.category === 'sfx') {
             if (!this.html5SFXPool.has(soundId)) {
-                this.preloadHTML5SFX(soundId);
+                await this.preloadHTML5SFX(soundId);
             }
             return;
         }
@@ -346,18 +346,34 @@ class AudioEngine {
     /**
      * Preload SFX into HTML5 audio pool for instant playback on iOS
      */
-    private preloadHTML5SFX(soundId: string, poolSize: number = 3): void {
+    private async preloadHTML5SFX(soundId: string, poolSize: number = 3): Promise<void> {
         const sound = SOUNDS[soundId];
         if (!sound) return;
 
         const pool: HTMLAudioElement[] = [];
+        const loadPromises: Promise<void>[] = [];
+
         for (let i = 0; i < poolSize; i++) {
             const audio = new Audio(sound.src);
             audio.preload = 'auto';
+
+            // Wait for the audio to be loaded enough to play
+            const loadPromise = new Promise<void>((resolve) => {
+                audio.oncanplaythrough = () => resolve();
+                audio.onerror = () => resolve(); // Resolve anyway to not block
+                // Timeout fallback in case events don't fire
+                setTimeout(resolve, 3000);
+            });
+
+            loadPromises.push(loadPromise);
             audio.load(); // Force preload
             pool.push(audio);
         }
+
         this.html5SFXPool.set(soundId, pool);
+
+        // Wait for at least the first audio element to load
+        await Promise.race(loadPromises);
     }
 
     /**
