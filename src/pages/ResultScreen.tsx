@@ -285,9 +285,9 @@ const ResultScreen: React.FC = () => {
 
                 {/* Answers View Modal */}
                 {showAnswers && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
-                        <PixelCard className="w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col">
-                            <div className="flex items-center justify-between p-2 border-b-2 border-gray-700">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 bg-black/80">
+                        <PixelCard className="w-full max-w-md max-h-[90vh] flex flex-col">
+                            <div className="flex-shrink-0 flex items-center justify-between p-2 border-b-2 border-gray-700">
                                 <h3 className="text-sm text-green-400">MISSION ANSWERS</h3>
                                 <PixelButton
                                     onClick={() => setShowAnswers(false)}
@@ -300,19 +300,19 @@ const ResultScreen: React.FC = () => {
                                     </div>
                                 </PixelButton>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                            <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
                                 {questions.map((q, i) => (
                                     <div
                                         key={i}
-                                        className={`p-2 border-2 ${q.correct
+                                        className={`p-1.5 border-2 ${q.correct
                                             ? 'border-green-600 bg-green-900/20'
                                             : 'border-red-600 bg-red-900/20'
                                             }`}
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs text-gray-400">Q{i + 1}</span>
-                                                <span className="text-sm text-white">
+                                                <span className="text-[10px] text-gray-400">Q{i + 1}</span>
+                                                <span className="text-xs text-white">
                                                     {q.num1} × {q.num2} = <span className="text-green-400 font-bold">{q.num1 * q.num2}</span>
                                                 </span>
                                             </div>
@@ -326,7 +326,7 @@ const ResultScreen: React.FC = () => {
                                     </div>
                                 ))}
                             </div>
-                            <div className="p-2 border-t-2 border-gray-700">
+                            <div className="flex-shrink-0 p-2 border-t-2 border-gray-700">
                                 <div className="text-center text-xs text-gray-400">
                                     {correctCount} of {questions.length} correct ({percentage}%)
                                 </div>

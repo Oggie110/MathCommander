@@ -84,9 +84,9 @@ export const generateQuestions = (
     const tableCount = new Map<number, number>(); // Track how many times each table (num1) appears
     const multiplierCount = new Map<number, number>(); // Track how many times each multiplier (num2) appears
 
-    // Max questions per table/multiplier (ensures variety)
-    const maxPerTable = Math.ceil(questionsPerRound / Math.max(selectedTables.length, 3));
-    const maxPerMultiplier = Math.ceil(questionsPerRound / Math.max(maxMultiplier - 1, 3)); // -1 because x1 is rare
+    // Max questions per table/multiplier (ensures variety, but relaxed for larger question counts)
+    const maxPerTable = Math.ceil(questionsPerRound / Math.max(selectedTables.length, 2)) + 1;
+    const maxPerMultiplier = Math.ceil(questionsPerRound / Math.max(maxMultiplier - 1, 2)) + 1;
 
     // Helper to check if we can add a pair
     const canAddPair = (pair: [number, number]): boolean => {

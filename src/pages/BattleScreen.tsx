@@ -269,16 +269,17 @@ const BattleScreen: React.FC = () => {
         }
     }, [showFeedback, currentIndex, questions]);
 
-    // Auto-advance after each question (3 second delay) - click anywhere to skip
+    // Auto-advance after each question (shorter wait on last question) - click anywhere to skip
     useEffect(() => {
         if (showFeedback && questions.length > 0) {
+            const isLastQuestion = currentIndex === questions.length - 1;
             const timeout = setTimeout(() => {
                 advanceToNextQuestion();
-            }, 3000); // 3 second delay before auto-advancing
+            }, isLastQuestion ? 1500 : 3000);
 
             return () => clearTimeout(timeout);
         }
-    }, [showFeedback, questions.length, advanceToNextQuestion]);
+    }, [showFeedback, questions.length, currentIndex, advanceToNextQuestion]);
 
     // Handle click to advance dialogue (also skips speech)
     const handleDialogueClick = useCallback(() => {
