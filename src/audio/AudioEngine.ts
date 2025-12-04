@@ -20,12 +20,18 @@ class AudioEngine {
     private context: AudioContext | null = null;
     private useHTML5Fallback = false; // Will be set to true on iOS if Web Audio fails
     private html5Music: HTMLAudioElement | null = null; // Current music element for iOS
+    private html5MusicSource: MediaElementAudioSourceNode | null = null; // For routing HTML5 through Web Audio
+    private html5MusicGain: GainNode | null = null; // Gain node for HTML5 music volume control
     private html5MusicId: string | null = null;
     private html5MusicBaseVolume: number = 1; // Base volume for current music track (before user volume applied)
-    private html5Ambience: Map<string, HTMLAudioElement> = new Map(); // Ambience elements for iOS
+    private html5Ambience: Map<string, { audio: HTMLAudioElement; source: MediaElementAudioSourceNode; gain: GainNode }> = new Map(); // Ambience elements for iOS with Web Audio routing
     private html5AmbienceBaseVolumes: Map<string, number> = new Map(); // Base volumes for ambience tracks
     private html5Speech: HTMLAudioElement | null = null; // Current speech element for iOS
+    private html5SpeechSource: MediaElementAudioSourceNode | null = null; // For routing HTML5 speech through Web Audio
+    private html5SpeechGain: GainNode | null = null; // Gain node for HTML5 speech volume control
     private html5SFXPool: Map<string, HTMLAudioElement[]> = new Map(); // Pool of preloaded SFX for iOS
+    private html5SFXConnected: WeakSet<HTMLAudioElement> = new WeakSet(); // Track which SFX elements are already connected to Web Audio
+    private html5SFXGains: WeakMap<HTMLAudioElement, GainNode> = new WeakMap(); // GainNodes for connected SFX elements
     private html5SpeechPool: Map<string, HTMLAudioElement> = new Map(); // Preloaded speech elements for iOS
     private html5MusicPool: Map<string, HTMLAudioElement> = new Map(); // Preloaded music elements for iOS
     private masterGain: GainNode | null = null;
@@ -101,8 +107,8 @@ class AudioEngine {
         if (this.html5Music) {
             this.html5Music.pause();
         }
-        for (const audio of this.html5Ambience.values()) {
-            audio.pause();
+        for (const entry of this.html5Ambience.values()) {
+            entry.audio.pause();
         }
         if (this.html5Speech) {
             this.html5Speech.pause();
@@ -126,9 +132,9 @@ class AudioEngine {
             if (this.html5Music && this.html5Music.paused) {
                 this.html5Music.play().catch(() => { /* ignore autoplay restrictions */ });
             }
-            for (const audio of this.html5Ambience.values()) {
-                if (audio.paused) {
-                    audio.play().catch(() => { /* ignore */ });
+            for (const entry of this.html5Ambience.values()) {
+                if (entry.audio.paused) {
+                    entry.audio.play().catch(() => { /* ignore */ });
                 }
             }
         }, 100);
@@ -145,10 +151,32 @@ class AudioEngine {
 
         console.log('[AudioEngine] init called, isIOS:', isIOS());
 
-        // On iOS, use HTML5 Audio fallback
+        // On iOS, use HTML5 Audio fallback but still create Web Audio context for volume control
         if (isIOS()) {
-            console.log('[AudioEngine] Using HTML5 fallback for iOS');
+            console.log('[AudioEngine] Using HTML5 fallback for iOS (with Web Audio for volume control)');
             this.useHTML5Fallback = true;
+
+            // Still create Web Audio context for volume control via GainNodes
+            // HTML5 Audio element .volume is read-only on iOS, but we can route through Web Audio
+            try {
+                const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+                this.context = new AudioContextClass();
+
+                // iOS Safari requires explicit resume after user interaction
+                if (this.context.state === 'suspended') {
+                    await this.context.resume();
+                }
+
+                // Create master gain for iOS
+                this.masterGain = this.context.createGain();
+                this.masterGain.connect(this.context.destination);
+                this.masterGain.gain.value = this.volumes.master;
+
+                console.log('[AudioEngine] iOS Web Audio context created for volume control, state:', this.context.state);
+            } catch (e) {
+                console.warn('[AudioEngine] Could not create Web Audio context for iOS volume control:', e);
+            }
+
             this._isInitialized = true;
             return;
         }
@@ -491,6 +519,7 @@ class AudioEngine {
 
     /**
      * Play a sound effect using HTML5 Audio (iOS fallback)
+     * Routes through Web Audio GainNode for volume control on iOS
      * Uses preloaded pool if available for instant playback
      */
     private playHTML5SFX(soundId: string, options: PlayOptions = {}): void {
@@ -510,15 +539,61 @@ class AudioEngine {
                 console.log('[AudioEngine] playHTML5SFX: NOT PRELOADED, loading on demand (will have latency):', soundId);
             }
 
-            // Apply HTML5-specific volume override if defined (e.g., starEarned at 50%)
-            const html5Multiplier = HTML5_SFX_VOLUME_OVERRIDES[soundId] ?? 1;
-            const volume = (options.volume ?? sound.volume ?? 1) * this.volumes.sfx * this.volumes.master * html5Multiplier;
-            audio.volume = Math.min(1, Math.max(0, volume));
             audio.playbackRate = options.pitch ?? 1;
 
-            audio.play().catch((e) => {
-                console.log('[AudioEngine] playHTML5SFX play error:', soundId, e);
-            });
+            // Apply HTML5-specific volume override if defined (e.g., starEarned at 50%)
+            const html5Multiplier = HTML5_SFX_VOLUME_OVERRIDES[soundId] ?? 1;
+            const baseVolume = (options.volume ?? sound.volume ?? 1) * html5Multiplier;
+
+            // Route through Web Audio for volume control (iOS ignores audio.volume)
+            if (this.context && this.masterGain) {
+                // Check if this audio element is already connected to Web Audio
+                if (this.html5SFXConnected.has(audio)) {
+                    // Already connected - just update the gain and play
+                    const gainNode = this.html5SFXGains.get(audio);
+                    if (gainNode) {
+                        const volume = baseVolume * this.volumes.sfx;
+                        gainNode.gain.value = Math.min(1, Math.max(0, volume));
+                    }
+                    audio.play().catch((e) => {
+                        console.log('[AudioEngine] playHTML5SFX replay error:', soundId, e);
+                    });
+                } else {
+                    // First time - create MediaElementSource and connect
+                    try {
+                        const source = this.context.createMediaElementSource(audio);
+                        const gainNode = this.context.createGain();
+                        const volume = baseVolume * this.volumes.sfx;
+                        gainNode.gain.value = Math.min(1, Math.max(0, volume));
+
+                        source.connect(gainNode);
+                        gainNode.connect(this.masterGain);
+
+                        // Track this element as connected
+                        this.html5SFXConnected.add(audio);
+                        this.html5SFXGains.set(audio, gainNode);
+
+                        audio.play().catch((e) => {
+                            console.log('[AudioEngine] playHTML5SFX play error:', soundId, e);
+                        });
+                    } catch (e) {
+                        // Fallback if connection fails
+                        console.warn('[AudioEngine] playHTML5SFX: Web Audio connection failed:', e);
+                        const volume = baseVolume * this.volumes.sfx * this.volumes.master;
+                        audio.volume = Math.min(1, Math.max(0, volume));
+                        audio.play().catch((err) => {
+                            console.log('[AudioEngine] playHTML5SFX fallback play error:', soundId, err);
+                        });
+                    }
+                }
+            } else {
+                // No Web Audio context - use direct HTML5 (volume won't work on iOS)
+                const volume = baseVolume * this.volumes.sfx * this.volumes.master;
+                audio.volume = Math.min(1, Math.max(0, volume));
+                audio.play().catch((e) => {
+                    console.log('[AudioEngine] playHTML5SFX direct play error:', soundId, e);
+                });
+            }
         } catch (e) {
             console.log('[AudioEngine] playHTML5SFX exception:', soundId, e);
         }
@@ -526,6 +601,7 @@ class AudioEngine {
 
     /**
      * Play music using HTML5 Audio (iOS fallback)
+     * Routes through Web Audio GainNode for volume control (iOS ignores HTMLAudioElement.volume)
      * Uses preloaded audio if available for instant start
      */
     private playHTML5Music(soundId: string, options: MusicOptions = {}): void {
@@ -562,26 +638,51 @@ class AudioEngine {
             audio.currentTime = 0;
             const baseVolume = sound.volume ?? 1;
             this.html5MusicBaseVolume = baseVolume;
-            audio.volume = 0; // Start at 0 for fade in
 
-            audio.play().then(() => {
-                // Fade in - use current user volume settings with HTML5 multiplier
-                const fadeIn = options.fadeIn ?? options.crossfade ?? 800;
-                const steps = 20;
-                const stepTime = fadeIn / steps;
-                let step = 0;
-                const fadeInterval = setInterval(() => {
-                    step++;
-                    // Always use current volume settings during fade (with HTML5 music multiplier)
-                    const targetVolume = this.html5MusicBaseVolume * this.volumes.music * this.volumes.master * HTML5_MUSIC_VOLUME_MULTIPLIER;
-                    audio!.volume = Math.min(1, Math.max(0, (step / steps) * targetVolume));
-                    if (step >= steps) {
-                        clearInterval(fadeInterval);
-                    }
-                }, stepTime);
-            }).catch((e) => {
-                console.log('[AudioEngine] playHTML5Music play error:', soundId, e);
-            });
+            // Route through Web Audio for volume control (iOS ignores audio.volume)
+            if (this.context && this.masterGain) {
+                try {
+                    // Create MediaElementSource to route HTML5 Audio through Web Audio
+                    const source = this.context.createMediaElementSource(audio);
+                    const gainNode = this.context.createGain();
+                    gainNode.gain.value = 0; // Start at 0 for fade in
+
+                    source.connect(gainNode);
+                    gainNode.connect(this.masterGain);
+
+                    this.html5MusicSource = source;
+                    this.html5MusicGain = gainNode;
+
+                    audio.play().then(() => {
+                        // Fade in using GainNode
+                        const fadeIn = options.fadeIn ?? options.crossfade ?? 800;
+                        const steps = 20;
+                        const stepTime = fadeIn / steps;
+                        let step = 0;
+                        const fadeInterval = setInterval(() => {
+                            step++;
+                            const targetVolume = this.html5MusicBaseVolume * this.volumes.music * HTML5_MUSIC_VOLUME_MULTIPLIER;
+                            if (this.html5MusicGain) {
+                                this.html5MusicGain.gain.value = Math.min(1, Math.max(0, (step / steps) * targetVolume));
+                            }
+                            if (step >= steps) {
+                                clearInterval(fadeInterval);
+                            }
+                        }, stepTime);
+                    }).catch((e) => {
+                        console.log('[AudioEngine] playHTML5Music play error:', soundId, e);
+                    });
+
+                    console.log('[AudioEngine] playHTML5Music: routed through Web Audio GainNode');
+                } catch (e) {
+                    console.warn('[AudioEngine] playHTML5Music: Web Audio routing failed, falling back to direct:', e);
+                    // Fallback to direct HTML5 (volume won't work on iOS but at least sound plays)
+                    this.playHTML5MusicDirect(audio, options, baseVolume);
+                }
+            } else {
+                // No Web Audio context available, use direct playback
+                this.playHTML5MusicDirect(audio, options, baseVolume);
+            }
 
             this.html5Music = audio;
             this.html5MusicId = soundId;
@@ -591,33 +692,86 @@ class AudioEngine {
     }
 
     /**
+     * Play HTML5 music directly without Web Audio routing (fallback when Web Audio unavailable)
+     */
+    private playHTML5MusicDirect(audio: HTMLAudioElement, options: MusicOptions, baseVolume: number): void {
+        audio.volume = 0; // Start at 0 for fade in (won't work on iOS but doesn't hurt)
+
+        audio.play().then(() => {
+            // Fade in - use current user volume settings with HTML5 multiplier
+            const fadeIn = options.fadeIn ?? options.crossfade ?? 800;
+            const steps = 20;
+            const stepTime = fadeIn / steps;
+            let step = 0;
+            const fadeInterval = setInterval(() => {
+                step++;
+                const targetVolume = baseVolume * this.volumes.music * this.volumes.master * HTML5_MUSIC_VOLUME_MULTIPLIER;
+                audio.volume = Math.min(1, Math.max(0, (step / steps) * targetVolume));
+                if (step >= steps) {
+                    clearInterval(fadeInterval);
+                }
+            }, stepTime);
+        }).catch((e) => {
+            console.log('[AudioEngine] playHTML5MusicDirect play error:', e);
+        });
+    }
+
+    /**
      * Stop HTML5 music with fade out
      */
     private stopHTML5Music(fadeOut = 500): void {
         if (!this.html5Music) return;
 
         const audio = this.html5Music;
-        const startVolume = audio.volume;
-        const steps = 20;
-        const stepTime = fadeOut / steps;
-        let step = 0;
+        const gainNode = this.html5MusicGain;
+        const source = this.html5MusicSource;
 
-        const fadeInterval = setInterval(() => {
-            step++;
-            audio.volume = Math.max(0, startVolume * (1 - step / steps));
-            if (step >= steps) {
-                clearInterval(fadeInterval);
-                audio.pause();
-                audio.src = ''; // Release resource
-            }
-        }, stepTime);
+        // Fade out using GainNode if available (proper volume control on iOS)
+        if (gainNode && this.context) {
+            const startVolume = gainNode.gain.value;
+            const steps = 20;
+            const stepTime = fadeOut / steps;
+            let step = 0;
+
+            const fadeInterval = setInterval(() => {
+                step++;
+                gainNode.gain.value = Math.max(0, startVolume * (1 - step / steps));
+                if (step >= steps) {
+                    clearInterval(fadeInterval);
+                    audio.pause();
+                    // Disconnect source to allow reuse
+                    try {
+                        source?.disconnect();
+                    } catch { /* ignore */ }
+                }
+            }, stepTime);
+        } else {
+            // Fallback to HTML5 volume fade (won't work on iOS)
+            const startVolume = audio.volume;
+            const steps = 20;
+            const stepTime = fadeOut / steps;
+            let step = 0;
+
+            const fadeInterval = setInterval(() => {
+                step++;
+                audio.volume = Math.max(0, startVolume * (1 - step / steps));
+                if (step >= steps) {
+                    clearInterval(fadeInterval);
+                    audio.pause();
+                    audio.src = ''; // Release resource
+                }
+            }, stepTime);
+        }
 
         this.html5Music = null;
         this.html5MusicId = null;
+        this.html5MusicGain = null;
+        this.html5MusicSource = null;
     }
 
     /**
      * Start ambience using HTML5 Audio (iOS fallback)
+     * Routes through Web Audio GainNode for volume control
      */
     private startHTML5Ambience(soundId: string, fadeIn = 1000): void {
         const sound = SOUNDS[soundId];
@@ -631,24 +785,71 @@ class AudioEngine {
             audio.loop = true;
             const baseVolume = sound.volume ?? 0.2;
             this.html5AmbienceBaseVolumes.set(soundId, baseVolume);
-            audio.volume = 0; // Start at 0 for fade in
 
-            audio.play().then(() => {
-                // Fade in - use current user volume settings
-                const steps = 20;
-                const stepTime = fadeIn / steps;
-                let step = 0;
-                const fadeInterval = setInterval(() => {
-                    step++;
-                    const targetVolume = baseVolume * this.volumes.ambience * this.volumes.master;
-                    audio.volume = Math.min(1, Math.max(0, (step / steps) * targetVolume));
-                    if (step >= steps) {
-                        clearInterval(fadeInterval);
-                    }
-                }, stepTime);
-            }).catch(() => { /* ignore */ });
+            // Route through Web Audio for volume control (iOS ignores audio.volume)
+            if (this.context && this.masterGain) {
+                try {
+                    const source = this.context.createMediaElementSource(audio);
+                    const gainNode = this.context.createGain();
+                    gainNode.gain.value = 0; // Start at 0 for fade in
 
-            this.html5Ambience.set(soundId, audio);
+                    source.connect(gainNode);
+                    gainNode.connect(this.masterGain);
+
+                    audio.play().then(() => {
+                        // Fade in using GainNode
+                        const steps = 20;
+                        const stepTime = fadeIn / steps;
+                        let step = 0;
+                        const fadeInterval = setInterval(() => {
+                            step++;
+                            const targetVolume = baseVolume * this.volumes.ambience;
+                            gainNode.gain.value = Math.min(1, Math.max(0, (step / steps) * targetVolume));
+                            if (step >= steps) {
+                                clearInterval(fadeInterval);
+                            }
+                        }, stepTime);
+                    }).catch(() => { /* ignore */ });
+
+                    this.html5Ambience.set(soundId, { audio, source, gain: gainNode });
+                    console.log('[AudioEngine] startHTML5Ambience: routed through Web Audio GainNode');
+                } catch (e) {
+                    console.warn('[AudioEngine] startHTML5Ambience: Web Audio routing failed:', e);
+                    // Fallback - won't have volume control on iOS
+                    audio.volume = 0;
+                    audio.play().then(() => {
+                        const steps = 20;
+                        const stepTime = fadeIn / steps;
+                        let step = 0;
+                        const fadeInterval = setInterval(() => {
+                            step++;
+                            const targetVolume = baseVolume * this.volumes.ambience * this.volumes.master;
+                            audio.volume = Math.min(1, Math.max(0, (step / steps) * targetVolume));
+                            if (step >= steps) {
+                                clearInterval(fadeInterval);
+                            }
+                        }, stepTime);
+                    }).catch(() => { /* ignore */ });
+                    this.html5Ambience.set(soundId, { audio, source: null as unknown as MediaElementAudioSourceNode, gain: null as unknown as GainNode });
+                }
+            } else {
+                // No Web Audio context - use direct HTML5 (volume won't work on iOS)
+                audio.volume = 0;
+                audio.play().then(() => {
+                    const steps = 20;
+                    const stepTime = fadeIn / steps;
+                    let step = 0;
+                    const fadeInterval = setInterval(() => {
+                        step++;
+                        const targetVolume = baseVolume * this.volumes.ambience * this.volumes.master;
+                        audio.volume = Math.min(1, Math.max(0, (step / steps) * targetVolume));
+                        if (step >= steps) {
+                            clearInterval(fadeInterval);
+                        }
+                    }, stepTime);
+                }).catch(() => { /* ignore */ });
+                this.html5Ambience.set(soundId, { audio, source: null as unknown as MediaElementAudioSourceNode, gain: null as unknown as GainNode });
+            }
         } catch {
             // Failed to play
         }
@@ -658,29 +859,54 @@ class AudioEngine {
      * Stop HTML5 ambience with fade out
      */
     private stopHTML5Ambience(soundId: string, fadeOut = 1000): void {
-        const audio = this.html5Ambience.get(soundId);
-        if (!audio) return;
+        const entry = this.html5Ambience.get(soundId);
+        if (!entry) return;
 
-        const startVolume = audio.volume;
-        const steps = 20;
-        const stepTime = fadeOut / steps;
-        let step = 0;
+        const { audio, source, gain } = entry;
 
-        const fadeInterval = setInterval(() => {
-            step++;
-            audio.volume = Math.max(0, startVolume * (1 - step / steps));
-            if (step >= steps) {
-                clearInterval(fadeInterval);
-                audio.pause();
-                audio.src = ''; // Release resource
-            }
-        }, stepTime);
+        // Fade out using GainNode if available
+        if (gain && this.context) {
+            const startVolume = gain.gain.value;
+            const steps = 20;
+            const stepTime = fadeOut / steps;
+            let step = 0;
+
+            const fadeInterval = setInterval(() => {
+                step++;
+                gain.gain.value = Math.max(0, startVolume * (1 - step / steps));
+                if (step >= steps) {
+                    clearInterval(fadeInterval);
+                    audio.pause();
+                    try {
+                        source?.disconnect();
+                    } catch { /* ignore */ }
+                }
+            }, stepTime);
+        } else {
+            // Fallback to HTML5 volume fade
+            const startVolume = audio.volume;
+            const steps = 20;
+            const stepTime = fadeOut / steps;
+            let step = 0;
+
+            const fadeInterval = setInterval(() => {
+                step++;
+                audio.volume = Math.max(0, startVolume * (1 - step / steps));
+                if (step >= steps) {
+                    clearInterval(fadeInterval);
+                    audio.pause();
+                    audio.src = ''; // Release resource
+                }
+            }, stepTime);
+        }
 
         this.html5Ambience.delete(soundId);
+        this.html5AmbienceBaseVolumes.delete(soundId);
     }
 
     /**
      * Play speech using HTML5 Audio (iOS fallback)
+     * Routes through Web Audio GainNode for volume control
      * Uses preloaded audio if available, otherwise loads on demand
      */
     private playHTML5Speech(soundId: string, options: PlayOptions = {}): Promise<void> {
@@ -695,7 +921,12 @@ class AudioEngine {
             if (this.html5Speech) {
                 this.html5Speech.pause();
                 this.html5Speech.currentTime = 0;
-                // Don't clear src - we want to reuse preloaded audio
+                // Disconnect old source if exists
+                try {
+                    this.html5SpeechSource?.disconnect();
+                } catch { /* ignore */ }
+                this.html5SpeechSource = null;
+                this.html5SpeechGain = null;
             }
 
             try {
@@ -710,34 +941,96 @@ class AudioEngine {
                 }
 
                 audio.currentTime = 0;
-                const volume = (options.volume ?? sound.volume ?? 0.8) * this.volumes.speech * this.volumes.master;
-                audio.volume = Math.min(1, Math.max(0, volume));
+                const baseVolume = options.volume ?? sound.volume ?? 0.8;
 
-                audio.onended = () => {
-                    this.html5Speech = null;
-                    options.onEnd?.();
-                    resolve();
-                };
+                // Route through Web Audio for volume control (iOS ignores audio.volume)
+                if (this.context && this.masterGain) {
+                    try {
+                        const source = this.context.createMediaElementSource(audio);
+                        const gainNode = this.context.createGain();
+                        const volume = baseVolume * this.volumes.speech;
+                        gainNode.gain.value = Math.min(1, Math.max(0, volume));
 
-                audio.onerror = () => {
-                    this.html5Speech = null;
-                    // Remove from pool if it failed
-                    if (isPreloaded) {
-                        this.html5SpeechPool.delete(soundId);
+                        source.connect(gainNode);
+                        gainNode.connect(this.masterGain);
+
+                        this.html5SpeechSource = source;
+                        this.html5SpeechGain = gainNode;
+
+                        audio.onended = () => {
+                            this.html5Speech = null;
+                            this.html5SpeechSource = null;
+                            this.html5SpeechGain = null;
+                            options.onEnd?.();
+                            resolve();
+                        };
+
+                        audio.onerror = () => {
+                            this.html5Speech = null;
+                            this.html5SpeechSource = null;
+                            this.html5SpeechGain = null;
+                            if (isPreloaded) {
+                                this.html5SpeechPool.delete(soundId);
+                            }
+                            resolve();
+                        };
+
+                        audio.play().catch((e) => {
+                            console.log('[AudioEngine] playHTML5Speech play error:', soundId, e);
+                            resolve();
+                        });
+
+                        this.html5Speech = audio;
+                        console.log('[AudioEngine] playHTML5Speech: routed through Web Audio GainNode');
+                    } catch (e) {
+                        console.warn('[AudioEngine] playHTML5Speech: Web Audio routing failed:', e);
+                        // Fallback to direct HTML5
+                        this.playHTML5SpeechDirect(audio, options, baseVolume, isPreloaded, soundId, resolve);
                     }
-                    resolve();
-                };
-
-                audio.play().catch((e) => {
-                    console.log('[AudioEngine] playHTML5Speech play error:', soundId, e);
-                    resolve();
-                });
-
-                this.html5Speech = audio;
+                } else {
+                    // No Web Audio context - use direct HTML5 (volume won't work on iOS)
+                    this.playHTML5SpeechDirect(audio, options, baseVolume, isPreloaded, soundId, resolve);
+                }
             } catch {
                 resolve();
             }
         });
+    }
+
+    /**
+     * Play HTML5 speech directly without Web Audio routing (fallback)
+     */
+    private playHTML5SpeechDirect(
+        audio: HTMLAudioElement,
+        options: PlayOptions,
+        baseVolume: number,
+        isPreloaded: boolean,
+        soundId: string,
+        resolve: () => void
+    ): void {
+        const volume = baseVolume * this.volumes.speech * this.volumes.master;
+        audio.volume = Math.min(1, Math.max(0, volume));
+
+        audio.onended = () => {
+            this.html5Speech = null;
+            options.onEnd?.();
+            resolve();
+        };
+
+        audio.onerror = () => {
+            this.html5Speech = null;
+            if (isPreloaded) {
+                this.html5SpeechPool.delete(soundId);
+            }
+            resolve();
+        };
+
+        audio.play().catch((e) => {
+            console.log('[AudioEngine] playHTML5SpeechDirect play error:', soundId, e);
+            resolve();
+        });
+
+        this.html5Speech = audio;
     }
 
     /**
@@ -1225,8 +1518,13 @@ class AudioEngine {
         if (this.useHTML5Fallback) {
             if (this.html5Speech) {
                 this.html5Speech.pause();
-                this.html5Speech.src = '';
+                // Disconnect Web Audio source if exists
+                try {
+                    this.html5SpeechSource?.disconnect();
+                } catch { /* ignore */ }
                 this.html5Speech = null;
+                this.html5SpeechSource = null;
+                this.html5SpeechGain = null;
             }
             return;
         }
@@ -1605,13 +1903,16 @@ class AudioEngine {
         if (this.musicGain) {
             this.musicGain.gain.value = this.volumes.music;
         }
-        // Update HTML5 music volume on iOS (include base track volume and HTML5 multiplier)
-        if (this.html5Music) {
+        // Update HTML5 music volume on iOS via GainNode (audio.volume is read-only on iOS)
+        if (this.html5MusicGain) {
+            const volume = this.html5MusicBaseVolume * this.volumes.music * HTML5_MUSIC_VOLUME_MULTIPLIER;
+            this.html5MusicGain.gain.value = Math.min(1, Math.max(0, volume));
+            console.log('[AudioEngine] setMusicVolume iOS GainNode:', { value, baseVol: this.html5MusicBaseVolume, finalVol: volume });
+        } else if (this.html5Music) {
+            // Fallback: try setting audio.volume (won't work on iOS but works on other browsers)
             const volume = this.html5MusicBaseVolume * this.volumes.music * this.volumes.master * HTML5_MUSIC_VOLUME_MULTIPLIER;
             this.html5Music.volume = Math.min(1, Math.max(0, volume));
-            console.log('[AudioEngine] setMusicVolume iOS:', { value, baseVol: this.html5MusicBaseVolume, master: this.volumes.master, finalVol: this.html5Music.volume });
-        } else {
-            console.log('[AudioEngine] setMusicVolume: no html5Music element', { useHTML5Fallback: this.useHTML5Fallback });
+            console.log('[AudioEngine] setMusicVolume HTML5 fallback:', { value, finalVol: volume });
         }
         this.saveSettings();
     }
@@ -1630,11 +1931,18 @@ class AudioEngine {
         if (this.ambienceGain) {
             this.ambienceGain.gain.value = this.volumes.ambience;
         }
-        // Update HTML5 ambience volumes on iOS (include base track volume)
-        for (const [soundId, audio] of this.html5Ambience.entries()) {
+        // Update HTML5 ambience volumes on iOS via GainNodes
+        for (const [soundId, entry] of this.html5Ambience.entries()) {
             const baseVolume = this.html5AmbienceBaseVolumes.get(soundId) ?? 0.2;
-            const volume = baseVolume * this.volumes.ambience * this.volumes.master;
-            audio.volume = Math.min(1, Math.max(0, volume));
+            if (entry.gain) {
+                // Use GainNode for iOS
+                const volume = baseVolume * this.volumes.ambience;
+                entry.gain.gain.value = Math.min(1, Math.max(0, volume));
+            } else {
+                // Fallback to audio.volume (won't work on iOS)
+                const volume = baseVolume * this.volumes.ambience * this.volumes.master;
+                entry.audio.volume = Math.min(1, Math.max(0, volume));
+            }
         }
         this.saveSettings();
     }
@@ -1644,8 +1952,13 @@ class AudioEngine {
         if (this.speechGain) {
             this.speechGain.gain.value = this.volumes.speech;
         }
-        // Update HTML5 speech volume on iOS
-        if (this.html5Speech) {
+        // Update HTML5 speech volume on iOS via GainNode
+        if (this.html5SpeechGain) {
+            // Use GainNode for iOS
+            this.html5SpeechGain.gain.value = Math.min(1, Math.max(0, this.volumes.speech));
+            console.log('[AudioEngine] setSpeechVolume iOS GainNode:', { value, finalVol: this.volumes.speech });
+        } else if (this.html5Speech) {
+            // Fallback to audio.volume (won't work on iOS)
             this.html5Speech.volume = this.volumes.speech * this.volumes.master;
         }
         this.saveSettings();
@@ -1653,20 +1966,14 @@ class AudioEngine {
 
     /**
      * Update all HTML5 audio element volumes (called when master volume changes)
+     * Uses GainNodes on iOS (since audio.volume is read-only on iOS)
      */
     private updateHTML5Volumes(): void {
-        if (this.html5Music) {
-            const volume = this.html5MusicBaseVolume * this.volumes.music * this.volumes.master * HTML5_MUSIC_VOLUME_MULTIPLIER;
-            this.html5Music.volume = Math.min(1, Math.max(0, volume));
-        }
-        for (const [soundId, audio] of this.html5Ambience.entries()) {
-            const baseVolume = this.html5AmbienceBaseVolumes.get(soundId) ?? 0.2;
-            const volume = baseVolume * this.volumes.ambience * this.volumes.master;
-            audio.volume = Math.min(1, Math.max(0, volume));
-        }
-        if (this.html5Speech) {
-            this.html5Speech.volume = Math.min(1, Math.max(0, this.volumes.speech * this.volumes.master));
-        }
+        // Master volume is applied via masterGain on iOS (all audio routed through it)
+        // Individual category volumes are applied via their respective GainNodes
+        // So we don't need to update individual elements when master changes -
+        // the masterGain handles it automatically
+        console.log('[AudioEngine] updateHTML5Volumes: master volume applied via masterGain');
     }
 
     getVolumes(): CategoryVolumes {
