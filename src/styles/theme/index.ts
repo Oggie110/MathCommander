@@ -59,6 +59,11 @@ function flattenTokens(tokens: NestedToken, prefix: string, vars: Record<string,
   });
 }
 
+function unwrapDropShadow(value: string): string {
+  const match = value.match(/^drop-shadow\((.*)\)$/);
+  return match ? match[1] : value;
+}
+
 export function buildCssVariableMap(): Record<string, string> {
   const vars: Record<string, string> = {};
 
@@ -125,21 +130,21 @@ export function createTailwindExtend(): TailwindExtend {
       "glow-blue-strong": glows.blue.strong,
     },
     dropShadow: {
-      "text-green-soft": textGlows.green.soft,
-      "text-green": textGlows.green.medium,
-      "text-green-strong": textGlows.green.strong,
-      "text-red-soft": textGlows.red.soft,
-      "text-red": textGlows.red.medium,
-      "text-red-strong": textGlows.red.strong,
-      "text-yellow-soft": textGlows.yellow.soft,
-      "text-yellow": textGlows.yellow.medium,
-      "text-yellow-strong": textGlows.yellow.strong,
-      "text-cyan-soft": textGlows.cyan.soft,
-      "text-cyan": textGlows.cyan.medium,
-      "text-cyan-strong": textGlows.cyan.strong,
-      "solid-red": textGlows.solid.red,
-      "solid-blue": textGlows.solid.blue,
-      "solid-black": textGlows.solid.black,
+      "text-green-soft": unwrapDropShadow(textGlows.green.soft),
+      "text-green": unwrapDropShadow(textGlows.green.medium),
+      "text-green-strong": unwrapDropShadow(textGlows.green.strong),
+      "text-red-soft": unwrapDropShadow(textGlows.red.soft),
+      "text-red": unwrapDropShadow(textGlows.red.medium),
+      "text-red-strong": unwrapDropShadow(textGlows.red.strong),
+      "text-yellow-soft": unwrapDropShadow(textGlows.yellow.soft),
+      "text-yellow": unwrapDropShadow(textGlows.yellow.medium),
+      "text-yellow-strong": unwrapDropShadow(textGlows.yellow.strong),
+      "text-cyan-soft": unwrapDropShadow(textGlows.cyan.soft),
+      "text-cyan": unwrapDropShadow(textGlows.cyan.medium),
+      "text-cyan-strong": unwrapDropShadow(textGlows.cyan.strong),
+      "solid-red": unwrapDropShadow(textGlows.solid.red),
+      "solid-blue": unwrapDropShadow(textGlows.solid.blue),
+      "solid-black": unwrapDropShadow(textGlows.solid.black),
     },
     backgroundImage: {
       hazard: patterns.hazard,
