@@ -192,10 +192,14 @@ export function getTypographyCSS(style: TypographyStyle): Record<string, string>
   const t = typography[style];
   const css: Record<string, string> = {
     'font-family': t.fontFamily,
-    'font-size': t.fontSize,
     'font-weight': t.fontWeight,
     'line-height': t.lineHeight,
   };
+
+  // fontSize may not exist on all styles (e.g., button uses sizes variants)
+  if ('fontSize' in t && t.fontSize) {
+    css['font-size'] = t.fontSize;
+  }
 
   if ('letterSpacing' in t && t.letterSpacing) {
     css['letter-spacing'] = t.letterSpacing;

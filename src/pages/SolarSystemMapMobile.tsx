@@ -2,12 +2,12 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
 import { AnimatedPlanet, planetImages, SpaceBackground } from '@/components/game';
-import { loadPlayerStats, savePlayerStats, getRankForXP, getXPProgress } from '@/utils/gameLogic';
+import { loadPlayerStats, savePlayerStats, getRankForXP } from '@/utils/gameLogic';
 import { RANKS } from '@/types/game';
 import { initializeCampaignProgress, getLegById, getLegIndex, checkForMilestone, markMilestoneSeen } from '@/utils/campaignLogic';
 import { celestialBodies, campaignLegs, getChapterName } from '@/data/campaignRoute';
 import type { CelestialBody, Leg } from '@/data/campaignRoute';
-import { Lock, Star, Radio, Home } from 'lucide-react';
+import { Lock, Star, Radio } from 'lucide-react';
 import { Header } from '@/components/ui/Header';
 import { audioEngine } from '@/audio';
 import { speechService } from '@/audio/SpeechService';
@@ -235,7 +235,6 @@ const SolarSystemMapMobile: React.FC = () => {
 
     const currentLeg = progress.currentLegId ? getLegById(progress.currentLegId) : null;
     const currentRank = getRankForXP(stats.totalXP);
-    const xpProgress = getXPProgress(stats.totalXP);
 
     // Handle milestone dismiss
     const handleDismissMilestone = () => {

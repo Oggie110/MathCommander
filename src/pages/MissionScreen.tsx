@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PixelButton } from '@/components/ui/PixelButton';
 import { AnimatedPlanet, SpaceBackground } from '@/components/game';
 import { loadPlayerStats } from '@/utils/gameLogic';
 import { initializeCampaignProgress, getLegById, getLegIndex, isBossLevel } from '@/utils/campaignLogic';
