@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
+import { AnimatedPlanet, SpaceBackground } from '@/components/game';
 import { loadPlayerStats, savePlayerStats, getRankForXP, getXPProgress } from '@/utils/gameLogic';
 import { RANKS } from '@/types/game';
 import { initializeCampaignProgress, getLegById, getLegIndex, checkForMilestone, markMilestoneSeen } from '@/utils/campaignLogic';
@@ -9,99 +10,7 @@ import type { CelestialBody, Leg } from '@/data/campaignRoute';
 import { ArrowLeft, Lock, Star, Radio } from 'lucide-react';
 import { audioEngine } from '@/audio';
 import { speechService } from '@/audio/SpeechService';
-// import { milestoneMessages } from '@/data/narrative';
-// import { PixelCard } from '@/components/ui/PixelCard';
 import { MILESTONE_TEXT } from '@/audio/speechSounds';
-
-// Animated planet sprite mapping - folder path and frame count
-const animatedPlanets: Record<string, { folder: string; frames: number }> = {
-    earth: { folder: '/assets/helianthus/AnimatedPlanetsFull/Terran_with_clouds/1', frames: 60 },
-    moon: { folder: '/assets/helianthus/AnimatedPlanetsFull/Barren_or_Moon/1', frames: 60 },
-    mars: { folder: '/assets/helianthus/AnimatedPlanetsFull/Desert/1', frames: 60 },
-    ceres: { folder: '/assets/helianthus/AnimatedPlanetsFull/Barren_or_Moon/2', frames: 60 },
-    jupiter: { folder: '/assets/helianthus/AnimatedPlanetsFull/Gas_giant_or_Toxic/1', frames: 60 },
-    europa: { folder: '/assets/helianthus/AnimatedPlanetsFull/Ice', frames: 60 },
-    saturn: { folder: '/assets/helianthus/AnimatedPlanetsFull/Gas_giant_or_Toxic/2', frames: 60 },
-    titan: { folder: '/assets/helianthus/AnimatedPlanetsFull/Desert/2', frames: 60 },
-    uranus: { folder: '/assets/helianthus/AnimatedPlanetsFull/Gas_giant_or_Toxic/3', frames: 60 },
-    neptune: { folder: '/assets/helianthus/AnimatedPlanetsFull/Gas_giant_or_Toxic/4', frames: 60 },
-    pluto: { folder: '/assets/helianthus/AnimatedPlanetsFull/Barren_or_Moon/3', frames: 60 },
-    haumea: { folder: '/assets/helianthus/AnimatedPlanetsFull/Barren_or_Moon/4', frames: 60 },
-    makemake: { folder: '/assets/helianthus/AnimatedPlanetsFull/Ice', frames: 60 },
-    eris: { folder: '/assets/helianthus/AnimatedPlanetsFull/Ice', frames: 60 },
-    arrokoth: { folder: '/assets/helianthus/AnimatedPlanetsFull/Barren_or_Moon/1', frames: 60 },
-};
-
-// Static planet images (fallback)
-const planetImages: Record<string, string> = {
-    earth: '/assets/helianthus/PlanetsFull/Ocean/1.png',
-    moon: '/assets/helianthus/PlanetsFull/Barren_or_Moon/1.png',
-    mars: '/assets/helianthus/PlanetsFull/Desert_or_Martian/1.png',
-    ceres: '/assets/helianthus/PlanetsFull/Asteroids/1.png',
-    jupiter: '/assets/helianthus/PlanetsFull/Gas_Giant_or_Toxic/1.png',
-    europa: '/assets/helianthus/PlanetsFull/Ice_or_Snow/1.png',
-    saturn: '/assets/helianthus/PlanetsFull/Gas_Giant_or_Toxic/5.png',
-    titan: '/assets/helianthus/PlanetsFull/Desert_or_Martian/3.png',
-    uranus: '/assets/helianthus/PlanetsFull/Gas_Giant_or_Toxic/9.png',
-    neptune: '/assets/helianthus/PlanetsFull/Ocean/3.png',
-    pluto: '/assets/helianthus/PlanetsFull/Ice_or_Snow/3.png',
-    haumea: '/assets/helianthus/PlanetsFull/Barren_or_Moon/3.png',
-    makemake: '/assets/helianthus/PlanetsFull/Rocky/1.png',
-    eris: '/assets/helianthus/PlanetsFull/Ice_or_Snow/4.png',
-    arrokoth: '/assets/helianthus/PlanetsFull/Asteroids/5.png',
-};
-
-// Animated Planet Component
-const AnimatedPlanet: React.FC<{
-    planetId: string;
-    size: number;
-    isLocked?: boolean;
-    className?: string;
-}> = ({ planetId, size, isLocked = false, className = '' }) => {
-    const [frame, setFrame] = useState(1);
-    const planetData = animatedPlanets[planetId];
-
-    useEffect(() => {
-        if (!planetData || isLocked) return;
-
-        const interval = setInterval(() => {
-            setFrame(prev => (prev % planetData.frames) + 1);
-        }, 100); // ~10fps for gentle rotation
-
-        return () => clearInterval(interval);
-    }, [planetData, isLocked]);
-
-    if (!planetData) {
-        // Fallback to static image
-        return (
-            <img
-                src={planetImages[planetId]}
-                alt={planetId}
-                style={{
-                    width: size,
-                    height: size,
-                    imageRendering: 'pixelated',
-                    filter: isLocked ? 'brightness(0.3) grayscale(1)' : 'none',
-                }}
-                className={className}
-            />
-        );
-    }
-
-    return (
-        <img
-            src={`${planetData.folder}/${frame}.png`}
-            alt={planetId}
-            style={{
-                width: size,
-                height: size,
-                imageRendering: 'pixelated',
-                filter: isLocked ? 'brightness(0.3) grayscale(1)' : 'none',
-            }}
-            className={className}
-        />
-    );
-};
 
 // Planet positions on the map - arranged in campaign flow order (serpentine path)
 // Bottom row (L→R): Earth → Moon → Mars → Ceres → Jupiter
@@ -450,27 +359,7 @@ const SolarSystemMap: React.FC = () => {
 
     return (
         <div className="flex-1 flex flex-col overflow-hidden bg-space-black relative">
-            {/* Background with stars */}
-            <div className="absolute inset-0 z-0">
-                <div
-                    className="absolute inset-0"
-                    style={{
-                        backgroundImage: 'url(/assets/helianthus/SpaceBackgrounds/1.png)',
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                    }}
-                />
-                <div
-                    className="absolute inset-0 animate-parallaxSlow"
-                    style={{
-                        backgroundImage: 'url(/assets/helianthus/SpaceBackgrounds/stars_blue.png)',
-                        backgroundRepeat: 'repeat',
-                        backgroundSize: '2048px',
-                        opacity: 0.5,
-                        imageRendering: 'pixelated',
-                    }}
-                />
-            </div>
+            <SpaceBackground />
 
             {/* Header */}
             <div className="relative z-30 flex justify-between items-center p-4 bg-industrial-dark/90 border-b-2 border-industrial-metal shadow-lg">

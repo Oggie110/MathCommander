@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
 import { PixelCard } from '@/components/ui/PixelCard';
 import { CRTDialogueBox } from '@/components/ui/CRTDialogueBox';
+import { SpaceBackground } from '@/components/game';
 import { isFinalBoss, victoryNarrative } from '@/data/narrative';
 import { getLegById, isBossLevel } from '@/utils/campaignLogic';
 import { audioEngine } from '@/audio';
@@ -128,27 +129,7 @@ const ResultScreen: React.FC = () => {
 
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-4">
-            {/* Background */}
-            <div className="absolute inset-0 z-0">
-                <div
-                    className="absolute inset-0"
-                    style={{
-                        backgroundImage: 'url(/assets/helianthus/SpaceBackgrounds/1.png)',
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                    }}
-                />
-                <div
-                    className="absolute inset-0"
-                    style={{
-                        backgroundImage: 'url(/assets/helianthus/SpaceBackgrounds/stars_blue.png)',
-                        backgroundRepeat: 'repeat',
-                        backgroundSize: '2048px',
-                        opacity: 0.5,
-                        imageRendering: 'pixelated',
-                    }}
-                />
-            </div>
+            <SpaceBackground showParallax={false} />
 
             <div className="relative z-10 w-full max-w-lg">
                 {/* Final victory special screen - CRT Style */}

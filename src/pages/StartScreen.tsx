@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
 import { CRTDialogueBox } from '@/components/ui/CRTDialogueBox';
+import { SpaceBackground } from '@/components/game';
 import { openingNarrative } from '@/data/narrative';
 import { audioEngine } from '@/audio';
 import { Rocket, Radio } from 'lucide-react';
@@ -127,27 +128,7 @@ const StartScreen: React.FC = () => {
 
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-4 text-center relative">
-            {/* Background with space theme */}
-            <div className="absolute inset-0 z-0">
-                <div
-                    className="absolute inset-0"
-                    style={{
-                        backgroundImage: 'url(/assets/helianthus/SpaceBackgrounds/1.png)',
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                    }}
-                />
-                <div
-                    className="absolute inset-0 animate-parallaxSlow"
-                    style={{
-                        backgroundImage: 'url(/assets/helianthus/SpaceBackgrounds/stars_blue.png)',
-                        backgroundRepeat: 'repeat',
-                        backgroundSize: '2048px',
-                        opacity: 0.5,
-                        imageRendering: 'pixelated',
-                    }}
-                />
-            </div>
+            <SpaceBackground />
 
             {!showBriefing ? (
                 // Title Screen
