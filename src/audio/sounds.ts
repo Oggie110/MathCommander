@@ -153,6 +153,32 @@ const CORE_SOUNDS: Record<string, SoundDefinition> = {
         category: 'sfx',
         volume: 0.1,
     },
+    // Result screen animation sounds
+    resultPercentage: {
+        id: 'resultPercentage',
+        src: '/assets/audio-assets/sfx/sfx/mission_complete/SFX_Dsgnsynth Synth Bubble Rising Echo Funky Audio Fass by Funky_Audio Id-698820.wav',
+        category: 'sfx',
+        volume: 0.5,
+    },
+    resultCorrectCount: {
+        id: 'resultCorrectCount',
+        src: '/assets/audio-assets/sfx/sfx/mission_complete/SFX_User Interface, Alert, Game, Points, Single SND5583 1.wav',
+        category: 'sfx',
+        volume: 0.6,
+    },
+    resultStarPop: {
+        id: 'resultStarPop',
+        src: '/assets/audio-assets/sfx/sfx/mission_complete/SFX_Pop_Cork_PSEF234 1.wav',
+        category: 'sfx',
+        volume: 0.6,
+        pitchVariation: 0.1,
+    },
+    resultXP: {
+        id: 'resultXP',
+        src: '/assets/audio-assets/sfx/sfx/mission_complete/SFX_User Interface, Alert, Game, Points, Single SND5583 copy 2.wav',
+        category: 'sfx',
+        volume: 0.6,
+    },
 };
 
 // Combined sounds registry (core + speech)

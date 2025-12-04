@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
 import { PixelCard } from '@/components/ui/PixelCard';
@@ -10,6 +10,14 @@ import { audioEngine } from '@/audio';
 import { selectVictoryLine, selectDefeatLine, selectEncourageLine, selectBossDefeatLine, type BodyId, type DialogueLine } from '@/audio/speechSounds';
 import type { Question } from '@/types/game.ts';
 import { Star, RotateCcw, Map, ChevronLeft, Radio, ClipboardList, ArrowLeft } from 'lucide-react';
+
+// Animation timing constants (in ms)
+const PERCENTAGE_DURATION = 1000;
+const STARS_START_DELAY = 1100;
+const STAR_INTERVAL = 300;
+const CORRECT_START_DELAY = 2000;
+const CORRECT_DURATION = 600;
+const XP_START_DELAY = 2700;
 
 interface LocationState {
     questions: Question[];
@@ -41,6 +49,93 @@ const ResultScreen: React.FC = () => {
 
     // State for showing answers view
     const [showAnswers, setShowAnswers] = useState(false);
+
+    // Animation states
+    const [animatedPercentage, setAnimatedPercentage] = useState(0);
+    const [visibleStars, setVisibleStars] = useState(0);
+    const [animatedCorrectCount, setAnimatedCorrectCount] = useState(0);
+    const [showXP, setShowXP] = useState(false);
+
+    // Calculate how many stars earned
+    const starsEarned = percentage >= 90 ? 3 : percentage >= 70 ? 2 : percentage >= 50 ? 1 : 0;
+
+    // Animate percentage from 0 to final value
+    useEffect(() => {
+        // Play percentage sound at start
+        audioEngine.playSFX('resultPercentage');
+
+        const startTime = performance.now();
+        let animationFrame: number;
+
+        const animate = (currentTime: number) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / PERCENTAGE_DURATION, 1);
+            // Ease out curve for smoother finish
+            const easedProgress = 1 - Math.pow(1 - progress, 3);
+            setAnimatedPercentage(Math.round(easedProgress * percentage));
+
+            if (progress < 1) {
+                animationFrame = requestAnimationFrame(animate);
+            }
+        };
+
+        animationFrame = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(animationFrame);
+    }, [percentage]);
+
+    // Animate stars appearing one by one
+    useEffect(() => {
+        if (starsEarned === 0) return;
+
+        const timers: NodeJS.Timeout[] = [];
+        for (let i = 1; i <= starsEarned; i++) {
+            const timer = setTimeout(() => {
+                setVisibleStars(i);
+                // Play pop sound for each star
+                audioEngine.playSFX('resultStarPop');
+            }, STARS_START_DELAY + (i - 1) * STAR_INTERVAL);
+            timers.push(timer);
+        }
+
+        return () => timers.forEach(t => clearTimeout(t));
+    }, [starsEarned]);
+
+    // Animate correct count from 0 to final value
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            // Play correct count sound
+            audioEngine.playSFX('resultCorrectCount');
+
+            const startTime = performance.now();
+            let animationFrame: number;
+
+            const animate = (currentTime: number) => {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / CORRECT_DURATION, 1);
+                const easedProgress = 1 - Math.pow(1 - progress, 2);
+                setAnimatedCorrectCount(Math.round(easedProgress * correctCount));
+
+                if (progress < 1) {
+                    animationFrame = requestAnimationFrame(animate);
+                }
+            };
+
+            animationFrame = requestAnimationFrame(animate);
+        }, CORRECT_START_DELAY);
+
+        return () => clearTimeout(timer);
+    }, [correctCount]);
+
+    // Show XP with bounce
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setShowXP(true);
+            // Play XP sound
+            audioEngine.playSFX('resultXP');
+        }, XP_START_DELAY);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     // Use unified selection for all dialogue (synced text + audio)
     const [_victoryDialogue, setVictoryDialogue] = useState<DialogueLine | null>(null);
@@ -167,18 +262,29 @@ const ResultScreen: React.FC = () => {
                             {battleInfo.isFinal && passed ? 'HUMANITY SAVED' : passed ? 'MISSION ACCOMPLISHED' : 'MISSION FAILED'}
                         </h2>
                         <div className="text-6xl font-bold mb-4 text-white">
-                            {percentage}%
+                            {animatedPercentage}%
                         </div>
                         <div className="flex justify-center gap-2 mb-4">
-                            {Array.from({ length: 3 }).map((_, i) => (
-                                <Star
-                                    key={i}
-                                    className={`w-8 h-8 ${i < (percentage >= 90 ? 3 : percentage >= 70 ? 2 : percentage >= 50 ? 1 : 0)
-                                        ? 'text-yellow-400 fill-yellow-400'
-                                        : 'text-gray-600'
+                            {Array.from({ length: 3 }).map((_, i) => {
+                                const isEarned = i < starsEarned;
+                                const isVisible = i < visibleStars;
+                                return (
+                                    <Star
+                                        key={i}
+                                        className={`w-8 h-8 transition-all duration-300 ${
+                                            isEarned && isVisible
+                                                ? 'text-yellow-400 fill-yellow-400 scale-100 opacity-100'
+                                                : isEarned && !isVisible
+                                                    ? 'text-yellow-400 fill-yellow-400 scale-0 opacity-0'
+                                                    : 'text-gray-600 scale-100 opacity-100'
                                         }`}
-                                />
-                            ))}
+                                        style={{
+                                            transform: isEarned && isVisible ? 'scale(1)' : isEarned ? 'scale(0)' : 'scale(1)',
+                                            animation: isEarned && isVisible ? 'starPop 0.4s ease-out' : 'none',
+                                        }}
+                                    />
+                                );
+                            })}
                         </div>
 
                         {/* Defeat encouragement message */}
@@ -192,11 +298,18 @@ const ResultScreen: React.FC = () => {
                     <div className="grid grid-cols-2 gap-4 mb-8">
                         <div className="bg-space-black p-4 border-2 border-gray-700">
                             <div className="text-xs text-gray-400">CORRECT</div>
-                            <div className="text-2xl text-green-400">{correctCount}/{questions.length}</div>
+                            <div className="text-2xl text-green-400">{animatedCorrectCount}/{questions.length}</div>
                         </div>
                         <div className="bg-space-black p-4 border-2 border-gray-700">
                             <div className="text-xs text-gray-400">XP EARNED</div>
-                            <div className="text-2xl text-yellow-400">+{xpEarned}</div>
+                            <div
+                                className={`text-2xl text-yellow-400 ${showXP ? 'opacity-100' : 'opacity-0'}`}
+                                style={{
+                                    animation: showXP ? 'xpBounce 0.5s ease-out' : 'none',
+                                }}
+                            >
+                                +{xpEarned}
+                            </div>
                         </div>
                     </div>
 

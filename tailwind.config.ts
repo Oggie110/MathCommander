@@ -48,6 +48,12 @@ export default {
                 'fadeIn': 'fadeIn 0.3s ease-out',
                 'parallaxMedium': 'parallaxStars4096 40s linear infinite',
                 'parallaxFast': 'parallaxStars4096 20s linear infinite',
+                'starPop': 'starPop 0.4s ease-out',
+                'xpBounce': 'xpBounce 0.5s ease-out',
+            },
+            transitionDuration: {
+                '2000': '2000ms',
+                '4000': '4000ms',
             },
             keyframes: {
                 float: {
@@ -86,6 +92,17 @@ export default {
                 parallaxStars4096: {
                     '0%': { backgroundPosition: '0 0' },
                     '100%': { backgroundPosition: '-4096px 0' },
+                },
+                starPop: {
+                    '0%': { transform: 'scale(0)', opacity: '0' },
+                    '50%': { transform: 'scale(1.3)' },
+                    '100%': { transform: 'scale(1)', opacity: '1' },
+                },
+                xpBounce: {
+                    '0%': { transform: 'scale(0)', opacity: '0' },
+                    '50%': { transform: 'scale(1.2)' },
+                    '70%': { transform: 'scale(0.9)' },
+                    '100%': { transform: 'scale(1)', opacity: '1' },
                 },
             }
         },
