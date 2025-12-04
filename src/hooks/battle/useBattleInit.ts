@@ -109,11 +109,11 @@ export function useBattleInit(locationState: LocationState | null): BattleInitRe
         // Determine background
         const backgroundImage = isBoss
             ? planetBackgrounds[currentLeg.toBodyId] || '/assets/helianthus/Landscapes/Barren/4.png'
-            : '/assets/helianthus/SpaceBackgrounds/Dark/blue_purple.png';
+            : '/assets/images/backgrounds/base/dark-blue-purple.png';
 
         // Determine enemy ship
         const enemyImage = isBoss
-            ? '/assets/1Ships/BossShip1Small.png'
+            ? '/assets/images/ships/boss-ship.png'
             : enemyShips[Math.floor(Math.random() * enemyShips.length)];
 
         setResult({

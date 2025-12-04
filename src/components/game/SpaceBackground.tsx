@@ -12,8 +12,8 @@ export const SpaceBackground: React.FC<SpaceBackgroundProps> = ({
     className = '',
 }) => {
     const bgImage = variant === 'dark'
-        ? '/assets/helianthus/SpaceBackgrounds/Dark/blue_purple.png'
-        : '/assets/helianthus/SpaceBackgrounds/1.png';
+        ? '/assets/images/backgrounds/base/dark-blue-purple.png'
+        : '/assets/images/backgrounds/base/bright-blue.png';
 
     return (
         <div className={`absolute inset-0 z-0 pointer-events-none ${className}`}>
@@ -29,7 +29,7 @@ export const SpaceBackground: React.FC<SpaceBackgroundProps> = ({
                 <div
                     className="absolute inset-0 animate-parallaxSlow"
                     style={{
-                        backgroundImage: 'url(/assets/helianthus/SpaceBackgrounds/stars_blue.png)',
+                        backgroundImage: 'url(/assets/images/backgrounds/stars/stars-blue.png)',
                         backgroundRepeat: 'repeat',
                         backgroundSize: '2048px',
                         opacity: 0.5,

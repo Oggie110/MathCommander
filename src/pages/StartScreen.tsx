@@ -261,7 +261,7 @@ const StartScreen: React.FC = () => {
                 >
                     <video
                         ref={videoRef}
-                        src="/assets/1NewStuff/video/intro_cinematic4.mp4"
+                        src="/assets/video/intro-cinematic.mp4"
                         className="w-full h-full object-contain"
                         playsInline
                         muted={false}

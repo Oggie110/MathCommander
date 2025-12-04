@@ -35,7 +35,10 @@ DIALOGUE*.md
 **/FromElevenLabs/
 
 # Unused SFX source files in radio folder (only radio_static.wav is used)
-public/assets/audio-assets/sfx/radio/SFX_*
+public/assets/audio/sfx/radio/SFX_*
 
 # Raw mp3 source files in humans folder
-public/assets/audio-assets/speech/humans/*.mp3
+public/assets/audio/speech/humans/*.mp3
+
+# Archived unused assets (not needed for deployment)
+archive/

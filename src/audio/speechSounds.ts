@@ -1,10 +1,10 @@
 // Speech Sound Registry - All 166 dialogue audio files
 import type { SoundDefinition } from './types';
 
-const ALIENS_TAUNTS = '/assets/audio-assets/speech/aliens/taunts';
-const ALIENS_BOSS = '/assets/audio-assets/speech/aliens/boss';
-const HUMANS_COMMANDER = '/assets/audio-assets/speech/humans/commander';
-const HUMANS_WAVES = '/assets/audio-assets/speech/humans/waves';
+const ALIENS_TAUNTS = '/assets/audio/speech/aliens/taunts';
+const ALIENS_BOSS = '/assets/audio/speech/aliens/boss';
+const HUMANS_COMMANDER = '/assets/audio/speech/humans/commander';
+const HUMANS_WAVES = '/assets/audio/speech/humans/waves';
 
 // Helper to create speech sound definition
 const speech = (id: string, src: string, volume = 0.8): SoundDefinition => ({

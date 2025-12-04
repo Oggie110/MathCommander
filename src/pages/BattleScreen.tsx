@@ -58,7 +58,7 @@ const BattleScreen: React.FC = () => {
     const isBossBattle = battleInit?.isBossBattle ?? false;
     const isFinalBoss = battleInit?.isFinalBoss ?? false;
     const currentBodyId = battleInit?.currentBodyId ?? 'moon';
-    const backgroundImage = battleInit?.backgroundImage ?? '/assets/helianthus/SpaceBackgrounds/Dark/blue_purple.png';
+    const backgroundImage = battleInit?.backgroundImage ?? '/assets/images/backgrounds/base/dark-blue-purple.png';
     const enemyImage = battleInit?.enemyImage ?? '';
     const alienSpeaker = battleInit?.alienSpeaker;
     const commanderLine = battleInit?.commanderLine ?? '';
@@ -500,7 +500,7 @@ const BattleScreen: React.FC = () => {
                                     <div
                                         className="absolute inset-0 pointer-events-none animate-parallaxMedium"
                                         style={{
-                                            backgroundImage: 'url(/assets/helianthus/SpaceBackgrounds/stars_blue.png)',
+                                            backgroundImage: 'url(/assets/images/backgrounds/stars/stars-blue.png)',
                                             backgroundRepeat: 'repeat',
                                             backgroundSize: '4096px',
                                             opacity: 0.4,
@@ -512,7 +512,7 @@ const BattleScreen: React.FC = () => {
                                     <div
                                         className="absolute inset-0 pointer-events-none animate-parallaxSlow"
                                         style={{
-                                            backgroundImage: 'url(/assets/helianthus/SpaceBackgrounds/stars_yellow.png)',
+                                            backgroundImage: 'url(/assets/images/backgrounds/stars/stars-yellow.png)',
                                             backgroundRepeat: 'repeat',
                                             backgroundSize: '4096px',
                                             opacity: 0.5,
@@ -524,7 +524,7 @@ const BattleScreen: React.FC = () => {
                                     <div
                                         className="absolute inset-0 pointer-events-none animate-parallaxFast"
                                         style={{
-                                            backgroundImage: 'url(/assets/helianthus/SpaceBg/Backgrounds/YellowStars.png)',
+                                            backgroundImage: 'url(/assets/images/backgrounds/stars/yellow-stars-alt.png)',
                                             backgroundRepeat: 'repeat',
                                             backgroundSize: '2048px',
                                             opacity: 0.6,
@@ -613,7 +613,7 @@ const BattleScreen: React.FC = () => {
                                                     {(introStage === 'intro1' || introStage === 'victory') && (
                                                         <div className="flex-shrink-0 relative z-0">
                                                             <img
-                                                                src="/assets/1GameCharacters/Commander.png"
+                                                                src="/assets/images/characters/commander.png"
                                                                 alt="Commander"
                                                                 className="w-24 h-24 object-contain"
                                                                 style={{ imageRendering: 'pixelated' }}
@@ -624,7 +624,7 @@ const BattleScreen: React.FC = () => {
                                                     {introStage === 'intro2' && (
                                                         <div className="flex-shrink-0 relative z-0">
                                                             <img
-                                                                src={isFinalBoss ? '/assets/1GameCharacters/Zorath.png' : isBossBattle ? '/assets/1GameCharacters/AlienBoss.png' : '/assets/1GameCharacters/AlienCommander.png'}
+                                                                src={isFinalBoss ? '/assets/images/characters/zorath.png' : isBossBattle ? '/assets/images/characters/alien-boss.png' : '/assets/images/characters/alien-commander.png'}
                                                                 alt={isFinalBoss ? 'Zorath' : isBossBattle ? 'Alien Boss' : 'Alien Commander'}
                                                                 className="w-24 h-24 object-contain"
                                                                 style={{ imageRendering: 'pixelated' }}
@@ -829,7 +829,7 @@ const BattleScreen: React.FC = () => {
                                                     {/* Commander portrait */}
                                                     <div className="flex-shrink-0 relative z-0">
                                                         <img
-                                                            src="/assets/1GameCharacters/Commander.png"
+                                                            src="/assets/images/characters/commander.png"
                                                             alt="Commander"
                                                             className="w-24 h-24 object-contain"
                                                             style={{ imageRendering: 'pixelated' }}

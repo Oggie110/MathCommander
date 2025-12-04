@@ -2,47 +2,58 @@
 
 ## Design System Architecture
 
-### File Locations
+This project uses a centralized design system with tokens, theme plumbing, and Tailwind integration.
 
-| What | Where | Notes |
-|------|-------|-------|
-| **CSS Animations** | `src/index.css` | All @keyframes and `.animate-*` classes live here |
-| **Tailwind Config** | `tailwind.config.ts` | Theme extensions, semantic typography classes |
-| **Color Tokens** | `src/styles/tokens/colors.ts` | Space, industrial, brand, UI colors |
-| **Typography Tokens** | `src/styles/tokens/typography.ts` | Font families and size scales |
-| **Effects Tokens** | `src/styles/tokens/effects.ts` | Glows, shadows, borders |
-| **Component Index** | `src/components/ui/index.ts` | All UI component exports |
-| **Styles Index** | `src/styles/index.ts` | All token exports |
+### Quick Reference
 
-### Adding/Editing Animations
+| What | Where |
+|------|-------|
+| Colors | `src/styles/tokens/colors.ts` |
+| Typography | `src/styles/tokens/typography.ts` |
+| Effects (shadows/glows) | `src/styles/tokens/effects.ts` |
+| Asset paths | `src/styles/tokens/assets.ts` |
+| Theme runtime | `src/styles/theme/index.ts` |
+| Tailwind plugin | `src/styles/plugins/designSystem.ts` |
+| Global CSS | `src/index.css` |
+| Tailwind config | `tailwind.config.ts` |
 
-**All animations are defined in `src/index.css`** (NOT in tailwind.config.ts)
+### Asset Locations
 
-Pattern:
-```css
-/* Animation description */
-@keyframes myAnimation {
-  0% { transform: scale(0); opacity: 0; }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); opacity: 1; }
-}
+| Asset Type | Path | Notes |
+|------------|------|-------|
+| Audio | `public/assets/audio/` | Music, SFX, speech |
+| Backgrounds | `public/assets/images/backgrounds/` | Space backgrounds, star layers |
+| Planets | `public/assets/images/planets/` | Animated (60-frame) and static |
+| Characters | `public/assets/images/characters/` | Commander, aliens |
+| Ships | `public/assets/images/ships/` | Boss ship |
+| UI Elements | `public/assets/images/ui/` | Badges, panels |
+| Video | `public/assets/video/` | Intro cinematic |
+| Battle Sprites | `public/assets/helianthus/` | ShooterFull, Landscapes (legacy) |
 
-.animate-myAnimation {
-  animation: myAnimation 0.5s ease-out forwards;
-}
-```
+### Adding New Assets
 
-Existing animations:
-- `animate-scrollSlow` / `animate-scrollBoss` - Background scrolling
+1. Place file in appropriate `public/assets/images/` subfolder
+2. Add path to `src/styles/tokens/assets.ts` (for type-safe imports)
+3. Import from tokens in components:
+   ```typescript
+   import { assets } from '@/styles/tokens/assets';
+   // Use: assets.backgrounds.spaceDark
+   ```
+
+### Adding New Animations
+
+Animations are now consolidated. The theme exports keyframes that Tailwind consumes.
+
+**For CSS animations:**
+Add to `src/styles/theme/index.ts` in the `keyframes` and `animation` sections.
+
+**Existing animations:**
 - `animate-slideDown` / `animate-slideInFromRight` - Ship entrances
 - `animate-hover` / `animate-hoverSmall` - Floating effect
-- `animate-pulseSubtle` - Soft pulsing
 - `animate-shake` - Shake effect
 - `animate-slideOut` / `animate-flyOutRight` - Exit animations
 - `animate-parallaxSlow/Medium/Fast` - Star parallax
 - `animate-fadeIn` - Fade in
-- `animate-slideUpFromConsole` / `animate-slideDownToConsole` - Console animations
-- `animate-dodgeUp` / `animate-dodgeDown` - Enemy dodge
 - `animate-starPop` - Star earned effect
 - `animate-xpBounce` - XP display bounce
 
@@ -72,7 +83,7 @@ text-brand-success   (#00FF9D) - Green/success
 
 Single font: `font-pixel` ("Press Start 2P")
 
-Semantic classes (defined in tailwind.config.ts plugin):
+Semantic classes (defined in Tailwind plugin):
 - `.text-display` - Large scores (60px)
 - `.text-title` - Screen titles (36px desktop, 24px mobile)
 - `.text-heading` - Section heads (24px desktop, 20px mobile)
@@ -84,6 +95,14 @@ Semantic classes (defined in tailwind.config.ts plugin):
 - `.text-mono` - Numbers/equations (20px)
 - `.text-dialogue` - Character speech
 - `.text-speaker` - "[COMMANDER]" labels
+
+### Utility Classes
+
+Custom utilities from the design system plugin:
+- `.pixel-border` - Hard-edged pixel borders
+- `.panel-industrial` - Industrial panel style
+- `.bg-hazard` - Hazard stripe pattern
+- `.btn-retro` - Retro button base
 
 ### Reusable UI Components
 
@@ -123,5 +142,28 @@ style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
 
 ### Audio System
 
-See `src/audio/` for audio engine and speech service.
+Located in `src/audio/`:
+- `audioEngine.ts` - Main audio engine (Web Audio API + iOS HTML5 fallback)
+- `sounds.ts` - Sound definitions (music, SFX, ambience)
+- `speechSounds.ts` - Voice line definitions (166 total)
+
 iOS uses HTML5 Audio fallback (see global CLAUDE.md for details).
+
+### Project Structure
+
+```
+src/
+├── audio/              # Audio engine and sound definitions
+├── components/
+│   ├── game/           # Game-specific components (AnimatedPlanet, SpaceBackground)
+│   └── ui/             # Reusable UI components
+├── data/               # Game data (campaign, narrative)
+├── hooks/              # React hooks (battle, audio)
+├── pages/              # Screen components
+├── styles/
+│   ├── tokens/         # Design tokens (colors, typography, effects, assets)
+│   ├── theme/          # Theme runtime (CSS variables, Tailwind extend)
+│   └── plugins/        # Tailwind plugins
+├── types/              # TypeScript types
+└── utils/              # Utility functions
+```

@@ -36,11 +36,11 @@ export interface Rank {
 }
 
 export const RANKS: Rank[] = [
-    { id: 'cadet', name: 'Space Cadet', minXP: 0, badge: '/assets/1NewStuff/NewBadges/rank-cadet.png' },
-    { id: 'captain', name: 'Space Captain', minXP: 500, badge: '/assets/1NewStuff/NewBadges/rank-captain.png' },
-    { id: 'commander', name: 'Space Commander', minXP: 2000, badge: '/assets/1NewStuff/NewBadges/rank-commander.png' },
-    { id: 'admiral', name: 'Fleet Admiral', minXP: 5000, badge: '/assets/1NewStuff/NewBadges/rank-fleet-admiral.png' },
-    { id: 'marshal', name: 'Star Marshal', minXP: 10000, badge: '/assets/1NewStuff/NewBadges/rank-star-marshal.png' },
-    { id: 'guardian', name: 'Cosmic Guardian', minXP: 25000, badge: '/assets/1NewStuff/NewBadges/rank-cosmic-guardian.png' },
-    { id: 'legend', name: 'Galactic Legend', minXP: 50000, badge: '/assets/1NewStuff/NewBadges/rank-galactic-legend.png' },
+    { id: 'cadet', name: 'Space Cadet', minXP: 0, badge: '/assets/images/ui/badges/rank-cadet.png' },
+    { id: 'captain', name: 'Space Captain', minXP: 500, badge: '/assets/images/ui/badges/rank-captain.png' },
+    { id: 'commander', name: 'Space Commander', minXP: 2000, badge: '/assets/images/ui/badges/rank-commander.png' },
+    { id: 'admiral', name: 'Fleet Admiral', minXP: 5000, badge: '/assets/images/ui/badges/rank-fleet-admiral.png' },
+    { id: 'marshal', name: 'Star Marshal', minXP: 10000, badge: '/assets/images/ui/badges/rank-star-marshal.png' },
+    { id: 'guardian', name: 'Cosmic Guardian', minXP: 25000, badge: '/assets/images/ui/badges/rank-cosmic-guardian.png' },
+    { id: 'legend', name: 'Galactic Legend', minXP: 50000, badge: '/assets/images/ui/badges/rank-galactic-legend.png' },
 ];

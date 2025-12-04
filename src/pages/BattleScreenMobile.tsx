@@ -58,7 +58,7 @@ const BattleScreenMobile: React.FC = () => {
     const isBossBattle = battleInit?.isBossBattle ?? false;
     const isFinalBoss = battleInit?.isFinalBoss ?? false;
     const currentBodyId = battleInit?.currentBodyId ?? 'moon';
-    const backgroundImage = battleInit?.backgroundImage ?? '/assets/helianthus/SpaceBackgrounds/Dark/blue_purple.png';
+    const backgroundImage = battleInit?.backgroundImage ?? '/assets/images/backgrounds/base/dark-blue-purple.png';
     const enemyImage = battleInit?.enemyImage ?? '';
     const alienSpeaker = battleInit?.alienSpeaker;
     const commanderLine = battleInit?.commanderLine ?? '';
@@ -422,7 +422,7 @@ const BattleScreenMobile: React.FC = () => {
                     <div
                         className="absolute inset-0 pointer-events-none animate-parallaxMedium"
                         style={{
-                            backgroundImage: 'url(/assets/helianthus/SpaceBackgrounds/stars_blue.png)',
+                            backgroundImage: 'url(/assets/images/backgrounds/stars/stars-blue.png)',
                             backgroundRepeat: 'repeat',
                             backgroundSize: '2048px',
                             opacity: 0.4,
@@ -432,7 +432,7 @@ const BattleScreenMobile: React.FC = () => {
                     <div
                         className="absolute inset-0 pointer-events-none animate-parallaxSlow"
                         style={{
-                            backgroundImage: 'url(/assets/helianthus/SpaceBackgrounds/stars_yellow.png)',
+                            backgroundImage: 'url(/assets/images/backgrounds/stars/stars-yellow.png)',
                             backgroundRepeat: 'repeat',
                             backgroundSize: '2048px',
                             opacity: 0.5,
@@ -541,8 +541,8 @@ const BattleScreenMobile: React.FC = () => {
                                 <div className="flex-shrink-0">
                                     <img
                                         src={introStage === 'intro2'
-                                            ? (isFinalBoss ? '/assets/1GameCharacters/Zorath.png' : isBossBattle ? '/assets/1GameCharacters/AlienBoss.png' : '/assets/1GameCharacters/AlienCommander.png')
-                                            : '/assets/1GameCharacters/Commander.png'}
+                                            ? (isFinalBoss ? '/assets/images/characters/zorath.png' : isBossBattle ? '/assets/images/characters/alien-boss.png' : '/assets/images/characters/alien-commander.png')
+                                            : '/assets/images/characters/commander.png'}
                                         alt={introStage === 'intro2' ? 'Alien' : 'Commander'}
                                         className="w-12 h-12 object-contain"
                                         style={{ imageRendering: 'pixelated' }}
@@ -577,7 +577,7 @@ const BattleScreenMobile: React.FC = () => {
                             <div className="flex gap-3">
                                 <div className="flex-shrink-0">
                                     <img
-                                        src="/assets/1GameCharacters/Commander.png"
+                                        src="/assets/images/characters/commander.png"
                                         alt="Commander"
                                         className="w-12 h-12 object-contain"
                                         style={{ imageRendering: 'pixelated' }}
