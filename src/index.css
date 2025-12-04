@@ -278,11 +278,15 @@
 }
 
 .animate-parallaxSlow {
-  animation: parallaxStars4096 60s linear infinite;
+  animation: parallaxStars4096 100s linear infinite;
+}
+
+.animate-parallaxVerySlow {
+  animation: parallaxStars2048 120s linear infinite;
 }
 
 .animate-parallaxMedium {
-  animation: parallaxStars4096 30s linear infinite;
+  animation: parallaxStars4096 80s linear infinite;
 }
 
 .animate-parallaxFast {
