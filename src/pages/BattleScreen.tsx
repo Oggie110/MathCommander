@@ -1,23 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-// import { PixelProgressBar } from '@/components/ui/PixelProgressBar';
-import { loadPlayerStats, savePlayerStats, generateQuestions, updateWeakAreas, calculateXP } from '@/utils/gameLogic';
-import { initializeCampaignProgress, generateCampaignMission, completeMission, isBossLevel, getLegById } from '@/utils/campaignLogic';
+import { loadPlayerStats, savePlayerStats, updateWeakAreas, calculateXP } from '@/utils/gameLogic';
+import { initializeCampaignProgress, completeMission } from '@/utils/campaignLogic';
 import { isFinalBoss as checkIsFinalBoss } from '@/data/narrative';
-import { audioEngine, useSFX } from '@/audio';
-import { getBattleMusicForChapter } from '@/audio/sounds';
+import { useSFX } from '@/audio';
 import { speechService } from '@/audio/SpeechService';
-import { selectWaveLine, selectAlienLine, selectVictoryLine, selectDefeatLine, type BodyId } from '@/audio/speechSounds';
+import { selectVictoryLine, selectDefeatLine } from '@/audio/speechSounds';
+import { useBattleInit, useBattleAnimations, type LocationState } from '@/hooks/battle';
 import type { Question } from '@/types/game.ts';
 import { Star, ArrowLeft } from 'lucide-react';
 
 type IntroStage = 'intro1' | 'heroEnter' | 'enemyEnter' | 'intro2' | 'playing' | 'victory' | 'heroExit';
-
-interface LocationState {
-    legId?: string;
-    waypointIndex?: number;
-    isReplay?: boolean;
-}
 
 const BattleScreen: React.FC = () => {
     const navigate = useNavigate();
@@ -25,28 +18,19 @@ const BattleScreen: React.FC = () => {
     const locationState = location.state as LocationState | null;
     const { play: playSFX } = useSFX();
 
+    // Use shared hooks for initialization and animations
+    const battleInit = useBattleInit(locationState);
+
+    // Game state (initialized from hook, updated during gameplay)
     const [questions, setQuestions] = useState<Question[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [, setUserAnswer] = useState('');
     const [showFeedback, setShowFeedback] = useState(false);
     const [isCorrect, setIsCorrect] = useState(false);
-    const [enemyImage, setEnemyImage] = useState('');
     const [showLaser, setShowLaser] = useState(false);
-    const [shotFrame, setShotFrame] = useState(1);
-    const [heroFrame, setHeroFrame] = useState(1);
     const [gameEnding, setGameEnding] = useState<'explosion' | 'escape' | null>(null);
-    const [explosionFrame, setExplosionFrame] = useState(1);
-    const [isBossBattle, setIsBossBattle] = useState(false);
-    const [isFinalBoss, setIsFinalBoss] = useState(false);
-    const [backgroundImage, setBackgroundImage] = useState('/assets/helianthus/SpaceBackgrounds/Dark/blue_purple.png');
     const [introStage, setIntroStage] = useState<IntroStage>('intro1');
     const [introMessage, setIntroMessage] = useState('');
-    const [alienSpeaker, setAlienSpeaker] = useState<string | undefined>(undefined);
-    const [currentBodyId, setCurrentBodyId] = useState('moon');
-    const [commanderLine, setCommanderLine] = useState('');
-    const [commanderSoundId, setCommanderSoundId] = useState('');
-    const [alienLine, setAlienLine] = useState('');
-    const [alienSoundId, setAlienSoundId] = useState('');
     const [victorySoundId, setVictorySoundId] = useState('');
     const [pendingNavigation, setPendingNavigation] = useState<{
         questions: Question[];
@@ -67,173 +51,32 @@ const BattleScreen: React.FC = () => {
     const [animatingStarIndex, setAnimatingStarIndex] = useState<number | null>(null);
     const [dialogueSlidingOut, setDialogueSlidingOut] = useState(false);
 
+    // Use shared animation hook
+    const { heroFrame, shotFrame, explosionFrame } = useBattleAnimations(showLaser, gameEnding);
+
+    // Extract values from init hook (with defaults while loading)
+    const isBossBattle = battleInit?.isBossBattle ?? false;
+    const isFinalBoss = battleInit?.isFinalBoss ?? false;
+    const currentBodyId = battleInit?.currentBodyId ?? 'moon';
+    const backgroundImage = battleInit?.backgroundImage ?? '/assets/helianthus/SpaceBackgrounds/Dark/blue_purple.png';
+    const enemyImage = battleInit?.enemyImage ?? '';
+    const alienSpeaker = battleInit?.alienSpeaker;
+    const commanderLine = battleInit?.commanderLine ?? '';
+    const commanderSoundId = battleInit?.commanderSoundId ?? '';
+    const alienLine = battleInit?.alienLine ?? '';
+    const alienSoundId = battleInit?.alienSoundId ?? '';
+
     // Refs for cleanup and stable callbacks
     const escapeNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const escapeOverlayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const dialogueSlidingOutRef = useRef(false);
 
-    // Load game state
+    // Initialize questions from hook
     useEffect(() => {
-        const stats = loadPlayerStats();
-        const progress = stats.campaignProgress || initializeCampaignProgress();
-
-        // Use location state if available (from MissionScreen), otherwise use saved progress
-        const activeLegId = locationState?.legId || progress.currentLegId;
-        const activeWaypointIndex = locationState?.waypointIndex ?? progress.currentWaypointIndex;
-
-        // Determine if boss level first (needed for question count)
-        const currentLeg = getLegById(activeLegId);
-        const isBoss = currentLeg ? isBossLevel(activeWaypointIndex, currentLeg.waypointsRequired) : false;
-
-        const settings = generateCampaignMission(activeLegId, isBoss);
-
-        const newQuestions = generateQuestions(settings, stats);
-        setQuestions(newQuestions);
-
-        // Determine background based on mission type
-        if (currentLeg) {
-            const isFinal = checkIsFinalBoss(currentLeg.toBodyId, isBoss);
-            setIsBossBattle(isBoss);
-            setIsFinalBoss(isFinal);
-            setCurrentBodyId(currentLeg.toBodyId);
-
-            // Start battle music (crossfades from menu music)
-            // Final boss (Zorath) gets epic music, other bosses get boss fight music, regular enemies get chapter music
-            const battleMusicId = isFinal ? 'zorathFightMusic' : (isBoss ? 'bossFightMusic' : getBattleMusicForChapter(currentLeg.chapter));
-            audioEngine.playMusic(battleMusicId);
-            // Stop menu ambience and start space ambience
-            audioEngine.stopAmbience('menuAmbience');
-            audioEngine.startAmbience('spaceAmbience');
-
-            // Generate dialogue lines using unified selection (synced text + audio)
-            const waveDialogue = selectWaveLine(currentLeg.toBodyId as BodyId, isBoss);
-            setCommanderLine(waveDialogue.text);
-            setCommanderSoundId(waveDialogue.soundId);
-
-            const alienDialogue = selectAlienLine(currentLeg.toBodyId as BodyId, isBoss);
-            setAlienLine(alienDialogue.text);
-            setAlienSoundId(alienDialogue.soundId);
-            setAlienSpeaker(alienDialogue.name);
-
-            if (isBoss) {
-                // Map planets to landscape assets
-                const planetBackgrounds: Record<string, string> = {
-                    moon: '/assets/helianthus/Landscapes/Barren/1.png',
-                    mars: '/assets/helianthus/Landscapes/Desert/1.png',
-                    ceres: '/assets/helianthus/Landscapes/Barren/2.png',
-                    jupiter: '/assets/helianthus/Landscapes/Gas_giant_rings/1.png',
-                    europa: '/assets/helianthus/Landscapes/Arctic/1.png',
-                    saturn: '/assets/helianthus/Landscapes/Gas_giant_rings/2.png',
-                    titan: '/assets/helianthus/Landscapes/Terran/1.png',
-                    uranus: '/assets/helianthus/Landscapes/Gas_giant_rings/3.png',
-                    neptune: '/assets/helianthus/Landscapes/Gas_giant_rings/4.png',
-                    pluto: '/assets/helianthus/Landscapes/Tundra/1.png',
-                    haumea: '/assets/helianthus/Landscapes/Arctic/1.png',
-                    makemake: '/assets/helianthus/Landscapes/Lava/1.png',
-                    eris: '/assets/helianthus/Landscapes/Tundra/1.png',
-                    arrokoth: '/assets/helianthus/Landscapes/Barren/3.png',
-                };
-
-                const bg = planetBackgrounds[currentLeg.toBodyId] || '/assets/helianthus/Landscapes/Barren/4.png';
-                setBackgroundImage(bg);
-            } else {
-                // Regular mission - Space background
-                setBackgroundImage('/assets/helianthus/SpaceBackgrounds/Dark/blue_purple.png');
-            }
+        if (battleInit?.questions) {
+            setQuestions(battleInit.questions);
         }
-
-        // Select enemy sprite - boss gets special ship, regular enemies get random from pool
-        if (currentLeg) {
-            if (isBoss) {
-                setEnemyImage('/assets/1Ships/BossShip1Small.png');
-            } else {
-                const enemyShips = [
-                    '/assets/helianthus/ShooterFull/Ships/2/Pattern1/Red/Left/1.png',
-                    '/assets/helianthus/ShooterFull/Ships/2/Pattern2/Blue/Left/1.png',
-                    '/assets/helianthus/ShooterFull/Ships/3/Pattern1/Green/Left/1.png',
-                    '/assets/helianthus/ShooterFull/Ships/3/Pattern2/Red/Left/1.png',
-                    '/assets/helianthus/ShooterFull/Ships/4/Pattern1/Blue/Left/1.png',
-                    '/assets/helianthus/ShooterFull/Ships/4/Pattern2/Green/Left/1.png',
-                    '/assets/helianthus/ShooterFull/Ships/5/Pattern1/Red/Left/1.png',
-                    '/assets/helianthus/ShooterFull/Ships/5/Pattern2/Blue/Left/1.png',
-                    '/assets/helianthus/ShooterFull/Ships/6/Pattern1/Green/Left/1.png',
-                    '/assets/helianthus/ShooterFull/Ships/6/Pattern2/Red/Left/1.png',
-                ];
-                setEnemyImage(enemyShips[Math.floor(Math.random() * enemyShips.length)]);
-            }
-        }
-    }, [locationState]);
-
-    // Hero ship animation - cycle through 6 frames for engine thrust
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setHeroFrame(prev => (prev % 6) + 1);
-        }, 100); // Change frame every 100ms
-
-        return () => clearInterval(interval);
-    }, []);
-
-    // Preload explosion assets (images + sound) to prevent first-play stutter
-    useEffect(() => {
-        // Preload explosion sound
-        audioEngine.preload('explosion');
-
-        // Preload explosion sprite frames (8 frames each for Red and Blue)
-        const explosionColors = ['Red', 'Blue'];
-        explosionColors.forEach(color => {
-            for (let frame = 1; frame <= 8; frame++) {
-                const img = new Image();
-                img.src = `/assets/helianthus/ShooterFull/Explosions/${color}/64px/${frame}.png`;
-            }
-        });
-    }, []);
-
-    // Shot animation - play through shot frames once when laser is active
-    useEffect(() => {
-        if (!showLaser) {
-            setShotFrame(1);
-            return;
-        }
-
-        const interval = setInterval(() => {
-            setShotFrame(prev => {
-                // Play through Shot1-5, then ShotHit1-6 (total 11 frames) - no loop
-                if (prev < 11) return prev + 1;
-                return 11; // Stay on last frame instead of looping
-            });
-        }, 50); // Fast animation - 50ms per frame
-
-        return () => clearInterval(interval);
-    }, [showLaser]);
-
-    // Explosion animation - cycle through 8 frames when explosion happens
-    useEffect(() => {
-        if (gameEnding !== 'explosion') {
-            setExplosionFrame(1);
-            return;
-        }
-
-        let frameCount = 1;
-        const interval = setInterval(() => {
-            frameCount++;
-            setExplosionFrame(prev => {
-                // Cycle through frames 1-8, then hide
-                if (prev < 8) return prev + 1;
-                return 8;
-            });
-
-            // After 8 frames (800ms), hide the explosion
-            if (frameCount > 8) {
-                clearInterval(interval);
-                // Quick delay to show last frame, then hide
-                setTimeout(() => {
-                    setExplosionFrame(0); // 0 = hide explosion
-                }, 50);
-            }
-        }, 100); // 100ms per frame
-
-        return () => clearInterval(interval);
-    }, [gameEnding]);
+    }, [battleInit?.questions]);
 
     // Victory sequence - triggered when explosion finishes
     useEffect(() => {
@@ -471,11 +314,11 @@ const BattleScreen: React.FC = () => {
     if (questions.length === 0) return null;
 
     const handleGameComplete = (finalQuestions: Question[]) => {
+        if (!battleInit) return;
+
         const stats = loadPlayerStats();
         const currentProgress = stats.campaignProgress || initializeCampaignProgress();
-
-        // Calculate active leg ID for navigation
-        const activeLegId = locationState?.legId || currentProgress.currentLegId;
+        const activeLegId = battleInit.activeLegId;
 
         const correctCount = finalQuestions.filter(q => q.correct).length;
         const scorePercentage = (correctCount / finalQuestions.length) * 100;
@@ -484,26 +327,24 @@ const BattleScreen: React.FC = () => {
         // Determine ending based on 70% threshold
         if (scorePercentage >= 70) {
             setGameEnding('explosion');
-            // Play explosion sound with slight delay to sync with animation
             setTimeout(() => playSFX('explosion', { volume: 0.7 }), 200);
         } else {
             setGameEnding('escape');
-            playSFX('shipSlide4', { volume: 0.5 }); // Enemy escapes
-            // Use unified selection for synced text/audio
+            playSFX('shipSlide4', { volume: 0.5 });
             const defeatDialogue = selectDefeatLine(isBossBattle);
-            setDefeatMessage({ message: defeatDialogue.text, encouragement: '' }); // encouragement not used on battle screen
+            setDefeatMessage({ message: defeatDialogue.text, encouragement: '' });
             setDefeatSoundId(defeatDialogue.soundId);
         }
 
         // Update stats (only advance campaign if not replaying a completed level)
-        const isReplay = locationState?.isReplay || false;
-        const playedWaypointIndex = locationState?.waypointIndex ?? currentProgress.currentWaypointIndex;
+        const isReplay = battleInit.isReplay;
+        const playedWaypointIndex = battleInit.activeWaypointIndex;
         const newStats = {
             ...stats,
             totalXP: stats.totalXP + xpEarned,
             weakAreas: updateWeakAreas(finalQuestions, stats.weakAreas),
             campaignProgress: isReplay
-                ? currentProgress  // Don't advance progression on replay
+                ? currentProgress
                 : completeMission(currentProgress, correctCount, finalQuestions.length, activeLegId, playedWaypointIndex),
         };
 
@@ -515,21 +356,18 @@ const BattleScreen: React.FC = () => {
             xpEarned,
             passed: scorePercentage >= 70,
             legId: activeLegId,
-            waypointIndex: locationState?.waypointIndex ?? currentProgress.currentWaypointIndex,
-            isReplay: locationState?.isReplay || false,
+            waypointIndex: battleInit.activeWaypointIndex,
+            isReplay: battleInit.isReplay,
         };
         setPendingNavigation(navData);
 
         // For escape path, navigate after delay (can click to skip)
         if (scorePercentage < 70) {
-            // Delay overlay to let escape animation play
             escapeOverlayTimeoutRef.current = setTimeout(() => setShowEscapeOverlay(true), 1500);
-            // Navigate after giving time to read (or click to skip)
             escapeNavigationTimeoutRef.current = setTimeout(() => {
                 navigate('/result', { state: navData });
             }, 7000);
         }
-        // Victory path: navigation handled by heroExit useEffect after clicking victory dialogue
     };
 
     return (
