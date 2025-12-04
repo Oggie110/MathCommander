@@ -171,7 +171,7 @@ const HomeBaseScreen: React.FC = () => {
             {/* Header - fixed at top */}
             <Header
                 showBackButton={true}
-                onBack={() => navigate('/map')}
+                onBackClick={() => navigate('/map')}
                 fixed
             />
 

@@ -5,7 +5,7 @@ import { Header } from '@/components/ui/Header';
 import { PixelCard } from '@/components/ui/PixelCard';
 import { PixelButton } from '@/components/ui/PixelButton';
 import { audioEngine } from '@/audio';
-import { savePlayerStats, loadPlayerStats } from '@/utils/gameLogic';
+import { savePlayerStats } from '@/utils/gameLogic';
 import { initializeCampaignProgress } from '@/utils/campaignLogic';
 
 const HomeScreen: React.FC = () => {
@@ -157,7 +157,7 @@ const HomeScreen: React.FC = () => {
             {/* Header - fixed at top */}
             <Header
                 showBackButton={true}
-                onBack={() => navigate('/map')}
+                onBackClick={() => navigate('/map')}
                 fixed
             />
 

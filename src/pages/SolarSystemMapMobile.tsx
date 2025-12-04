@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
-import { AnimatedPlanet, planetImages, SpaceBackground } from '@/components/game';
+import { AnimatedPlanet, SpaceBackground } from '@/components/game';
 import { loadPlayerStats, savePlayerStats, getRankForXP, getNextRank, getXPProgress } from '@/utils/gameLogic';
 import { RANKS } from '@/types/game';
 import { initializeCampaignProgress, getLegById, getLegIndex, checkForMilestone, markMilestoneSeen, getTotalStarsEarned, getCompletedWaypointsCount, getTotalWaypoints } from '@/utils/campaignLogic';
