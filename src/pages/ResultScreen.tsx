@@ -87,7 +87,7 @@ const ResultScreen: React.FC = () => {
     useEffect(() => {
         if (starsEarned === 0) return;
 
-        const timers: NodeJS.Timeout[] = [];
+        const timers: ReturnType<typeof setTimeout>[] = [];
         for (let i = 1; i <= starsEarned; i++) {
             const timer = setTimeout(() => {
                 setVisibleStars(i);
@@ -107,7 +107,6 @@ const ResultScreen: React.FC = () => {
             audioEngine.playSFX('resultCorrectCount');
 
             const startTime = performance.now();
-            let animationFrame: number;
 
             const animate = (currentTime: number) => {
                 const elapsed = currentTime - startTime;
@@ -116,11 +115,11 @@ const ResultScreen: React.FC = () => {
                 setAnimatedCorrectCount(Math.round(easedProgress * correctCount));
 
                 if (progress < 1) {
-                    animationFrame = requestAnimationFrame(animate);
+                    requestAnimationFrame(animate);
                 }
             };
 
-            animationFrame = requestAnimationFrame(animate);
+            requestAnimationFrame(animate);
         }, CORRECT_START_DELAY);
 
         return () => clearTimeout(timer);
