@@ -167,8 +167,8 @@ const HomeBaseScreen: React.FC = () => {
             {/* Dark overlay for better readability */}
             <div className="absolute inset-0 z-0 bg-black/70" />
 
-            {/* Back button */}
-            <div className="absolute top-4 left-4 z-20">
+            {/* Header - fixed at top */}
+            <div className="fixed top-0 left-0 right-0 z-30 flex justify-between items-center p-4 bg-gradient-to-b from-black/80 to-transparent">
                 <button
                     onClick={() => navigate('/map')}
                     className="flex items-center gap-2 px-4 py-2 bg-gray-800/90 hover:bg-gray-700 text-white rounded border-2 border-gray-600 transition-colors backdrop-blur-sm"
@@ -176,11 +176,15 @@ const HomeBaseScreen: React.FC = () => {
                     <ArrowLeft className="w-5 h-5" />
                     <span className="text-sm font-tech">BACK TO MAP</span>
                 </button>
+                <h1 className="hidden md:block text-xl font-bold text-cyan-400 uppercase tracking-widest">
+                    HOME BASE
+                </h1>
+                <div className="w-32" /> {/* Spacer for centering */}
             </div>
 
             {/* Main content area - centered panels side by side */}
-            <div className="relative z-10 flex items-center justify-center w-full p-4">
-                <div className="flex flex-col md:flex-row md:items-start gap-4 mt-12 max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <div className="relative z-10 flex items-center justify-center w-full p-4 pt-20">
+                <div className="flex flex-col md:flex-row md:items-start gap-4 max-h-[calc(100vh-6rem)] overflow-y-auto">
                     {/* Left column - Pilot Stats & Ship */}
                     <div className="flex flex-col gap-4 w-80">
                     <PixelCard className="p-8 bg-industrial-dark/95 backdrop-blur-sm">
