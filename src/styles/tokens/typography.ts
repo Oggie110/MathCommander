@@ -5,9 +5,10 @@
  * Each style maps to a specific use case, not just a size.
  */
 
-// Font families - using only Press Start 2P for consistent retro aesthetic
+// Font families
 export const fontFamilies = {
-  pixel: '"Press Start 2P", cursive',     // All text in the game
+  pixel: '"Press Start 2P", cursive',     // Retro pixel face used for primary UI
+  tech: '"Rajdhani", sans-serif',         // Technical sans for supporting text
 } as const;
 
 // Font weights
