@@ -1,11 +1,389 @@
 @import "tailwindcss";
 
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap');
 
+/* iOS Safe Area Support */
 :root {
   --safe-area-top: env(safe-area-inset-top);
   --safe-area-bottom: env(safe-area-inset-bottom);
   --safe-area-left: env(safe-area-inset-left);
   --safe-area-right: env(safe-area-inset-right);
+}
+
+
+@theme {
+  /* Colors */
+  --color-space-black: #050510;
+  --color-space-dark: #0B0B1E;
+  --color-space-light: #1A1A35;
+
+  --color-industrial-dark: #181825;
+  --color-industrial-metal: #4A4A5A;
+  --color-industrial-blue: #2A2A40;
+  --color-industrial-highlight: #6E6E80;
+
+  --color-brand-primary: #2563EB;
+  --color-brand-secondary: #00F0FF;
+  --color-brand-accent: #FFE500;
+  --color-brand-hazard: #E5C000;
+  --color-brand-danger: #FF2A2A;
+  --color-brand-success: #00FF9D;
+
+  --color-ui-highlight: #FFFFFF;
+  --color-ui-shadow: #000000;
+
+  /* Fonts */
+  --font-pixel: "Press Start 2P", cursive;
+
+  /* Animations */
+  --animate-pulse-fast: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-float: float 3s ease-in-out infinite;
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-space-black text-white font-pixel antialiased;
+    image-rendering: pixelated;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-pixel;
+  }
+}
+
+@layer components {
+
+  /* Hard-edged Pixel Borders */
+  .pixel-border {
+    box-shadow:
+      -4px 0 0 0 white,
+      4px 0 0 0 white,
+      0 -4px 0 0 white,
+      0 4px 0 0 white;
+    margin: 4px;
+  }
+
+  /* Industrial Panel Style */
+  .panel-industrial {
+    @apply bg-industrial-dark border-4 border-industrial-metal relative;
+    box-shadow:
+      inset 2px 2px 0px 0px rgba(255, 255, 255, 0.1),
+      inset -2px -2px 0px 0px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Hazard Stripes Pattern */
+  .bg-hazard {
+    background: repeating-linear-gradient(45deg,
+        #E5C000,
+        #E5C000 10px,
+        #000000 10px,
+        #000000 20px);
+  }
+
+  /* Retro Button Base */
+  .btn-retro {
+    @apply font-pixel uppercase tracking-wider transition-transform active:scale-95;
+    box-shadow:
+      inset -4px -4px 0px 0px rgba(0, 0, 0, 0.5),
+      inset 4px 4px 0px 0px rgba(255, 255, 255, 0.5);
+    border: 4px solid #000;
+  }
+
+  .btn-retro:hover {
+    filter: brightness(1.1);
+  }
+}
+
+/* Animations */
+@keyframes scrollSlow {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: -1000px 0;
+  }
+}
+
+.animate-scrollSlow {
+  animation: scrollSlow 20s linear infinite;
+}
+
+/* Boss landscape animation - 256x48 image scaled to 600px height = 3200px width */
+/* TODO: The landscape images in /assets/helianthus/Landscapes/ are not seamlessly loopable - need to edit them to tile properly */
+@keyframes scrollBossLandscape {
+  0% {
+    background-position: 0 bottom;
+  }
+
+  100% {
+    background-position: -3200px bottom;
+  }
+}
+
+.animate-scrollBoss {
+  animation: scrollBossLandscape 40s linear infinite;
+}
+
+/* Ship Animations */
+@keyframes slideDown {
+  0% {
+    transform: translateY(-100svh);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideDown {
+  animation: slideDown 1s ease-out forwards;
+}
+
+@keyframes slideInFromRight {
+  0% {
+    transform: translateX(100svw);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideInFromRight {
+  animation: slideInFromRight 1s ease-out forwards;
+}
+
+@keyframes hover {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-hover {
+  animation: hover 2s ease-in-out infinite;
+}
+
+@keyframes hoverSmall {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-hoverSmall {
+  animation: hoverSmall 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseSubtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulseSubtle {
+  animation: pulseSubtle 2.5s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes slideOut {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100svw);
+    opacity: 0;
+  }
+}
+
+.animate-slideOut {
+  animation: slideOut 2s ease-in forwards;
+}
+
+@keyframes flyOutRight {
+  0% {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100svw) translateY(-50svh);
+    opacity: 0;
+  }
+}
+
+.animate-flyOutRight {
+  animation: flyOutRight 1.2s ease-in forwards;
+}
+
+/* Parallax Animations */
+@keyframes parallaxStars4096 {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: -4096px 0;
+  }
+}
+
+@keyframes parallaxStars2048 {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: -2048px 0;
+  }
+}
+
+.animate-parallaxSlow {
+  animation: parallaxStars4096 60s linear infinite;
+}
+
+.animate-parallaxMedium {
+  animation: parallaxStars4096 30s linear infinite;
+}
+
+.animate-parallaxFast {
+  animation: parallaxStars2048 15s linear infinite;
+}
+
+/* UI Animations */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Slide up from behind console animation */
+@keyframes slideUpFromConsole {
+  0% {
+    transform: translateY(350px);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideUpFromConsole {
+  animation: slideUpFromConsole 0.6s ease-out;
+}
+
+/* Slide down behind console animation */
+@keyframes slideDownToConsole {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(350px);
+    opacity: 0;
+  }
+}
+
+.animate-slideDownToConsole {
+  animation: slideDownToConsole 0.5s ease-in forwards;
+}
+
+/* Dodge Animations */
+@keyframes dodgeUp {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-50px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes dodgeDown {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(50px); }
+  100% { transform: translateY(0); }
+}
+
+.animate-dodgeUp {
+  animation: dodgeUp 0.4s ease-out;
+}
+
+.animate-dodgeDown {
+  animation: dodgeDown 0.4s ease-out;
+}
+
+/* Star earned animation */
+@keyframes starPop {
+  0% {
+    transform: scale(1);
+  }
+  20% {
+    transform: scale(1.6) rotate(-10deg);
+  }
+  40% {
+    transform: scale(1.4) rotate(10deg);
+  }
+  60% {
+    transform: scale(1.5) rotate(-5deg);
+  }
+  80% {
+    transform: scale(1.2) rotate(5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.animate-starPop {
+  animation: starPop 0.5s ease-out;
 }

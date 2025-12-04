@@ -156,7 +156,7 @@ const MissionScreen: React.FC = () => {
                                         <div className="flex items-center justify-center mb-1 w-12 h-12 md:w-12 md:h-12">
                                             {isBoss ? (
                                                 <img
-                                                    src="/assets/1Ships/BossShip1Small.png"
+                                                    src="/assets/images/ships/boss-ship.png"
                                                     alt="Boss"
                                                     className={`w-12 h-12 md:w-[88px] md:h-[88px] ${status.isLocked ? 'opacity-30 grayscale' : 'animate-hoverSmall'}`}
                                                     style={{ imageRendering: 'pixelated', objectFit: 'contain' }}

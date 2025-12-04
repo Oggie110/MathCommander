@@ -635,7 +635,7 @@ const SolarSystemMap: React.FC = () => {
                         <div
                             className="absolute inset-0 z-0"
                             style={{
-                                backgroundImage: `url(/assets/1NewStuff/${activeMilestone === 'inner' ? 'milestone1' : 'milestone2'}.png)`,
+                                backgroundImage: `url(/assets/images/ui/milestones/${activeMilestone === 'inner' ? 'milestone1' : 'milestone2'}.png)`,
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
                             }}
@@ -675,7 +675,7 @@ const SolarSystemMap: React.FC = () => {
                         <div
                             className="absolute inset-0 z-0"
                             style={{
-                                backgroundImage: 'url(/assets/1NewStuff/milestone3.png)',
+                                backgroundImage: 'url(/assets/images/ui/milestones/milestone3.png)',
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
                             }}

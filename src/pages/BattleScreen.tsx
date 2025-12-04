@@ -860,7 +860,7 @@ const BattleScreen: React.FC = () => {
                                 <div
                                     className="absolute inset-0 z-10 pointer-events-none"
                                     style={{
-                                        backgroundImage: 'url(/assets/1NewStuff/panel/panel5.png)',
+                                        backgroundImage: 'url(/assets/images/ui/panels/panel5.png)',
                                         backgroundSize: '100% 100%',
                                         backgroundPosition: 'top left',
                                         backgroundRepeat: 'no-repeat',

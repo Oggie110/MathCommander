@@ -157,7 +157,7 @@ const HomeBaseScreen: React.FC = () => {
             <div
                 className="absolute inset-0 z-0"
                 style={{
-                    backgroundImage: 'url(/assets/1NewStuff/homebase2.png)',
+                    backgroundImage: 'url(/assets/images/ui/misc/homebase2.png)',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center center',
                     backgroundRepeat: 'no-repeat',
@@ -265,7 +265,7 @@ const HomeBaseScreen: React.FC = () => {
                         <h3 className="text-brand-secondary font-pixel text-sm mb-3 text-center">YOUR SHIP</h3>
                         <div className="flex justify-center">
                             <video
-                                src="/assets/1NewStuff/ShipRotate.mp4"
+                                src="/assets/video/ShipRotate.mp4"
                                 autoPlay
                                 loop
                                 muted
