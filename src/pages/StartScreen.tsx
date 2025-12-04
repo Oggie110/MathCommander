@@ -103,6 +103,10 @@ const StartScreen: React.FC = () => {
             'introData',
             'transition',
             'starEarned',
+            'shipSlide1',
+            'shipSlide2',
+            'shipSlide3',
+            'shipSlide4',
         ]);
 
         // Ensure context is running before playing audio

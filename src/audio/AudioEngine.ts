@@ -543,16 +543,19 @@ class AudioEngine {
         }
 
         try {
-            // Use preloaded audio if available, otherwise create new
-            let audio = this.html5MusicPool.get(soundId);
+            // Check if we have preloaded audio available
+            const preloadedAudio = this.html5MusicPool.get(soundId);
+            let audio: HTMLAudioElement;
 
-            if (!audio) {
-                // Not preloaded - create on demand (will have latency)
-                console.log('[AudioEngine] playHTML5Music: not preloaded, loading on demand:', soundId);
-                audio = new Audio(sound.src);
-            } else {
-                // Remove from pool since music elements can't be reused while playing
+            // Use preloaded audio only if it has a valid src (not cleared)
+            if (preloadedAudio && preloadedAudio.src && preloadedAudio.src.length > 0) {
+                // Use preloaded audio - remove from pool since it can't be reused while playing
+                audio = preloadedAudio;
                 this.html5MusicPool.delete(soundId);
+            } else {
+                // Not preloaded or preloaded element was invalidated - create fresh
+                console.log('[AudioEngine] playHTML5Music: creating fresh audio element:', soundId);
+                audio = new Audio(sound.src);
             }
 
             audio.loop = sound.loop ?? true;
