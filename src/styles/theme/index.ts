@@ -11,8 +11,8 @@ import {
 } from "../tokens/effects";
 import { fontFamilies as rawFontFamilies, fontWeights, typography } from "../tokens/typography";
 
-type NestedTokenValue = string | Record<string, unknown>;
-type NestedToken = Record<string, NestedTokenValue>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type NestedToken = Record<string, any>;
 
 type TailwindExtend = {
   colors: Record<string, unknown>;
