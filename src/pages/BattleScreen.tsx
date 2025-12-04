@@ -523,7 +523,8 @@ const BattleScreen: React.FC = () => {
                                             backgroundImage: 'url(/assets/images/backgrounds/stars/stars-yellow.png)',
                                             backgroundRepeat: 'repeat',
                                             backgroundSize: '4096px',
-                                            opacity: 0.5,
+                                            backgroundPosition: '0 100px',
+                                            opacity: 0.35,
                                             imageRendering: 'pixelated',
                                         }}
                                     />

@@ -418,21 +418,25 @@ const BattleScreenMobile: React.FC = () => {
             <div className="flex-1 relative overflow-hidden">
                 {/* Parallax Background */}
                 <div className="absolute inset-0 z-0">
-                    <div
-                        className={`absolute inset-0 bg-bottom ${isBossBattle ? 'animate-scrollBoss' : 'animate-scrollSlow'}`}
-                        style={{
-                            backgroundImage: `url(${backgroundImage})`,
-                            backgroundSize: isBossBattle ? 'auto 300px' : '4000px',
-                            backgroundRepeat: isBossBattle ? 'repeat-x' : 'repeat',
-                            imageRendering: 'pixelated',
-                        }}
-                    />
+                    {/* Base background - hidden for boss battles temporarily */}
+                    {!isBossBattle && (
+                        <div
+                            className="absolute inset-0 bg-bottom animate-scrollSlow"
+                            style={{
+                                backgroundImage: `url(${backgroundImage})`,
+                                backgroundSize: '4000px',
+                                backgroundRepeat: 'repeat',
+                                imageRendering: 'pixelated',
+                            }}
+                        />
+                    )}
                     <div
                         className="absolute inset-0 pointer-events-none animate-parallaxMedium"
                         style={{
                             backgroundImage: 'url(/assets/images/backgrounds/stars/stars-blue.png)',
                             backgroundRepeat: 'repeat',
                             backgroundSize: '2048px',
+                            backgroundPosition: '500px 150px',
                             opacity: 0.4,
                             imageRendering: 'pixelated',
                         }}
@@ -442,8 +446,20 @@ const BattleScreenMobile: React.FC = () => {
                         style={{
                             backgroundImage: 'url(/assets/images/backgrounds/stars/stars-yellow.png)',
                             backgroundRepeat: 'repeat',
-                            backgroundSize: '2048px',
+                            backgroundSize: '1024px',
+                            backgroundPosition: '0 -200px',
                             opacity: 0.5,
+                            imageRendering: 'pixelated',
+                        }}
+                    />
+                    {/* Parallax star layer 3 - Close stars (fastest) */}
+                    <div
+                        className="absolute inset-0 pointer-events-none animate-parallaxFast"
+                        style={{
+                            backgroundImage: 'url(/assets/images/backgrounds/stars/yellow-stars-alt.png)',
+                            backgroundRepeat: 'repeat',
+                            backgroundSize: '1024px',
+                            opacity: 0.6,
                             imageRendering: 'pixelated',
                         }}
                     />
