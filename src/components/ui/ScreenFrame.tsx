@@ -8,7 +8,7 @@ interface ScreenFrameProps {
 
 export const ScreenFrame: React.FC<ScreenFrameProps> = ({ children, className }) => {
     return (
-        <div className={cn("relative min-h-screen bg-space-black overflow-hidden font-tech", className)}>
+        <div className={cn("relative min-h-screen bg-space-black overflow-hidden font-pixel", className)}>
             {/* CRT Scanline Effect */}
             <div className="fixed inset-0 pointer-events-none z-50 opacity-10"
                 style={{

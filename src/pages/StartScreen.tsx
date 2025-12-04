@@ -8,16 +8,17 @@ import { audioEngine } from '@/audio';
 import { Rocket, Radio } from 'lucide-react';
 
 type StopFn = ((fadeOut?: number) => void) | null;
+type Stage = 'title' | 'briefing' | 'cinematic';
 
 const StartScreen: React.FC = () => {
     const navigate = useNavigate();
-    const [showBriefing, setShowBriefing] = useState(false);
+    const [stage, setStage] = useState<Stage>('title');
     const [displayedText, setDisplayedText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [isAudioLoading, setIsAudioLoading] = useState(false);
-    // const [audioReady, setAudioReady] = useState(false); // Unused
     const stopIntroDataRef = useRef<StopFn>(null);
     const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
 
     // Start ambience on mount if audio is already initialized (e.g., returning to start screen)
     useEffect(() => {
@@ -28,11 +29,13 @@ const StartScreen: React.FC = () => {
         }
     }, []);
 
-    // Typewriter effect for briefing
+    // Typewriter effect for briefing - runs once when stage becomes 'briefing'
+    const hasStartedTyping = useRef(false);
+
     useEffect(() => {
-        if (showBriefing && !isTyping) {
+        if (stage === 'briefing' && !hasStartedTyping.current) {
+            hasStartedTyping.current = true;
             setIsTyping(true);
-            setDisplayedText('');
             let index = 0;
             const text = openingNarrative.message;
 
@@ -53,15 +56,15 @@ const StartScreen: React.FC = () => {
                     }
                 }
             }, 30);
-
-            return () => {
-                if (typeIntervalRef.current) {
-                    clearInterval(typeIntervalRef.current);
-                    typeIntervalRef.current = null;
-                }
-            };
         }
-    }, [showBriefing]);
+
+        return () => {
+            if (typeIntervalRef.current) {
+                clearInterval(typeIntervalRef.current);
+                typeIntervalRef.current = null;
+            }
+        };
+    }, [stage]);
 
     const handleSkipTyping = () => {
         if (isTyping) {
@@ -117,25 +120,55 @@ const StartScreen: React.FC = () => {
         stopIntroDataRef.current = audioEngine.playSFXWithStop('introData');
         audioEngine.startAmbience('menuAmbience');
 
-        // setAudioReady(true);
         setIsAudioLoading(false);
-        setShowBriefing(true);
+        setStage('briefing');
     };
 
     const handleContinue = () => {
-        navigate('/map');
+        // Start cinematic instead of navigating directly
+        setStage('cinematic');
+        // Don't start music here - video has its own audio
+        // Music will start on the map screen
     };
+
+    const handleSkipCinematic = () => {
+        audioEngine.playSFX('transition');
+        navigate('/map', { state: { fromCinematic: true } });
+    };
+
+    // Handle video and voiceover for cinematic
+    useEffect(() => {
+        if (stage === 'cinematic' && videoRef.current) {
+            const video = videoRef.current;
+
+
+            video.play().catch(() => {
+                // If autoplay fails, navigate anyway
+                navigate('/map');
+            });
+
+            const handleEnded = () => {
+                audioEngine.playSFX('transition');
+                navigate('/map', { state: { fromCinematic: true } });
+            };
+            video.addEventListener('ended', handleEnded);
+
+            return () => {
+                video.removeEventListener('ended', handleEnded);
+            };
+        }
+    }, [stage, navigate]);
 
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-4 text-center relative">
-            <SpaceBackground />
+            {stage !== 'cinematic' && <SpaceBackground />}
 
-            {!showBriefing ? (
+            {stage === 'title' && (
                 // Title Screen
                 <div className="relative z-10">
                     <div className="mb-12">
                         <h1 className="text-4xl md:text-6xl text-brand-accent mb-4 drop-shadow-[4px_4px_0_rgba(255,42,42,1)]">
-                            SPACE MATH
+                            SPACE MA<span style={{ marginLeft: '-0.3em' }}>TH</span>
                         </h1>
                         <h2 className="text-2xl md:text-4xl text-white drop-shadow-[4px_4px_0_rgba(37,99,235,1)]">
                             COMMANDER
@@ -166,12 +199,14 @@ const StartScreen: React.FC = () => {
                             </div>
                         </button>
 
-                        <div className="text-industrial-highlight text-xs mt-8 font-tech tracking-widest">
+                        <div className="text-industrial-highlight text-xs mt-8 font-pixel tracking-widest">
                             v1.0.0 - INDUSTRIAL EDITION
                         </div>
                     </div>
                 </div>
-            ) : (
+            )}
+
+            {stage === 'briefing' && (
                 // Mission Briefing - CRT Monitor Style
                 <div className="relative z-10 w-full max-w-2xl" onClick={handleSkipTyping}>
                     <CRTDialogueBox variant="green">
@@ -179,18 +214,18 @@ const StartScreen: React.FC = () => {
                         <div className="flex items-center gap-3 mb-6 border-b border-green-900/50 pb-4">
                             <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_#22c55e]" />
                             <Radio className="w-5 h-5 text-green-500 drop-shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
-                            <span className="text-green-500 text-sm font-bold tracking-widest uppercase font-mono drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]">
+                            <span className="text-green-500 text-sm font-bold tracking-widest uppercase font-pixel drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]">
                                 {openingNarrative.title}
                             </span>
                         </div>
 
                         {/* Speaker */}
-                        <div className="text-green-500 text-xs font-bold mb-3 tracking-wider uppercase font-mono drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]">
+                        <div className="text-green-500 text-xs font-bold mb-3 tracking-wider uppercase font-pixel drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]">
                             [{openingNarrative.speaker}]
                         </div>
 
                         {/* Message with typewriter effect */}
-                        <div className="text-green-400 text-left leading-relaxed mb-8 min-h-[120px] font-mono text-lg drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]">
+                        <div className="text-green-400 text-left leading-relaxed mb-8 min-h-[120px] font-pixel text-[10px] md:text-xs drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]">
                             "{displayedText}"
                             {isTyping && <span className="animate-pulse text-green-300">▊</span>}
                         </div>
@@ -210,11 +245,30 @@ const StartScreen: React.FC = () => {
                         )}
 
                         {isTyping && (
-                            <div className="text-green-600/60 text-xs text-center font-mono animate-pulse">
+                            <div className="text-green-600/60 text-xs text-center font-pixel animate-pulse">
                                 Click to skip transmission...
                             </div>
                         )}
                     </CRTDialogueBox>
+                </div>
+            )}
+
+            {stage === 'cinematic' && (
+                // Cinematic Video
+                <div
+                    className="fixed inset-0 z-50 bg-black flex items-center justify-center cursor-pointer"
+                    onClick={handleSkipCinematic}
+                >
+                    <video
+                        ref={videoRef}
+                        src="/assets/1NewStuff/video/intro_cinematic4.mp4"
+                        className="w-full h-full object-contain"
+                        playsInline
+                        muted={false}
+                    />
+                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/50 text-sm font-pixel animate-pulse">
+                        Click anywhere to skip
+                    </div>
                 </div>
             )}
         </div>

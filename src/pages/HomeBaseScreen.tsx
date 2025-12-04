@@ -174,7 +174,7 @@ const HomeBaseScreen: React.FC = () => {
                     className="flex items-center gap-2 px-4 py-2 bg-gray-800/90 hover:bg-gray-700 text-white rounded border-2 border-gray-600 transition-colors backdrop-blur-sm"
                 >
                     <ArrowLeft className="w-5 h-5" />
-                    <span className="text-sm font-tech">BACK TO MAP</span>
+                    <span className="text-sm font-pixel">BACK TO MAP</span>
                 </button>
                 <h1 className="hidden md:block text-xl font-bold text-cyan-400 uppercase tracking-widest">
                     HOME BASE
@@ -188,7 +188,7 @@ const HomeBaseScreen: React.FC = () => {
                     {/* Left column - Pilot Stats & Ship */}
                     <div className="flex flex-col gap-4 w-80">
                     <PixelCard className="p-8 bg-industrial-dark/95 backdrop-blur-sm">
-                        <h2 className="text-brand-accent font-tech text-base mb-4 text-center">
+                        <h2 className="text-brand-accent font-pixel text-base mb-4 text-center">
                             PILOT STATS
                         </h2>
 
@@ -203,8 +203,8 @@ const HomeBaseScreen: React.FC = () => {
                                 />
                             </div>
                             <div className="text-center">
-                                <div className="text-brand-accent font-tech text-lg uppercase">{currentRank.name}</div>
-                                <div className="text-industrial-highlight text-sm font-tech mt-1">
+                                <div className="text-brand-accent font-pixel text-lg uppercase">{currentRank.name}</div>
+                                <div className="text-industrial-highlight text-sm font-pixel mt-1">
                                     {stats.totalXP.toLocaleString()} XP
                                 </div>
                             </div>
@@ -212,11 +212,11 @@ const HomeBaseScreen: React.FC = () => {
 
                         {/* XP Progress to Next Rank */}
                         <div className="mb-3">
-                            <div className="text-industrial-highlight font-tech text-[10px] mb-1">
+                            <div className="text-industrial-highlight font-pixel text-[10px] mb-1">
                                 {nextRank ? 'PROGRESS TO NEXT RANK' : 'MAX RANK ACHIEVED'}
                             </div>
                             {nextRank && (
-                                <div className="text-brand-secondary font-tech text-xs mb-1">
+                                <div className="text-brand-secondary font-pixel text-xs mb-1">
                                     {xpProgress.current.toLocaleString()} / {xpProgress.next.toLocaleString()}
                                 </div>
                             )}
@@ -228,8 +228,8 @@ const HomeBaseScreen: React.FC = () => {
                             </div>
                             {nextRank && (
                                 <div className="flex items-center gap-2 mt-2">
-                                    <span className="text-industrial-highlight text-xs font-tech whitespace-nowrap">NEXT:</span>
-                                    <span className="text-brand-secondary text-xs font-tech whitespace-nowrap">{nextRank.name}</span>
+                                    <span className="text-industrial-highlight text-xs font-pixel whitespace-nowrap">NEXT:</span>
+                                    <span className="text-brand-secondary text-xs font-pixel whitespace-nowrap">{nextRank.name}</span>
                                 </div>
                             )}
                         </div>
@@ -238,31 +238,31 @@ const HomeBaseScreen: React.FC = () => {
                         <div className="flex items-center justify-between mb-3 py-2 border-y border-industrial-metal">
                             <div className="flex items-center gap-2">
                                 <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                                <span className="text-industrial-highlight text-xs font-tech">STARS EARNED</span>
+                                <span className="text-industrial-highlight text-xs font-pixel">STARS EARNED</span>
                             </div>
-                            <span className="text-yellow-400 font-tech">{totalStars}</span>
+                            <span className="text-yellow-400 font-pixel">{totalStars}</span>
                         </div>
 
                         {/* Progress */}
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
                                 <Rocket className="w-4 h-4 text-brand-secondary" />
-                                <span className="text-industrial-highlight text-xs font-tech">MISSIONS</span>
+                                <span className="text-industrial-highlight text-xs font-pixel">MISSIONS</span>
                             </div>
-                            <span className="text-white font-tech">{completedWaypoints} / {totalWaypoints}</span>
+                            <span className="text-white font-pixel">{completedWaypoints} / {totalWaypoints}</span>
                         </div>
 
                         {/* Stages */}
                         <div className="flex items-center justify-between mb-4 pb-4 border-b border-industrial-metal">
                             <div className="flex items-center gap-2">
                                 <Sparkles className="w-4 h-4 text-brand-success" />
-                                <span className="text-industrial-highlight text-xs font-tech">PLANETS CLEARED</span>
+                                <span className="text-industrial-highlight text-xs font-pixel">PLANETS CLEARED</span>
                             </div>
-                            <span className="text-brand-success font-tech">{completedStages}</span>
+                            <span className="text-brand-success font-pixel">{completedStages}</span>
                         </div>
 
                         {/* Spaceship display - now inside Pilot Stats */}
-                        <h3 className="text-brand-secondary font-tech text-sm mb-3 text-center">YOUR SHIP</h3>
+                        <h3 className="text-brand-secondary font-pixel text-sm mb-3 text-center">YOUR SHIP</h3>
                         <div className="flex justify-center">
                             <video
                                 src="/assets/1NewStuff/ShipRotate.mp4"
@@ -274,8 +274,8 @@ const HomeBaseScreen: React.FC = () => {
                             />
                         </div>
                         <div className="text-center mt-2">
-                            <div className="text-white font-tech text-sm">STELLAR FALCON</div>
-                            <div className="text-industrial-highlight text-xs font-tech">CLASS: INTERCEPTOR</div>
+                            <div className="text-white font-pixel text-sm">STELLAR FALCON</div>
+                            <div className="text-industrial-highlight text-xs font-pixel">CLASS: INTERCEPTOR</div>
                         </div>
                     </PixelCard>
                     </div>
@@ -283,14 +283,14 @@ const HomeBaseScreen: React.FC = () => {
                     {/* Right column - Audio Settings */}
                     <div className="flex flex-col gap-4 w-80">
                     <PixelCard className="p-8 bg-industrial-dark/95 backdrop-blur-sm h-fit">
-                        <h2 className="text-brand-accent font-tech text-base mb-4 text-center">
+                        <h2 className="text-brand-accent font-pixel text-base mb-4 text-center">
                             AUDIO SETTINGS
                         </h2>
 
                         {/* Music Volume */}
                         <div className="mb-5">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-white text-xs font-tech">MUSIC</span>
+                                <span className="text-white text-xs font-pixel">MUSIC</span>
                                 <div className="flex items-center gap-1">
                                     <button
                                         onClick={testMusic}
@@ -320,7 +320,7 @@ const HomeBaseScreen: React.FC = () => {
                                 onChange={(e) => handleMusicVolumeChange(parseFloat(e.target.value))}
                                 className="w-full h-2 bg-industrial-metal rounded-lg appearance-none cursor-pointer accent-brand-secondary"
                             />
-                            <div className="flex justify-between text-xs text-industrial-highlight mt-1 font-tech">
+                            <div className="flex justify-between text-xs text-industrial-highlight mt-1 font-pixel">
                                 <span>0%</span>
                                 <span>{Math.round(volumes.music * 100)}%</span>
                                 <span>100%</span>
@@ -330,7 +330,7 @@ const HomeBaseScreen: React.FC = () => {
                         {/* SFX & Ambience Volume */}
                         <div className="mb-5">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-white text-xs font-tech whitespace-nowrap">SFX & AMBIENCE</span>
+                                <span className="text-white text-xs font-pixel whitespace-nowrap">SFX & AMBIENCE</span>
                                 <div className="flex items-center gap-1">
                                     <button
                                         onClick={testSFX}
@@ -360,7 +360,7 @@ const HomeBaseScreen: React.FC = () => {
                                 onChange={(e) => handleSFXVolumeChange(parseFloat(e.target.value))}
                                 className="w-full h-2 bg-industrial-metal rounded-lg appearance-none cursor-pointer accent-brand-accent"
                             />
-                            <div className="flex justify-between text-xs text-industrial-highlight mt-1 font-tech">
+                            <div className="flex justify-between text-xs text-industrial-highlight mt-1 font-pixel">
                                 <span>0%</span>
                                 <span>{Math.round(volumes.sfx * 100)}%</span>
                                 <span>100%</span>
@@ -370,7 +370,7 @@ const HomeBaseScreen: React.FC = () => {
                         {/* Speech Volume */}
                         <div className="mb-2">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-white text-xs font-tech">SPEECH</span>
+                                <span className="text-white text-xs font-pixel">SPEECH</span>
                                 <div className="flex items-center gap-1">
                                     <button
                                         onClick={testSpeech}
@@ -400,7 +400,7 @@ const HomeBaseScreen: React.FC = () => {
                                 onChange={(e) => handleSpeechVolumeChange(parseFloat(e.target.value))}
                                 className="w-full h-2 bg-industrial-metal rounded-lg appearance-none cursor-pointer accent-brand-success"
                             />
-                            <div className="flex justify-between text-xs text-industrial-highlight mt-1 font-tech">
+                            <div className="flex justify-between text-xs text-industrial-highlight mt-1 font-pixel">
                                 <span>0%</span>
                                 <span>{Math.round(volumes.speech * 100)}%</span>
                                 <span>100%</span>
@@ -410,7 +410,7 @@ const HomeBaseScreen: React.FC = () => {
 
                     {/* Reset Progress Card */}
                     <PixelCard className="p-6 bg-industrial-dark/95 backdrop-blur-sm">
-                        <h2 className="text-brand-danger font-tech text-base mb-4 text-center">
+                        <h2 className="text-brand-danger font-pixel text-base mb-4 text-center">
                             DANGER ZONE
                         </h2>
                         <PixelButton
@@ -431,10 +431,10 @@ const HomeBaseScreen: React.FC = () => {
             {showResetConfirm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
                     <PixelCard className="p-6 bg-industrial-dark/95 max-w-sm mx-4">
-                        <h3 className="text-brand-danger font-tech text-lg mb-4 text-center">
+                        <h3 className="text-brand-danger font-pixel text-lg mb-4 text-center">
                             RESET PROGRESS?
                         </h3>
-                        <p className="text-industrial-highlight text-sm mb-6 text-center font-tech">
+                        <p className="text-industrial-highlight text-sm mb-6 text-center font-pixel">
                             This will erase all your XP, stars, and mission progress. This action cannot be undone!
                         </p>
                         <div className="flex gap-3">

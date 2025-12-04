@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
 import { AnimatedPlanet, SpaceBackground } from '@/components/game';
 import { loadPlayerStats, savePlayerStats, getRankForXP, getXPProgress } from '@/utils/gameLogic';
@@ -123,7 +123,7 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
                 style={{ top: pos.size + 4 }}
             >
                 <div
-                    className={`text-[10px] font-bold uppercase tracking-wider whitespace-nowrap font-tech ${isLocked ? 'text-industrial-metal' : isCurrent ? 'text-brand-secondary' : isCompleted ? 'text-brand-success' : 'text-industrial-highlight'
+                    className={`text-[10px] font-bold uppercase tracking-wider whitespace-nowrap font-pixel ${isLocked ? 'text-industrial-metal' : isCurrent ? 'text-brand-secondary' : isCompleted ? 'text-brand-success' : 'text-industrial-highlight'
                         }`}
                 >
                     {body.name}
@@ -168,8 +168,22 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
 
 const SolarSystemMap: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [stats, setStats] = useState(() => loadPlayerStats());
     const progress = stats.campaignProgress || initializeCampaignProgress();
+
+    // Check if we came from cinematic for fade-in effect
+    const fromCinematic = (location.state as { fromCinematic?: boolean })?.fromCinematic;
+    const [fadeIn, setFadeIn] = useState(fromCinematic);
+
+    // Trigger fade-in animation
+    useEffect(() => {
+        if (fromCinematic) {
+            // Small delay to ensure CSS transition works
+            const timer = setTimeout(() => setFadeIn(false), 50);
+            return () => clearTimeout(timer);
+        }
+    }, [fromCinematic]);
 
     // Milestone modal state
     const [activeMilestone, setActiveMilestone] = useState<'inner' | 'kuiper' | null>(null);
@@ -179,11 +193,21 @@ const SolarSystemMap: React.FC = () => {
 
     // Start menu music and ambience when entering map (e.g., after battle)
     useEffect(() => {
-        // Switch to menu music (crossfades from battle music if coming from battle)
-        audioEngine.playMusic('menuMusic');
-        // Stop space ambience and start menu ambience
-        audioEngine.stopAmbience('spaceAmbience');
-        audioEngine.startAmbience('menuAmbience');
+        const startAudio = async () => {
+            // Make sure audio engine is initialized (in case we got here without going through start screen)
+            if (!audioEngine.isInitialized()) {
+                await audioEngine.init();
+            }
+            // Ensure audio context is running
+            await audioEngine.resume();
+            // Switch to menu music (crossfades from battle music if coming from battle)
+            console.log('Playing menu music...');
+            audioEngine.playMusic('menuMusic');
+            // Stop space ambience and start menu ambience
+            audioEngine.stopAmbience('spaceAmbience');
+            audioEngine.startAmbience('menuAmbience');
+        };
+        startAudio();
     }, []);
 
     // Check for milestone on mount
@@ -358,7 +382,9 @@ const SolarSystemMap: React.FC = () => {
     };
 
     return (
-        <div className="flex-1 flex flex-col overflow-hidden bg-space-black relative">
+        <div
+            className={`flex-1 flex flex-col overflow-hidden bg-space-black relative transition-opacity duration-4000 ${fadeIn ? 'opacity-0' : 'opacity-100'}`}
+        >
             <SpaceBackground />
 
             {/* Header */}
@@ -366,7 +392,7 @@ const SolarSystemMap: React.FC = () => {
                 <PixelButton variant="secondary" onClick={() => navigate('/')} className="px-4 py-2" size="sm">
                     <ArrowLeft className="w-4 h-4" />
                 </PixelButton>
-                <h1 className="text-xl font-bold text-brand-secondary uppercase tracking-widest font-tech">Star Map</h1>
+                <h1 className="text-xl font-bold text-brand-secondary uppercase tracking-widest font-pixel">Star Map</h1>
                 {/* Rank and XP display */}
                 <div className="flex items-center gap-3">
                     <img
@@ -376,7 +402,7 @@ const SolarSystemMap: React.FC = () => {
                         style={{ imageRendering: 'pixelated' }}
                     />
                     <div className="flex flex-col items-end gap-1">
-                        <div className="text-sm text-brand-accent font-bold font-tech">
+                        <div className="text-sm text-brand-accent font-bold font-pixel">
                             {getRankForXP(stats.totalXP).name}
                         </div>
                         <div className="flex items-center gap-2">
@@ -386,7 +412,7 @@ const SolarSystemMap: React.FC = () => {
                                     style={{ width: `${getXPProgress(stats.totalXP).progress * 100}%` }}
                                 />
                             </div>
-                            <div className="text-xs text-industrial-highlight font-tech">
+                            <div className="text-xs text-industrial-highlight font-pixel">
                                 {stats.totalXP} XP
                             </div>
                         </div>
@@ -402,28 +428,28 @@ const SolarSystemMap: React.FC = () => {
                     className="absolute z-5 px-3 py-1 rounded border border-blue-500/50 bg-blue-950/70 backdrop-blur-sm"
                     style={{ left: '1%', top: '64%' }}
                 >
-                    <span className="text-[11px] text-blue-400 uppercase tracking-widest font-tech font-bold">Inner System</span>
+                    <span className="text-[11px] text-blue-400 uppercase tracking-widest font-pixel font-bold">Inner System</span>
                 </div>
                 {/* Gas Giants - near Jupiter (x:54%, y:78%) */}
                 <div
                     className="absolute z-5 px-3 py-1 rounded border border-purple-500/50 bg-purple-950/70 backdrop-blur-sm"
                     style={{ left: '48%', top: '64%' }}
                 >
-                    <span className="text-[11px] text-purple-400 uppercase tracking-widest font-tech font-bold">Gas Giants</span>
+                    <span className="text-[11px] text-purple-400 uppercase tracking-widest font-pixel font-bold">Gas Giants</span>
                 </div>
                 {/* Ice Giants - near Uranus (x:82%, y:42%) */}
                 <div
                     className="absolute z-5 px-3 py-1 rounded border border-cyan-500/50 bg-cyan-950/70 backdrop-blur-sm"
                     style={{ left: '76%', top: '28%' }}
                 >
-                    <span className="text-[11px] text-cyan-400 uppercase tracking-widest font-tech font-bold">Ice Giants</span>
+                    <span className="text-[11px] text-cyan-400 uppercase tracking-widest font-pixel font-bold">Ice Giants</span>
                 </div>
                 {/* Kuiper Belt - near Pluto (x:56%, y:28%) */}
                 <div
                     className="absolute z-5 px-3 py-1 rounded border border-orange-500/50 bg-orange-950/70 backdrop-blur-sm"
                     style={{ left: '50%', top: '14%' }}
                 >
-                    <span className="text-[11px] text-orange-400 uppercase tracking-widest font-tech font-bold">Kuiper Belt</span>
+                    <span className="text-[11px] text-orange-400 uppercase tracking-widest font-pixel font-bold">Kuiper Belt</span>
                 </div>
 
                 {/* Paths */}
@@ -511,7 +537,7 @@ const SolarSystemMap: React.FC = () => {
                                 ) : (
                                     <>
                                         <div className="text-center mb-2">
-                                            <div className="text-brand-success text-xs font-bold flex items-center justify-center gap-1 font-tech">
+                                            <div className="text-brand-success text-xs font-bold flex items-center justify-center gap-1 font-pixel">
                                                 <Star className="w-3 h-3 fill-brand-success" /> CLEARED
                                             </div>
                                         </div>
@@ -562,12 +588,12 @@ const SolarSystemMap: React.FC = () => {
                             {/* Planet info */}
                             <div className="flex-1 min-w-0">
                                 <h2 className="text-2xl font-bold text-white mb-1 font-pixel">{selectedBody.name}</h2>
-                                <div className="text-xs text-brand-secondary uppercase tracking-wider mb-2 font-tech">
+                                <div className="text-xs text-brand-secondary uppercase tracking-wider mb-2 font-pixel">
                                     {selectedLeg ? getChapterName(selectedLeg.chapter) : 'Inner System'}
                                 </div>
-                                <p className="text-sm text-gray-300 line-clamp-2 font-tech">{selectedBody.fact}</p>
+                                <p className="text-sm text-gray-300 line-clamp-2 font-pixel">{selectedBody.fact}</p>
                                 <div className="flex gap-4 mt-2">
-                                    <div className="text-xs font-tech">
+                                    <div className="text-xs font-pixel">
                                         <span className="text-industrial-highlight">Tables: </span>
                                         <span className="text-brand-success">{selectedBody.focusTables.join(', ')}</span>
                                     </div>
@@ -577,16 +603,16 @@ const SolarSystemMap: React.FC = () => {
                             {/* Status indicator */}
                             <div className="flex-shrink-0 text-center">
                                 {getBodyStatus(selectedBody.id).isCurrent ? (
-                                    <div className="text-brand-accent text-sm font-bold font-tech">
+                                    <div className="text-brand-accent text-sm font-bold font-pixel">
                                         CURRENT TARGET
                                     </div>
                                 ) : getBodyStatus(selectedBody.id).isCompleted ? (
                                     selectedBody.id === 'earth' ? (
-                                        <div className="text-brand-secondary text-sm font-bold font-tech">
+                                        <div className="text-brand-secondary text-sm font-bold font-pixel">
                                             HOME BASE
                                         </div>
                                     ) : (
-                                        <div className="text-brand-success text-sm font-bold flex items-center gap-1 font-tech">
+                                        <div className="text-brand-success text-sm font-bold flex items-center gap-1 font-pixel">
                                             <Star className="w-4 h-4 fill-brand-success" /> CLEARED
                                         </div>
                                     )
@@ -594,7 +620,7 @@ const SolarSystemMap: React.FC = () => {
                             </div>
                         </div>
                     ) : (
-                        <div className="text-center text-industrial-highlight font-tech w-full">
+                        <div className="text-center text-industrial-highlight font-pixel w-full">
                             SELECT A DESTINATION ON THE MAP
                         </div>
                     )}
@@ -622,7 +648,7 @@ const SolarSystemMap: React.FC = () => {
                             <div className="flex items-center gap-3 mb-4 border-b border-brand-secondary/30 pb-3">
                                 <div className="w-3 h-3 rounded-full bg-brand-secondary animate-pulse" />
                                 <Radio className="w-5 h-5 text-brand-secondary" />
-                                <span className="text-brand-secondary text-sm font-bold tracking-widest font-tech">
+                                <span className="text-brand-secondary text-sm font-bold tracking-widest font-pixel">
                                     MILESTONE REACHED
                                 </span>
                             </div>
@@ -661,7 +687,7 @@ const SolarSystemMap: React.FC = () => {
                         <div className="relative z-10 p-6">
                             <div className="flex items-center justify-center gap-2 mb-4">
                                 <Star className="w-5 h-5 text-brand-accent fill-brand-accent" />
-                                <span className="text-brand-accent text-sm font-bold tracking-widest font-tech">
+                                <span className="text-brand-accent text-sm font-bold tracking-widest font-pixel">
                                     RANK UP!
                                 </span>
                                 <Star className="w-5 h-5 text-brand-accent fill-brand-accent" />
@@ -681,10 +707,10 @@ const SolarSystemMap: React.FC = () => {
                             </div>
 
                             <div className="text-center mb-4">
-                                <div className="text-brand-accent text-2xl font-bold font-tech uppercase drop-shadow-lg">
+                                <div className="text-brand-accent text-2xl font-bold font-pixel uppercase drop-shadow-lg">
                                     {rankUpModal.rank.name}
                                 </div>
-                                <div className="text-white text-sm font-tech mt-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                                <div className="text-white text-sm font-pixel mt-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                                     You've earned this rank through your dedication to the mission!
                                 </div>
                             </div>

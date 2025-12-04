@@ -328,7 +328,7 @@ const BattleScreenMobile: React.FC = () => {
     };
 
     return (
-        <div className="fixed inset-0 flex flex-col bg-space-black overflow-hidden">
+        <div className="fixed inset-0 flex flex-col overflow-hidden">
             {/* Full-screen click overlay to skip question feedback wait */}
             {showFeedback && introStage === 'playing' && !gameEnding && (
                 <div
@@ -338,13 +338,13 @@ const BattleScreenMobile: React.FC = () => {
             )}
 
             {/* Top HUD - Back button and stars */}
-            <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 bg-industrial-dark/90 border-b border-industrial-metal/30 z-10">
+            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent z-10">
                 <button
-                    onClick={() => navigate('/map')}
-                    className="flex items-center gap-1 px-2 py-1 text-xs text-white/80 active:text-white"
+                    onClick={() => navigate(-1)}
+                    className="flex items-center gap-1 px-3 py-2 text-xs text-white/80 active:text-white bg-gray-900/50 border-2 border-gray-700 rounded font-pixel"
                 >
                     <ArrowLeft className="w-4 h-4" />
-                    <span>MAP</span>
+                    <span>BACK</span>
                 </button>
 
                 {/* Stars */}
@@ -384,19 +384,19 @@ const BattleScreenMobile: React.FC = () => {
             </div>
 
             {/* Enemy Shield Progress */}
-            <div className="flex-shrink-0 px-3 py-1.5 bg-industrial-dark/50">
-                <div className="flex gap-0.5 justify-center">
+            <div className="flex-shrink-0 px-4 py-2 bg-black/40">
+                <div className="flex gap-1 justify-center">
                     {questions.map((q, i) => {
-                        let colorClass = 'bg-gray-600';
+                        let colorClass = 'bg-gray-700';
                         if (i < currentIndex) {
                             colorClass = q.correct ? 'bg-green-500' : 'bg-red-500';
                         } else if (i === currentIndex) {
-                            colorClass = 'bg-yellow-500 animate-pulse';
+                            colorClass = 'bg-cyan-500 animate-pulse';
                         }
                         return (
                             <div
                                 key={i}
-                                className={`h-1.5 flex-1 max-w-6 ${colorClass}`}
+                                className={`h-2 flex-1 max-w-8 ${colorClass}`}
                                 style={{
                                     borderRadius: i === 0 ? '2px 0 0 2px' : i === questions.length - 1 ? '0 2px 2px 0' : '0',
                                 }}
@@ -598,89 +598,88 @@ const BattleScreenMobile: React.FC = () => {
             </div>
 
             {/* Question Panel - Fixed at bottom */}
-            <div className="flex-shrink-0 bg-industrial-dark border-t-4 border-industrial-metal">
-                {introStage === 'playing' ? (
-                    <div className="p-3">
-                        {/* Question */}
-                        <div className="text-xl font-bold flex items-center justify-center gap-2 font-mono mb-3">
-                            <span className="text-green-400">{currentQuestion.num1}</span>
-                            <span className="text-green-600">×</span>
-                            <span className="text-green-400">{currentQuestion.num2}</span>
-                            <span className="text-green-600">=</span>
-                            {showFeedback ? (
-                                <span className="text-green-300">{currentQuestion.answer}</span>
-                            ) : (
-                                <span className="text-green-300 animate-pulse">?</span>
-                            )}
-                        </div>
+            <div className="flex-shrink-0 px-4 pb-4 flex justify-center" style={{ marginBottom: 'env(safe-area-inset-bottom)' }}>
+                <div className="bg-gray-900/80 border-4 border-gray-700 p-4 max-w-xl w-full">
+                    {introStage === 'playing' ? (
+                        <>
+                            {/* Question */}
+                            <div className="text-xl font-bold flex items-center justify-center gap-2 font-pixel mb-4">
+                                <span className="text-cyan-400">{currentQuestion.num1}</span>
+                                <span className="text-cyan-600">×</span>
+                                <span className="text-cyan-400">{currentQuestion.num2}</span>
+                                <span className="text-cyan-600">=</span>
+                                {showFeedback ? (
+                                    <span className="text-white">{currentQuestion.answer}</span>
+                                ) : (
+                                    <span className="text-yellow-400 animate-pulse">?</span>
+                                )}
+                            </div>
 
-                        {/* Answer Buttons */}
-                        <div className="grid grid-cols-3 gap-2">
-                            {(frozenChoices || answerChoices).map((opt, i) => {
-                                const isSelected = showFeedback && selectedAnswer === opt;
-                                const isCorrectAnswer = opt === currentQuestion.answer;
-                                const showAsWrong = isSelected && !isCorrectAnswer;
-                                const showAsCorrect = showFeedback && isCorrectAnswer;
+                            {/* Answer Buttons */}
+                            <div className="grid grid-cols-3 gap-3">
+                                {(frozenChoices || answerChoices).map((opt, i) => {
+                                    const isSelected = showFeedback && selectedAnswer === opt;
+                                    const isCorrectAnswer = opt === currentQuestion.answer;
+                                    const showAsWrong = isSelected && !isCorrectAnswer;
+                                    const showAsCorrect = showFeedback && isCorrectAnswer;
 
-                                return (
-                                    <button
-                                        key={i}
-                                        disabled={showFeedback}
-                                        onClick={() => {
-                                            setUserAnswer(opt.toString());
-                                            setSelectedAnswer(opt);
-                                            setFrozenChoices([...answerChoices]);
-                                            setShowLaser(true);
-                                            setShotFired(true);
-                                            setTimeout(() => setShotFired(false), 500);
-                                            playSFX('laser', { volume: 0.6 });
-                                            if (opt === currentQuestion.answer) {
-                                                setIsCorrect(true);
-                                            } else {
-                                                setIsCorrect(false);
-                                                setDodgeDirection(Math.random() > 0.5 ? 'up' : 'down');
-                                            }
-                                            setShowFeedback(true);
-                                            const updatedQuestions = [...questions];
-                                            updatedQuestions[currentIndex] = {
-                                                ...currentQuestion,
-                                                userAnswer: opt,
-                                                correct: opt === currentQuestion.answer,
-                                            };
-                                            setQuestions(updatedQuestions);
-                                            setTimeout(() => setShowLaser(false), 600);
-                                        }}
-                                        className={`py-3 text-lg font-bold font-mono rounded-lg transition-all ${
-                                            showAsWrong
-                                                ? 'bg-red-900/50 text-red-400 border-2 border-red-500'
-                                                : showAsCorrect
-                                                    ? 'bg-green-900/50 text-green-300 border-2 border-green-500'
-                                                    : 'bg-industrial-blue text-green-400 border-2 border-industrial-metal active:scale-95'
-                                        } disabled:cursor-default`}
-                                    >
-                                        {opt}
-                                    </button>
-                                );
-                            })}
+                                    return (
+                                        <button
+                                            key={i}
+                                            disabled={showFeedback}
+                                            onClick={() => {
+                                                setUserAnswer(opt.toString());
+                                                setSelectedAnswer(opt);
+                                                setFrozenChoices([...answerChoices]);
+                                                setShowLaser(true);
+                                                setShotFired(true);
+                                                setTimeout(() => setShotFired(false), 500);
+                                                playSFX('laser', { volume: 0.6 });
+                                                if (opt === currentQuestion.answer) {
+                                                    setIsCorrect(true);
+                                                } else {
+                                                    setIsCorrect(false);
+                                                    setDodgeDirection(Math.random() > 0.5 ? 'up' : 'down');
+                                                }
+                                                setShowFeedback(true);
+                                                const updatedQuestions = [...questions];
+                                                updatedQuestions[currentIndex] = {
+                                                    ...currentQuestion,
+                                                    userAnswer: opt,
+                                                    correct: opt === currentQuestion.answer,
+                                                };
+                                                setQuestions(updatedQuestions);
+                                                setTimeout(() => setShowLaser(false), 600);
+                                            }}
+                                            className={`py-4 text-lg font-bold font-pixel transition-all ${
+                                                showAsWrong
+                                                    ? 'bg-red-900/30 text-red-400 border-4 border-red-500'
+                                                    : showAsCorrect
+                                                        ? 'bg-green-900/30 text-green-300 border-4 border-green-500'
+                                                        : 'bg-gray-900/50 text-white border-4 border-gray-600 hover:border-cyan-500 hover:bg-cyan-900/20 active:scale-95'
+                                            } disabled:cursor-default`}
+                                        >
+                                            {opt}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    ) : (
+                        /* Standby mode */
+                        <div className="h-24 flex items-center justify-center">
+                            <div className="text-lg text-cyan-400 font-bold uppercase tracking-widest animate-pulse">
+                                {introStage === 'intro1' && 'INITIALIZING'}
+                                {introStage === 'heroEnter' && 'DEPLOYING...'}
+                                {introStage === 'enemyEnter' && 'DETECTED'}
+                                {introStage === 'intro2' && 'BATTLE!'}
+                                {introStage === 'victory' && 'VICTORY'}
+                                {introStage === 'heroExit' && 'RTB'}
+                            </div>
                         </div>
-                    </div>
-                ) : (
-                    /* Standby mode */
-                    <div className="h-24 flex items-center justify-center">
-                        <div className="text-lg text-green-400 font-bold font-mono animate-pulse">
-                            {introStage === 'intro1' && 'INITIALIZING'}
-                            {introStage === 'heroEnter' && 'DEPLOYING...'}
-                            {introStage === 'enemyEnter' && 'DETECTED'}
-                            {introStage === 'intro2' && 'BATTLE!'}
-                            {introStage === 'victory' && 'VICTORY'}
-                            {introStage === 'heroExit' && 'RTB'}
-                        </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
-
-            {/* Safe area padding at bottom */}
-            <div className="flex-shrink-0 bg-industrial-dark" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} />
         </div>
     );
 };

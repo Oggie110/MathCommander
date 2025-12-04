@@ -5,7 +5,8 @@ import { AnimatedPlanet, SpaceBackground } from '@/components/game';
 import { loadPlayerStats } from '@/utils/gameLogic';
 import { initializeCampaignProgress, getLegById, getLegIndex, isBossLevel } from '@/utils/campaignLogic';
 import { celestialBodies } from '@/data/campaignRoute';
-import { ArrowLeft, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
+import { Header } from '@/components/ui/Header';
 import { useSFX, audioEngine } from '@/audio';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { getBattleSpeechIds, type BodyId } from '@/audio/speechSounds';
@@ -93,21 +94,19 @@ const MissionScreen: React.FC = () => {
     const displayWaypoints = isMobile ? [...waypoints].reverse() : waypoints;
 
     return (
-        <div className="flex-1 flex flex-col overflow-hidden bg-gray-950">
-            <SpaceBackground />
-
+        <div className="flex-1 flex flex-col bg-gray-950">
             {/* Header */}
-            <div className="fixed top-0 left-0 right-0 z-30 flex justify-between items-center p-4 bg-gradient-to-b from-black/80 to-transparent">
-                <PixelButton variant="secondary" onClick={() => navigate('/map')} className="px-4 py-2">
-                    <ArrowLeft className="w-4 h-4" />
-                </PixelButton>
-                <h1 className="hidden md:block text-xl font-bold text-cyan-400 uppercase tracking-widest">
-                    Mission: {destination.name}
-                </h1>
-                <div className="text-sm md:text-lg text-yellow-400 font-bold whitespace-nowrap">
-                    XP: {stats.totalXP}
-                </div>
-            </div>
+            <Header
+                backTo="/map"
+                rightContent={
+                    <div className="text-sm text-yellow-400 font-bold whitespace-nowrap font-pixel">
+                        XP: {stats.totalXP}
+                    </div>
+                }
+                fixed
+            />
+
+            <SpaceBackground />
 
             {/* Main content */}
             <div className="flex-1 relative z-10 flex flex-col items-center justify-start md:justify-center p-4 md:p-8 pt-20 overflow-y-auto">

@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
-import { AnimatedPlanet, planetImages } from '@/components/game';
+import { AnimatedPlanet, planetImages, SpaceBackground } from '@/components/game';
 import { loadPlayerStats, savePlayerStats, getRankForXP, getXPProgress } from '@/utils/gameLogic';
 import { RANKS } from '@/types/game';
 import { initializeCampaignProgress, getLegById, getLegIndex, checkForMilestone, markMilestoneSeen } from '@/utils/campaignLogic';
 import { celestialBodies, campaignLegs, getChapterName } from '@/data/campaignRoute';
 import type { CelestialBody, Leg } from '@/data/campaignRoute';
-import { ArrowLeft, Lock, Star, Radio, Home } from 'lucide-react';
+import { Lock, Star, Radio, Home } from 'lucide-react';
+import { Header } from '@/components/ui/Header';
 import { audioEngine } from '@/audio';
 import { speechService } from '@/audio/SpeechService';
 import { MILESTONE_TEXT } from '@/audio/speechSounds';
@@ -97,7 +98,7 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
 
             {/* Planet name label */}
             <div
-                className={`text-[11px] font-bold uppercase tracking-wider whitespace-nowrap mt-1 font-tech ${
+                className={`text-[11px] font-bold uppercase tracking-wider whitespace-nowrap mt-1 font-pixel ${
                     isLocked ? 'text-industrial-metal' :
                     isCurrent ? 'text-brand-secondary' :
                     isCompleted ? 'text-brand-success' : 'text-industrial-highlight'
@@ -145,10 +146,22 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
 
 const SolarSystemMapMobile: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [stats, setStats] = useState(() => loadPlayerStats());
     const progress = stats.campaignProgress || initializeCampaignProgress();
     const scrollRef = useRef<HTMLDivElement>(null);
 
+    // Check if we came from cinematic for fade-in effect
+    const fromCinematic = (location.state as { fromCinematic?: boolean })?.fromCinematic;
+    const [fadeIn, setFadeIn] = useState(fromCinematic);
+
+    // Trigger fade-in animation
+    useEffect(() => {
+        if (fromCinematic) {
+            const timer = setTimeout(() => setFadeIn(false), 50);
+            return () => clearTimeout(timer);
+        }
+    }, [fromCinematic]);
 
     // Milestone modal state
     const [activeMilestone, setActiveMilestone] = useState<'inner' | 'kuiper' | null>(null);
@@ -310,22 +323,13 @@ const SolarSystemMapMobile: React.FC = () => {
     };
 
     return (
-        <div className="h-full flex flex-col bg-space-black">
+        <div className={`h-full flex flex-col bg-space-black transition-opacity duration-4000 ${fadeIn ? 'opacity-0' : 'opacity-100'}`}>
             {/* Fixed Header */}
-            <div
-                className="fixed top-0 left-0 right-0 z-20 flex items-center p-3 bg-industrial-dark border-b border-industrial-metal/30"
-                style={{ paddingTop: 'calc(var(--safe-area-top) + 0.75rem)' }}
-            >
-                <button
-                    onClick={() => navigate('/homebase')}
-                    className="flex items-center gap-1 px-2 py-1 text-sm text-white/80 active:text-white w-16"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>Home</span>
-                </button>
-                <div className="flex-1 text-center text-xs text-industrial-highlight uppercase tracking-wider">Mission Map</div>
-                <div className="w-16" /> {/* Spacer to balance the title */}
-            </div>
+            <Header
+                showBackButton={false}
+                title="Mission Map"
+                fixed
+            />
 
             {/* Screen frame border - fixed overlay on top of everything */}
             {/* Solid grey border on all sides, rounded top corners only */}
@@ -340,30 +344,9 @@ const SolarSystemMapMobile: React.FC = () => {
             />
 
             {/* Scrollable map area with space background */}
-            {/* paddingBottom uses aspect ratio calc: 100vw * (326/428) = ~76vw, capped at 500px max-width panel */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto pt-14 relative" style={{ paddingBottom: 'min(76vw, 381px)' }}>
-                {/* Parallax space background - fixed inside scroll container */}
-                <div className="absolute inset-0 z-0 pointer-events-none">
-                    <div
-                        className="absolute inset-0"
-                        style={{
-                            backgroundImage: 'url(/assets/helianthus/SpaceBackgrounds/1.png)',
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            backgroundAttachment: 'local',
-                        }}
-                    />
-                    <div
-                        className="absolute inset-0"
-                        style={{
-                            backgroundImage: 'url(/assets/helianthus/SpaceBackgrounds/stars_blue.png)',
-                            backgroundRepeat: 'repeat',
-                            backgroundSize: '512px',
-                            opacity: 0.6,
-                            imageRendering: 'pixelated',
-                        }}
-                    />
-                </div>
+            <div ref={scrollRef} className="flex-1 overflow-y-auto pt-14 relative" style={{ paddingBottom: '100px' }}>
+                {/* Space background - same as StartScreen */}
+                <SpaceBackground />
 
                 {/* Vertical path SVG - connecting all planets */}
                 <svg
@@ -455,7 +438,7 @@ const SolarSystemMapMobile: React.FC = () => {
                         <div className="relative">
                             <AnimatedPlanet planetId="earth" size={72} />
                         </div>
-                        <div className="text-[11px] font-bold uppercase tracking-wider whitespace-nowrap mt-1 font-tech text-brand-success">
+                        <div className="text-[11px] font-bold uppercase tracking-wider whitespace-nowrap mt-1 font-pixel text-brand-success">
                             Earth
                         </div>
                         <div className="text-[9px] text-brand-secondary font-normal tracking-wide whitespace-nowrap">
@@ -465,164 +448,47 @@ const SolarSystemMapMobile: React.FC = () => {
                 </div>
             </div>
 
-            {/* Fixed Bottom Menu Bar - uses aspect ratio container to keep PNG and overlays in sync */}
+            {/* Fixed Bottom Panel */}
             <div
-                className="fixed bottom-0 left-0 right-0 z-20 flex justify-center"
-                style={{
-                    paddingBottom: 'var(--safe-area-bottom)',
-                }}
+                className="fixed bottom-0 left-0 right-0 z-20"
+                style={{ paddingBottom: 'var(--safe-area-bottom)' }}
             >
-                {/* Aspect ratio container - matches PNG ratio 428:326 */}
-                <div
-                    className="relative w-full"
-                    style={{
-                        maxWidth: '500px', // Cap max width for larger screens
-                        aspectRatio: '428 / 326',
-                    }}
-                >
-                    {/* Panel background PNG */}
-                    <img
-                        src="/assets/1NewStuff/panel/mobile_panel2.png"
-                        alt=""
-                        className="absolute inset-0 w-full h-full"
-                        style={{
-                            imageRendering: 'pixelated',
-                            filter: 'brightness(0.8) sepia(0.2) saturate(0.4) hue-rotate(180deg)',
-                        }}
-                    />
-
-                    {/* Upper CRT screen effects - positioned as % of PNG dimensions (428x326) */}
-                    {/* Upper CRT black area: x=38-390, y=40-142 */}
-                    <div
-                        className="absolute pointer-events-none z-20"
-                        style={{
-                            left: '11.5%',
-                            right: '10.5%',
-                            top: '16%',
-                            height: '30%',
-                        }}
-                    >
-                        {/* Phosphor glow */}
-                        <div
-                            className="absolute inset-0"
-                            style={{
-                                boxShadow: 'inset 0 0 30px rgba(0,255,0,0.4)',
-                                background: 'radial-gradient(ellipse at center, rgba(0,255,0,0.15) 0%, transparent 70%)',
-                            }}
-                        />
-                        {/* Scanlines */}
-                        <div
-                            className="absolute inset-0"
-                            style={{
-                                backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.5) 1px, rgba(0,0,0,0.5) 2px)',
-                                opacity: 0.7,
-                            }}
-                        />
-                    </div>
-
-                    {/* Lower CRT screen effects - positioned as % of PNG dimensions (428x326) */}
-                    {/* Lower CRT black area: x=38-390, y=180-282 */}
-                    <div
-                        className="absolute pointer-events-none z-20"
-                        style={{
-                            left: '11.5%',
-                            right: '10.5%',
-                            top: '60%',
-                            height: '30%',
-                        }}
-                    >
-                        {/* Phosphor glow */}
-                        <div
-                            className="absolute inset-0"
-                            style={{
-                                boxShadow: 'inset 0 0 30px rgba(0,255,0,0.4)',
-                                background: 'radial-gradient(ellipse at center, rgba(0,255,0,0.15) 0%, transparent 70%)',
-                            }}
-                        />
-                        {/* Scanlines */}
-                        <div
-                            className="absolute inset-0"
-                            style={{
-                                backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.5) 1px, rgba(0,0,0,0.5) 2px)',
-                                opacity: 0.7,
-                            }}
-                        />
-                    </div>
-
-                    {/* Upper CRT content - Earth / Home Base */}
-                    <div
-                        className="absolute flex items-center justify-start gap-4 cursor-pointer pl-4"
-                        style={{
-                            left: '11.5%',
-                            right: '10.5%',
-                            top: '16%',
-                            height: '30%',
-                        }}
-                        onClick={() => navigate('/homebase')}
-                    >
-                        {/* Earth image */}
-                        <div className="relative z-10">
-                            <img
-                                src={planetImages.earth}
-                                alt="Earth"
-                                className="w-16 h-16 md:w-20 md:h-20"
-                                style={{ imageRendering: 'pixelated' }}
-                            />
-                        </div>
-
-                        {/* Home info */}
-                        <div className="relative z-10 flex flex-col">
-                            <div className="text-xs md:text-sm text-green-400 uppercase tracking-wider font-bold mb-1 drop-shadow-[0_0_6px_rgba(74,222,128,0.6)] whitespace-nowrap">
-                                Earth
-                            </div>
-                            <div className="text-[10px] md:text-xs text-green-300/70 font-mono whitespace-nowrap">
-                                Command Center
-                            </div>
-                            <div className="flex items-center gap-1 mt-1">
-                                <Home className="w-3 h-3 md:w-4 md:h-4 text-green-400" />
-                                <span className="text-[10px] md:text-xs text-green-400/80">Home Base</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Lower CRT content - Rank display */}
-                    <div
-                        className="absolute flex items-center justify-start gap-4 md:gap-6 pl-4"
-                        style={{
-                            left: '11.5%',
-                            right: '10.5%',
-                            top: '60%',
-                            height: '30%',
-                        }}
-                    >
-                        {/* Rank badge image */}
-                        <div className="relative z-10">
-                            <img
-                                src={currentRank.badge}
-                                alt={currentRank.name}
-                                className="w-14 h-14 md:w-20 md:h-20"
-                                style={{ imageRendering: 'pixelated' }}
-                            />
-                        </div>
-
-                        {/* Rank info */}
-                        <div className="relative z-10 flex flex-col">
-                            {/* Rank name */}
-                            <div className="text-xs md:text-sm text-cyan-400 uppercase tracking-wider font-bold mb-1 md:mb-2 drop-shadow-[0_0_6px_rgba(34,211,238,0.6)] whitespace-nowrap">
-                                {currentRank.name}
-                            </div>
-
-                            {/* XP Progress bar */}
-                            <div className="w-32 md:w-48 h-2 md:h-3 bg-black/60 rounded-sm overflow-hidden border border-cyan-900/50 mb-1">
-                                <div
-                                    className="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 transition-all"
-                                    style={{ width: `${xpProgress.progress * 100}%` }}
+                <div className="p-4 max-w-xl mx-auto">
+                    <div className="bg-gray-900/80 border-4 border-gray-700 p-4">
+                        <div className="flex items-start gap-4">
+                            {/* Home Base Button */}
+                            <button
+                                onClick={() => navigate('/homebase')}
+                                className="flex-shrink-0 active:scale-95 transition-transform"
+                            >
+                                <img
+                                    src={planetImages.earth}
+                                    alt="Earth"
+                                    className="w-16 h-16"
+                                    style={{ imageRendering: 'pixelated' }}
                                 />
-                            </div>
+                            </button>
 
-                            {/* XP text */}
-                            <div className="text-[10px] md:text-xs text-cyan-300/70 font-mono">
-                                {stats.totalXP.toLocaleString()} XP
+                            {/* Info Content */}
+                            <div className="flex-1 min-w-0">
+                                <h2 className="text-lg font-bold text-white mb-2">
+                                    Home Base
+                                </h2>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <img
+                                        src={currentRank.badge}
+                                        alt={currentRank.name}
+                                        className="w-6 h-6"
+                                        style={{ imageRendering: 'pixelated' }}
+                                    />
+                                    <span className="text-xs text-cyan-400 font-bold uppercase">
+                                        {currentRank.name}
+                                    </span>
+                                </div>
+                                <div className="text-xs">
+                                    <span className="text-gray-500">Total XP: </span>
+                                    <span className="text-green-400">{stats.totalXP.toLocaleString()}</span>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -633,7 +633,7 @@ const BattleScreen: React.FC = () => {
                                                     )}
                                                     <div className="flex-1 relative z-0">
                                                         {/* Speaker label */}
-                                                        <div className={`text-xs font-bold mb-2 tracking-wider font-mono ${introStage === 'intro2'
+                                                        <div className={`text-xs font-bold mb-2 tracking-wider font-pixel ${introStage === 'intro2'
                                                             ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]'
                                                             : 'text-green-500 drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]'
                                                             }`}>
@@ -641,7 +641,7 @@ const BattleScreen: React.FC = () => {
                                                             {introStage === 'intro2' && (alienSpeaker ? `[${alienSpeaker}]` : '[ENEMY]')}
                                                             {introStage === 'victory' && '[COMMANDER]'}
                                                         </div>
-                                                        <p className={`text-lg font-mono leading-relaxed ${introStage === 'intro2'
+                                                        <p className={`text-lg font-pixel leading-relaxed ${introStage === 'intro2'
                                                             ? 'text-red-400 drop-shadow-[0_0_6px_rgba(248,113,113,0.6)]'
                                                             : 'text-green-400 drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]'
                                                             }`}>
@@ -836,10 +836,10 @@ const BattleScreen: React.FC = () => {
                                                         />
                                                     </div>
                                                     <div className="flex-1 relative z-0">
-                                                        <div className="text-xs font-bold mb-2 tracking-wider font-mono text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+                                                        <div className="text-xs font-bold mb-2 tracking-wider font-pixel text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">
                                                             [COMMANDER]
                                                         </div>
-                                                        <p className="text-lg font-mono text-red-400 drop-shadow-[0_0_6px_rgba(248,113,113,0.6)] leading-relaxed">
+                                                        <p className="text-lg font-pixel text-red-400 drop-shadow-[0_0_6px_rgba(248,113,113,0.6)] leading-relaxed">
                                                             "{defeatMessage.message}"
                                                         </p>
                                                     </div>
@@ -902,7 +902,7 @@ const BattleScreen: React.FC = () => {
                                                 {introStage === 'playing' ? (
                                                     <div className="relative z-0">
                                                         {/* Question Display */}
-                                                        <div className="text-2xl font-bold flex items-center justify-center gap-2 font-mono mb-3">
+                                                        <div className="text-2xl font-bold flex items-center justify-center gap-2 font-pixel mb-3">
                                                             <span className="text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.9)]">{currentQuestion.num1}</span>
                                                             <span className="text-green-600">×</span>
                                                             <span className="text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.9)]">{currentQuestion.num2}</span>
@@ -952,7 +952,7 @@ const BattleScreen: React.FC = () => {
                                                                                 // Stop laser animation after a short delay
                                                                                 setTimeout(() => setShowLaser(false), 600);
                                                                             }}
-                                                                            className={`py-2 text-sm font-bold font-mono transition-all ${
+                                                                            className={`py-2 text-sm font-bold font-pixel transition-all ${
                                                                                 showAsWrong
                                                                                     ? 'text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]'
                                                                                     : showAsCorrect
@@ -982,7 +982,7 @@ const BattleScreen: React.FC = () => {
 
                                                         {/* Wave indicator */}
                                                         <div className="flex justify-center items-center mt-4">
-                                                            <span className="text-sm text-green-600/50 font-mono">
+                                                            <span className="text-sm text-green-600/50 font-pixel">
                                                                 — — —
                                                             </span>
                                                         </div>
@@ -990,7 +990,7 @@ const BattleScreen: React.FC = () => {
                                                 ) : (
                                                     /* Standby mode */
                                                     <div className="h-[120px] flex flex-col items-center justify-center relative z-0">
-                                                        <div className="text-lg text-green-400 font-bold font-mono animate-pulse drop-shadow-[0_0_10px_rgba(74,222,128,0.8)]">
+                                                        <div className="text-lg text-green-400 font-bold font-pixel animate-pulse drop-shadow-[0_0_10px_rgba(74,222,128,0.8)]">
                                                             {introStage === 'intro1' && 'INITIALIZING'}
                                                             {introStage === 'heroEnter' && 'DEPLOYING...'}
                                                             {introStage === 'enemyEnter' && 'DETECTED'}
@@ -1128,7 +1128,7 @@ const BattleScreen: React.FC = () => {
                                                             border: '3px solid #1a2a1a',
                                                         }}
                                                     >
-                                                        <span className="text-base text-green-400 font-bold font-mono drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]">47°</span>
+                                                        <span className="text-base text-green-400 font-bold font-pixel drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]">47°</span>
                                                     </div>
                                                                                                     </div>
                                             </div>

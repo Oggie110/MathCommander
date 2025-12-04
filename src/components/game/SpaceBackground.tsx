@@ -16,7 +16,7 @@ export const SpaceBackground: React.FC<SpaceBackgroundProps> = ({
         : '/assets/helianthus/SpaceBackgrounds/1.png';
 
     return (
-        <div className={`absolute inset-0 z-0 ${className}`}>
+        <div className={`absolute inset-0 z-0 pointer-events-none ${className}`}>
             <div
                 className="absolute inset-0"
                 style={{

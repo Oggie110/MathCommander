@@ -232,11 +232,11 @@ const ResultScreen: React.FC = () => {
                         <div className="flex items-center gap-3 mb-4 border-b border-yellow-900/50 pb-3">
                             <div className="w-3 h-3 rounded-full bg-yellow-500 animate-pulse shadow-[0_0_8px_#eab308]" />
                             <Radio className="w-5 h-5 text-yellow-500 drop-shadow-[0_0_6px_rgba(234,179,8,0.8)]" />
-                            <span className="text-yellow-500 text-sm font-bold tracking-widest font-mono drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]">
+                            <span className="text-yellow-500 text-sm font-bold tracking-widest font-pixel drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]">
                                 VICTORY TRANSMISSION
                             </span>
                         </div>
-                        <p className="text-yellow-400 text-lg leading-relaxed font-mono drop-shadow-[0_0_6px_rgba(250,204,21,0.6)]">
+                        <p className="text-yellow-400 text-lg leading-relaxed font-pixel drop-shadow-[0_0_6px_rgba(250,204,21,0.6)]">
                             "{victoryNarrative.message}"
                         </p>
                     </CRTDialogueBox>
@@ -245,13 +245,13 @@ const ResultScreen: React.FC = () => {
                 {/* Boss defeat quote - CRT Style */}
                 {bossDefeatDialogue && !battleInfo.isFinal && (
                     <CRTDialogueBox variant="red" className="mb-6">
-                        <div className="text-red-500 text-xs font-bold mb-2 tracking-wider font-mono drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+                        <div className="text-red-500 text-xs font-bold mb-2 tracking-wider font-pixel drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">
                             [ENEMY TRANSMISSION - SIGNAL LOST]
                         </div>
-                        <p className="text-red-400 italic font-mono drop-shadow-[0_0_6px_rgba(248,113,113,0.6)]">
+                        <p className="text-red-400 italic font-pixel drop-shadow-[0_0_6px_rgba(248,113,113,0.6)]">
                             "{bossDefeatDialogue.text}"
                         </p>
-                        <div className="text-red-900 text-xs mt-2 font-mono">*static*</div>
+                        <div className="text-red-900 text-xs mt-2 font-pixel">*static*</div>
                     </CRTDialogueBox>
                 )}
 
@@ -289,7 +289,7 @@ const ResultScreen: React.FC = () => {
                         {/* Defeat encouragement message */}
                         {encourageDialogue && (
                             <div className="mt-4 text-sm">
-                                <p className="text-green-400 font-mono drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]">"{encourageDialogue.text}"</p>
+                                <p className="text-green-400 font-pixel drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]">"{encourageDialogue.text}"</p>
                             </div>
                         )}
                     </div>
@@ -302,10 +302,7 @@ const ResultScreen: React.FC = () => {
                         <div className="bg-space-black p-4 border-2 border-gray-700">
                             <div className="text-xs text-gray-400">XP EARNED</div>
                             <div
-                                className={`text-2xl text-yellow-400 ${showXP ? 'opacity-100' : 'opacity-0'}`}
-                                style={{
-                                    animation: showXP ? 'xpBounce 0.5s ease-out' : 'none',
-                                }}
+                                className={`text-2xl text-yellow-400 ${showXP ? 'animate-xpBounce' : 'scale-0 opacity-0'}`}
                             >
                                 +{xpEarned}
                             </div>

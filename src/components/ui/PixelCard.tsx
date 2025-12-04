@@ -29,7 +29,7 @@ export const PixelCard: React.FC<PixelCardProps> = ({
             <div className="absolute bottom-2 right-2 w-2 h-2 bg-industrial-highlight rounded-full shadow-sm" />
 
             {title && (
-                <div className="absolute -top-5 left-4 bg-industrial-dark px-3 py-1 border-2 border-industrial-metal text-brand-secondary font-tech font-bold uppercase tracking-widest text-sm shadow-lg">
+                <div className="absolute -top-5 left-4 bg-industrial-dark px-3 py-1 border-2 border-industrial-metal text-brand-secondary font-pixel font-bold uppercase tracking-widest text-sm shadow-lg">
                     {title}
                 </div>
             )}
