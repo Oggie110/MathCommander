@@ -348,7 +348,12 @@ const BattleScreenMobile: React.FC = () => {
             {/* Top HUD - Back button and stars */}
             <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent z-10">
                 <button
-                    onClick={() => navigate(-1)}
+                    onClick={() => {
+                        audioEngine.stopMusic(500);
+                        audioEngine.stopSpeech(0); // Immediate stop, no fade
+                        setTimeout(() => audioEngine.playMusic('menuMusic', { fadeIn: 500 }), 300);
+                        navigate(-1);
+                    }}
                     className="flex items-center gap-1 px-3 py-2 text-xs text-white/80 active:text-white bg-gray-900/50 border-2 border-gray-700 rounded font-pixel"
                 >
                     <ArrowLeft className="w-4 h-4" />

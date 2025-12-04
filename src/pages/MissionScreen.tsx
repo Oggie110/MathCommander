@@ -97,11 +97,6 @@ const MissionScreen: React.FC = () => {
             {/* Header */}
             <Header
                 backTo="/map"
-                rightContent={
-                    <div className="text-sm text-yellow-400 font-bold whitespace-nowrap font-pixel">
-                        XP: {stats.totalXP}
-                    </div>
-                }
                 fixed
             />
 

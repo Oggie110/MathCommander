@@ -56,8 +56,9 @@ const ResultScreen: React.FC = () => {
     const [animatedCorrectCount, setAnimatedCorrectCount] = useState(0);
     const [showXP, setShowXP] = useState(false);
 
-    // Calculate how many stars earned
-    const starsEarned = percentage >= 90 ? 3 : percentage >= 70 ? 2 : percentage >= 50 ? 1 : 0;
+    // Calculate how many stars earned (matches BattleScreen logic)
+    // 1 star for any correct answers, 2 stars at 70%, 3 stars at 90%
+    const starsEarned = percentage >= 90 ? 3 : percentage >= 70 ? 2 : correctCount > 0 ? 1 : 0;
 
     // Animate percentage from 0 to final value
     useEffect(() => {

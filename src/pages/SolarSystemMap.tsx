@@ -388,11 +388,15 @@ const SolarSystemMap: React.FC = () => {
             <SpaceBackground />
 
             {/* Header */}
-            <div className="relative z-30 flex justify-between items-center p-4 bg-industrial-dark/90 border-b-2 border-industrial-metal shadow-lg">
-                <PixelButton variant="secondary" onClick={() => navigate('/')} className="px-4 py-2" size="sm">
+            <div className="relative z-30 flex justify-between items-center px-4 py-3 bg-gradient-to-b from-black/80 to-transparent">
+                <button
+                    onClick={() => navigate('/')}
+                    className="flex items-center gap-1 px-3 py-2 text-xs text-white/80 active:text-white bg-gray-900/50 border-2 border-gray-700 rounded font-pixel"
+                >
                     <ArrowLeft className="w-4 h-4" />
-                </PixelButton>
-                <h1 className="text-xl font-bold text-brand-secondary uppercase tracking-widest font-pixel">Star Map</h1>
+                    <span>BACK</span>
+                </button>
+                <h1 className="text-sm text-white/80 uppercase tracking-wider font-pixel">Star Map</h1>
                 {/* Rank and XP display */}
                 <div className="flex items-center gap-3">
                     <img
