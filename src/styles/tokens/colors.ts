@@ -43,6 +43,8 @@ export const colors = {
   // === UI STATES ===
   // For dialogue boxes, feedback, etc.
   ui: {
+    highlight: '#FFFFFF',
+    shadow: '#000000',
     commander: {
       border: 'rgba(34, 197, 94, 0.5)',   // green-500/50
       text: '#4ADE80',                     // green-400
