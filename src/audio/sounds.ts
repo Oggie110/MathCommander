@@ -129,7 +129,7 @@ const CORE_SOUNDS: Record<string, SoundDefinition> = {
     },
     shipSlide3: {
         id: 'shipSlide3',
-        src: '/assets/audio/sfx/sfx/ship_slide/SFX_Whoosh_Pass_By_PSEF182 1.wav',
+        src: '/assets/audio/sfx/sfx/ship_slide/SFX_Whoosh_Pass_By_PSEF182 1SHORT.wav',
         category: 'sfx',
         volume: 0.5,
     },

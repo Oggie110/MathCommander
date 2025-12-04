@@ -20,6 +20,10 @@ interface HeaderProps {
     onBackClick?: () => void;
     /** Whether this is a fixed header (adds safe area padding) */
     fixed?: boolean;
+    /** Left label text (no arrow, just styled text in the same position as back button) */
+    leftLabel?: string;
+    /** Click handler for left label */
+    onLeftLabelClick?: () => void;
 }
 
 /**
@@ -54,6 +58,8 @@ export const Header: React.FC<HeaderProps> = ({
     showBackButton = true,
     onBackClick,
     fixed = false,
+    leftLabel,
+    onLeftLabelClick,
 }) => {
     const navigate = useNavigate();
 
@@ -80,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({
             )}
             style={fixedStyle}
         >
-            {/* Left: Back button */}
+            {/* Left: Back button or left label */}
             {showBackButton ? (
                 <button
                     onClick={handleBackClick}
@@ -88,6 +94,13 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                     <ArrowLeft className="w-4 h-4" />
                     <span>{backLabel}</span>
+                </button>
+            ) : leftLabel ? (
+                <button
+                    onClick={onLeftLabelClick}
+                    className="flex items-center px-3 py-2 text-xs text-white/80 active:text-white bg-gray-900/50 border-2 border-gray-700 rounded font-pixel"
+                >
+                    <span>{leftLabel}</span>
                 </button>
             ) : (
                 <div className="w-20" />

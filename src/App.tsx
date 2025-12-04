@@ -8,6 +8,7 @@ import BattleScreenWrapper from "@/pages/BattleScreenWrapper";
 import ResultScreen from "@/pages/ResultScreen";
 import AudioTestPage from "@/pages/AudioTestPage";
 import HomeBaseScreen from "@/pages/HomeBaseScreen";
+import HomeScreen from "@/pages/HomeScreen";
 
 const App = () => (
   <BrowserRouter>
@@ -22,6 +23,7 @@ const App = () => (
         <Route path="/result" element={<ResultScreen />} />
         <Route path="/audio-test" element={<AudioTestPage />} />
         <Route path="/homebase" element={<HomeBaseScreen />} />
+        <Route path="/home" element={<HomeScreen />} />
       </Route>
     </Routes>
   </BrowserRouter>

@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Volume2, VolumeX, Sparkles, Star, Rocket, Play, RotateCcw } from 'lucide-react';
+import { Volume2, VolumeX, Play, RotateCcw } from 'lucide-react';
 import { Header } from '@/components/ui/Header';
 import { PixelCard } from '@/components/ui/PixelCard';
 import { PixelButton } from '@/components/ui/PixelButton';
 import { audioEngine } from '@/audio';
-import { loadPlayerStats, getRankForXP, getNextRank, getXPProgress, savePlayerStats } from '@/utils/gameLogic';
-import { initializeCampaignProgress, getTotalStarsEarned, getCompletedWaypointsCount, getTotalWaypoints } from '@/utils/campaignLogic';
+import { savePlayerStats, loadPlayerStats } from '@/utils/gameLogic';
+import { initializeCampaignProgress } from '@/utils/campaignLogic';
 
-const HomeBaseScreen: React.FC = () => {
+const HomeScreen: React.FC = () => {
     const navigate = useNavigate();
-    const [stats, setStats] = useState(() => loadPlayerStats());
-    const progress = stats.campaignProgress || initializeCampaignProgress();
 
     // Reset confirmation modal state
     const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -24,7 +22,6 @@ const HomeBaseScreen: React.FC = () => {
             campaignProgress: initializeCampaignProgress(),
         };
         savePlayerStats(freshStats);
-        setStats(freshStats);
         setShowResetConfirm(false);
     };
 
@@ -141,19 +138,8 @@ const HomeBaseScreen: React.FC = () => {
         audioEngine.playSpeech('humanTaunt1');
     };
 
-    // Stats calculations
-    const totalStars = getTotalStarsEarned(progress);
-    const completedWaypoints = getCompletedWaypointsCount(progress);
-    const totalWaypoints = getTotalWaypoints();
-    const completedStages = progress.completedLegs.length;
-
-    // Rank calculations
-    const currentRank = getRankForXP(stats.totalXP);
-    const nextRank = getNextRank(stats.totalXP);
-    const xpProgress = getXPProgress(stats.totalXP);
-
     return (
-        <div className="flex-1 flex relative overflow-hidden">
+        <div className="flex-1 flex relative overflow-hidden overscroll-none touch-pan-y">
             {/* Background Image - covers full height, aligned left */}
             <div
                 className="absolute inset-0 z-0"
@@ -175,106 +161,10 @@ const HomeBaseScreen: React.FC = () => {
                 fixed
             />
 
-            {/* Main content area - centered panels side by side */}
+            {/* Main content area - centered panel */}
             <div className="relative z-10 flex items-center justify-center w-full p-4 pt-24">
-                <div className="flex flex-col md:flex-row md:items-start gap-4 max-h-[calc(100vh-7rem)] overflow-y-auto">
-                    {/* Left column - Pilot Stats & Ship */}
-                    <div className="flex flex-col gap-4 w-80">
-                    <PixelCard className="p-8 bg-industrial-dark/95 backdrop-blur-sm">
-                        <h2 className="text-brand-accent font-pixel text-base mb-4 text-center">
-                            PILOT STATS
-                        </h2>
-
-                        {/* Player Rank Badge */}
-                        <div className="flex flex-col items-center mb-4 pb-4 border-b border-industrial-metal">
-                            <div className="w-32 h-32 flex items-center justify-center mb-3">
-                                <img
-                                    src={currentRank.badge}
-                                    alt={currentRank.name}
-                                    className="w-full h-full object-contain"
-                                    style={{ imageRendering: 'pixelated' }}
-                                />
-                            </div>
-                            <div className="text-center">
-                                <div className="text-brand-accent font-pixel text-lg uppercase">{currentRank.name}</div>
-                                <div className="text-industrial-highlight text-sm font-pixel mt-1">
-                                    {stats.totalXP.toLocaleString()} XP
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* XP Progress to Next Rank */}
-                        <div className="mb-3">
-                            <div className="text-industrial-highlight font-pixel text-[10px] mb-1">
-                                {nextRank ? 'PROGRESS TO NEXT RANK' : 'MAX RANK ACHIEVED'}
-                            </div>
-                            {nextRank && (
-                                <div className="text-brand-secondary font-pixel text-xs mb-1">
-                                    {xpProgress.current.toLocaleString()} / {xpProgress.next.toLocaleString()}
-                                </div>
-                            )}
-                            <div className="h-2 bg-industrial-metal rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-gradient-to-r from-brand-accent to-brand-secondary transition-all"
-                                    style={{ width: `${Math.round(xpProgress.progress * 100)}%` }}
-                                />
-                            </div>
-                            {nextRank && (
-                                <div className="flex items-center gap-2 mt-2">
-                                    <span className="text-industrial-highlight text-xs font-pixel whitespace-nowrap">NEXT:</span>
-                                    <span className="text-brand-secondary text-xs font-pixel whitespace-nowrap">{nextRank.name}</span>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Stars */}
-                        <div className="flex items-center justify-between mb-3 py-2 border-y border-industrial-metal">
-                            <div className="flex items-center gap-2">
-                                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                                <span className="text-industrial-highlight text-xs font-pixel">STARS EARNED</span>
-                            </div>
-                            <span className="text-yellow-400 font-pixel">{totalStars}</span>
-                        </div>
-
-                        {/* Progress */}
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                                <Rocket className="w-4 h-4 text-brand-secondary" />
-                                <span className="text-industrial-highlight text-xs font-pixel">MISSIONS</span>
-                            </div>
-                            <span className="text-white font-pixel">{completedWaypoints} / {totalWaypoints}</span>
-                        </div>
-
-                        {/* Stages */}
-                        <div className="flex items-center justify-between mb-4 pb-4 border-b border-industrial-metal">
-                            <div className="flex items-center gap-2">
-                                <Sparkles className="w-4 h-4 text-brand-success" />
-                                <span className="text-industrial-highlight text-xs font-pixel">PLANETS CLEARED</span>
-                            </div>
-                            <span className="text-brand-success font-pixel">{completedStages}</span>
-                        </div>
-
-                        {/* Spaceship display - now inside Pilot Stats */}
-                        <h3 className="text-brand-secondary font-pixel text-sm mb-3 text-center">YOUR SHIP</h3>
-                        <div className="flex justify-center">
-                            <video
-                                src="/assets/video/ShipRotate.mp4"
-                                autoPlay
-                                loop
-                                muted
-                                playsInline
-                                className="w-32 h-32 object-contain"
-                            />
-                        </div>
-                        <div className="text-center mt-2">
-                            <div className="text-white font-pixel text-sm">STELLAR FALCON</div>
-                            <div className="text-industrial-highlight text-xs font-pixel">CLASS: INTERCEPTOR</div>
-                        </div>
-                    </PixelCard>
-                    </div>
-
-                    {/* Right column - Audio Settings */}
-                    <div className="flex flex-col gap-4 w-80">
+                <div className="flex flex-col gap-4 w-80">
+                    {/* Audio Settings */}
                     <PixelCard className="p-8 bg-industrial-dark/95 backdrop-blur-sm h-fit">
                         <h2 className="text-brand-accent font-pixel text-base mb-4 text-center">
                             AUDIO SETTINGS
@@ -416,7 +306,6 @@ const HomeBaseScreen: React.FC = () => {
                             RESET PROGRESS
                         </PixelButton>
                     </PixelCard>
-                    </div>
                 </div>
             </div>
 
@@ -453,5 +342,4 @@ const HomeBaseScreen: React.FC = () => {
     );
 };
 
-export default HomeBaseScreen;
-
+export default HomeScreen;

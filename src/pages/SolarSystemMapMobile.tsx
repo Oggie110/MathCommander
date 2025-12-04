@@ -2,12 +2,12 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PixelButton } from '@/components/ui/PixelButton';
 import { AnimatedPlanet, planetImages, SpaceBackground } from '@/components/game';
-import { loadPlayerStats, savePlayerStats, getRankForXP } from '@/utils/gameLogic';
+import { loadPlayerStats, savePlayerStats, getRankForXP, getNextRank, getXPProgress } from '@/utils/gameLogic';
 import { RANKS } from '@/types/game';
-import { initializeCampaignProgress, getLegById, getLegIndex, checkForMilestone, markMilestoneSeen } from '@/utils/campaignLogic';
+import { initializeCampaignProgress, getLegById, getLegIndex, checkForMilestone, markMilestoneSeen, getTotalStarsEarned, getCompletedWaypointsCount, getTotalWaypoints } from '@/utils/campaignLogic';
 import { celestialBodies, campaignLegs, getChapterName } from '@/data/campaignRoute';
 import type { CelestialBody, Leg } from '@/data/campaignRoute';
-import { Lock, Star, Radio } from 'lucide-react';
+import { Lock, Star, Radio, ChevronRight, Sparkles, Rocket } from 'lucide-react';
 import { Header } from '@/components/ui/Header';
 import { audioEngine } from '@/audio';
 import { speechService } from '@/audio/SpeechService';
@@ -169,6 +169,10 @@ const SolarSystemMapMobile: React.FC = () => {
     // Rank-up modal state
     const [rankUpModal, setRankUpModal] = useState<{ show: boolean; rank: typeof RANKS[0] | null }>({ show: false, rank: null });
 
+    // Stats panel overlay state
+    const [showStatsPanel, setShowStatsPanel] = useState(false);
+    const [statsPanelVisible, setStatsPanelVisible] = useState(false);
+
     // Start menu music
     useEffect(() => {
         audioEngine.playMusic('menuMusic');
@@ -326,6 +330,8 @@ const SolarSystemMapMobile: React.FC = () => {
             {/* Fixed Header */}
             <Header
                 showBackButton={false}
+                leftLabel="HOME"
+                onLeftLabelClick={() => navigate('/home')}
                 title="Mission Map"
                 fixed
             />
@@ -343,7 +349,7 @@ const SolarSystemMapMobile: React.FC = () => {
             />
 
             {/* Scrollable map area with space background */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto pt-14 relative" style={{ paddingBottom: '100px' }}>
+            <div ref={scrollRef} className="flex-1 overflow-y-auto pt-14 relative" style={{ paddingBottom: '150px' }}>
                 {/* Space background - same as StartScreen */}
                 <SpaceBackground />
 
@@ -447,48 +453,44 @@ const SolarSystemMapMobile: React.FC = () => {
                 </div>
             </div>
 
-            {/* Fixed Bottom Panel */}
+            {/* Fixed Bottom Panel - clickable to show Stats overlay */}
             <div
-                className="fixed bottom-0 left-0 right-0 z-20"
+                className="fixed bottom-0 left-0 right-0 z-20 cursor-pointer"
                 style={{ paddingBottom: 'var(--safe-area-bottom)' }}
+                onClick={() => {
+                    audioEngine.playSFX('shipSlide3');
+                    setShowStatsPanel(true);
+                    requestAnimationFrame(() => setStatsPanelVisible(true));
+                }}
             >
                 <div className="p-4 max-w-xl mx-auto">
-                    <div className="bg-gray-900/80 border-4 border-gray-700 p-4">
-                        <div className="flex items-start gap-4">
-                            {/* Home Base Button */}
-                            <button
-                                onClick={() => navigate('/homebase')}
-                                className="flex-shrink-0 active:scale-95 transition-transform"
-                            >
+                    <div className="bg-gray-900/80 border-4 border-cyan-600/50 p-4 active:bg-gray-800/80 transition-colors"
+                        style={{ boxShadow: '0 0 12px rgba(0, 200, 255, 0.3)' }}
+                    >
+                        <div className="flex items-center gap-4">
+                            {/* Rank Badge */}
+                            <div className="flex-shrink-0">
                                 <img
-                                    src={planetImages.earth}
-                                    alt="Earth"
+                                    src={currentRank.badge}
+                                    alt={currentRank.name}
                                     className="w-16 h-16"
                                     style={{ imageRendering: 'pixelated' }}
                                 />
-                            </button>
+                            </div>
 
                             {/* Info Content */}
                             <div className="flex-1 min-w-0">
-                                <h2 className="text-lg font-bold text-white mb-2">
-                                    Home Base
-                                </h2>
-                                <div className="flex items-center gap-2 mb-2">
-                                    <img
-                                        src={currentRank.badge}
-                                        alt={currentRank.name}
-                                        className="w-6 h-6"
-                                        style={{ imageRendering: 'pixelated' }}
-                                    />
-                                    <span className="text-xs text-cyan-400 font-bold uppercase">
-                                        {currentRank.name}
-                                    </span>
+                                <div className="text-xs text-cyan-400 font-bold uppercase mb-1">
+                                    {currentRank.name}
                                 </div>
                                 <div className="text-xs">
                                     <span className="text-gray-500">Total XP: </span>
-                                    <span className="text-green-400">{stats.totalXP.toLocaleString()}</span>
+                                    <span className="text-yellow-400">{stats.totalXP.toLocaleString()}</span>
                                 </div>
                             </div>
+
+                            {/* Chevron indicator */}
+                            <ChevronRight className="w-6 h-6 text-cyan-400 flex-shrink-0 animate-pulse" />
                         </div>
                     </div>
                 </div>
@@ -542,6 +544,147 @@ const SolarSystemMapMobile: React.FC = () => {
                     </PixelCard>
                 </div>
             )}
+
+            {/* Stats Panel Overlay */}
+            {showStatsPanel && (() => {
+                const totalStars = getTotalStarsEarned(progress);
+                const completedWaypoints = getCompletedWaypointsCount(progress);
+                const totalWaypoints = getTotalWaypoints();
+                const completedStages = progress.completedLegs.length;
+                const nextRank = getNextRank(stats.totalXP);
+                const xpProgress = getXPProgress(stats.totalXP);
+
+                const handleClose = () => {
+                    audioEngine.playSFX('shipSlide3');
+                    setStatsPanelVisible(false);
+                    setTimeout(() => setShowStatsPanel(false), 300);
+                };
+
+                return (
+                    <div
+                        className="fixed inset-0 z-50 transition-transform duration-300 ease-out"
+                        style={{ transform: statsPanelVisible ? 'translateX(0)' : 'translateX(100%)' }}
+                    >
+                        {/* Background Image */}
+                        <div
+                            className="absolute inset-0 z-0"
+                            style={{
+                                backgroundImage: 'url(/assets/images/ui/misc/homebase2.png)',
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center center',
+                                backgroundRepeat: 'no-repeat',
+                            }}
+                        />
+
+                        {/* Dark overlay */}
+                        <div className="absolute inset-0 z-0 bg-black/70" />
+
+                        {/* Header */}
+                        <Header
+                            showBackButton={true}
+                            onBackClick={handleClose}
+                            fixed
+                        />
+
+                        {/* Main content */}
+                        <div className="relative z-10 flex items-center justify-center w-full h-full p-4 pt-24">
+                            <div className="flex flex-col gap-4 w-80">
+                                <PixelCard className="p-8 bg-industrial-dark/95 backdrop-blur-sm">
+                                    <h2 className="text-brand-accent font-pixel text-base mb-4 text-center">
+                                        PILOT STATS
+                                    </h2>
+
+                                    {/* Player Rank Badge */}
+                                    <div className="flex flex-col items-center mb-4 pb-4 border-b border-industrial-metal">
+                                        <div className="w-32 h-32 flex items-center justify-center mb-3">
+                                            <img
+                                                src={currentRank.badge}
+                                                alt={currentRank.name}
+                                                className="w-full h-full object-contain"
+                                                style={{ imageRendering: 'pixelated' }}
+                                            />
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="text-gray-300 font-pixel text-lg uppercase">{currentRank.name}</div>
+                                            <div className="text-yellow-400 text-sm font-pixel mt-1">
+                                                {stats.totalXP.toLocaleString()} XP
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* XP Progress to Next Rank */}
+                                    <div className="mb-3">
+                                        <div className="text-industrial-highlight font-pixel text-[10px] mb-1">
+                                            {nextRank ? 'PROGRESS TO NEXT RANK' : 'MAX RANK ACHIEVED'}
+                                        </div>
+                                        {nextRank && (
+                                            <div className="text-brand-secondary font-pixel text-xs mb-1">
+                                                {xpProgress.current.toLocaleString()} / {xpProgress.next.toLocaleString()}
+                                            </div>
+                                        )}
+                                        <div className="h-2 bg-industrial-metal rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-brand-accent to-brand-secondary transition-all"
+                                                style={{ width: `${Math.round(xpProgress.progress * 100)}%` }}
+                                            />
+                                        </div>
+                                        {nextRank && (
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <span className="text-industrial-highlight text-xs font-pixel whitespace-nowrap">NEXT:</span>
+                                                <span className="text-brand-secondary text-xs font-pixel whitespace-nowrap">{nextRank.name}</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Stars */}
+                                    <div className="flex items-center justify-between mb-3 py-2 border-y border-industrial-metal">
+                                        <div className="flex items-center gap-2">
+                                            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                                            <span className="text-industrial-highlight text-xs font-pixel">STARS EARNED</span>
+                                        </div>
+                                        <span className="text-yellow-400 font-pixel">{totalStars}</span>
+                                    </div>
+
+                                    {/* Progress */}
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-2">
+                                            <Rocket className="w-4 h-4 text-brand-secondary" />
+                                            <span className="text-industrial-highlight text-xs font-pixel">MISSIONS</span>
+                                        </div>
+                                        <span className="text-white font-pixel">{completedWaypoints} / {totalWaypoints}</span>
+                                    </div>
+
+                                    {/* Stages */}
+                                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-industrial-metal">
+                                        <div className="flex items-center gap-2">
+                                            <Sparkles className="w-4 h-4 text-brand-success" />
+                                            <span className="text-industrial-highlight text-xs font-pixel">PLANETS CLEARED</span>
+                                        </div>
+                                        <span className="text-brand-success font-pixel">{completedStages}</span>
+                                    </div>
+
+                                    {/* Spaceship display */}
+                                    <h3 className="text-brand-secondary font-pixel text-sm mb-3 text-center">YOUR SHIP</h3>
+                                    <div className="flex justify-center">
+                                        <video
+                                            src="/assets/video/ShipRotate.mp4"
+                                            autoPlay
+                                            loop
+                                            muted
+                                            playsInline
+                                            className="w-32 h-32 object-contain"
+                                        />
+                                    </div>
+                                    <div className="text-center mt-2">
+                                        <div className="text-white font-pixel text-sm">STELLAR FALCON</div>
+                                        <div className="text-industrial-highlight text-xs font-pixel">CLASS: INTERCEPTOR</div>
+                                    </div>
+                                </PixelCard>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 };
