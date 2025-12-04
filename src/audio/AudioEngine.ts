@@ -10,6 +10,12 @@ const isIOS = (): boolean => {
     return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 };
 
+// HTML5 fallback volume adjustments (iOS tends to be louder/harsher)
+const HTML5_MUSIC_VOLUME_MULTIPLIER = 0.7; // Lower music volume in HTML5 mode
+const HTML5_SFX_VOLUME_OVERRIDES: Record<string, number> = {
+    starEarned: 0.5, // Star sound is too loud in HTML5 mode - reduce to 50%
+};
+
 class AudioEngine {
     private context: AudioContext | null = null;
     private useHTML5Fallback = false; // Will be set to true on iOS if Web Audio fails
@@ -20,6 +26,8 @@ class AudioEngine {
     private html5AmbienceBaseVolumes: Map<string, number> = new Map(); // Base volumes for ambience tracks
     private html5Speech: HTMLAudioElement | null = null; // Current speech element for iOS
     private html5SFXPool: Map<string, HTMLAudioElement[]> = new Map(); // Pool of preloaded SFX for iOS
+    private html5SpeechPool: Map<string, HTMLAudioElement> = new Map(); // Preloaded speech elements for iOS
+    private html5MusicPool: Map<string, HTMLAudioElement> = new Map(); // Preloaded music elements for iOS
     private masterGain: GainNode | null = null;
     private musicGain: GainNode | null = null;
     private sfxGain: GainNode | null = null;
@@ -299,13 +307,27 @@ class AudioEngine {
         const sound = SOUNDS[soundId];
         if (!sound) return;
 
-        // On iOS with HTML5 fallback, preload SFX into pool for instant playback
-        if (this.useHTML5Fallback && sound.category === 'sfx') {
-            console.log('[AudioEngine] preload iOS SFX:', soundId);
-            if (!this.html5SFXPool.has(soundId)) {
-                await this.preloadHTML5SFX(soundId);
-                console.log('[AudioEngine] preloaded iOS SFX pool:', soundId, this.html5SFXPool.get(soundId)?.length);
+        // On iOS with HTML5 fallback, preload into appropriate pools
+        if (this.useHTML5Fallback) {
+            if (sound.category === 'sfx') {
+                if (!this.html5SFXPool.has(soundId)) {
+                    await this.preloadHTML5SFX(soundId);
+                }
+                return;
             }
+            if (sound.category === 'speech') {
+                if (!this.html5SpeechPool.has(soundId)) {
+                    await this.preloadHTML5Speech(soundId);
+                }
+                return;
+            }
+            if (sound.category === 'music') {
+                if (!this.html5MusicPool.has(soundId)) {
+                    await this.preloadHTML5Music(soundId);
+                }
+                return;
+            }
+            // Ambience - just skip for now, it's created on demand
             return;
         }
 
@@ -329,6 +351,63 @@ class AudioEngine {
         } catch {
             // Failed to preload
         }
+    }
+
+    /**
+     * Preload speech into HTML5 audio element for instant playback on iOS
+     */
+    private async preloadHTML5Speech(soundId: string): Promise<void> {
+        const sound = SOUNDS[soundId];
+        if (!sound) return;
+
+        return new Promise((resolve) => {
+            const audio = new Audio(sound.src);
+            audio.preload = 'auto';
+
+            audio.oncanplaythrough = () => {
+                this.html5SpeechPool.set(soundId, audio);
+                resolve();
+            };
+            audio.onerror = () => {
+                resolve(); // Don't block on error
+            };
+            // Timeout fallback
+            setTimeout(() => {
+                this.html5SpeechPool.set(soundId, audio);
+                resolve();
+            }, 5000);
+
+            audio.load();
+        });
+    }
+
+    /**
+     * Preload music into HTML5 audio element for instant playback on iOS
+     */
+    private async preloadHTML5Music(soundId: string): Promise<void> {
+        const sound = SOUNDS[soundId];
+        if (!sound) return;
+
+        return new Promise((resolve) => {
+            const audio = new Audio(sound.src);
+            audio.preload = 'auto';
+            audio.loop = sound.loop ?? true;
+
+            audio.oncanplaythrough = () => {
+                this.html5MusicPool.set(soundId, audio);
+                resolve();
+            };
+            audio.onerror = () => {
+                resolve(); // Don't block on error
+            };
+            // Timeout fallback
+            setTimeout(() => {
+                this.html5MusicPool.set(soundId, audio);
+                resolve();
+            }, 5000);
+
+            audio.load();
+        });
     }
 
     /**
@@ -385,59 +464,69 @@ class AudioEngine {
 
     /**
      * Get an available audio element from the pool (or create new one)
+     * Returns { audio, isPreloaded } to track if this was from pool or on-demand
      */
-    private getHTML5SFXFromPool(soundId: string): HTMLAudioElement | null {
+    private getHTML5SFXFromPool(soundId: string): { audio: HTMLAudioElement; isPreloaded: boolean } | null {
         const sound = SOUNDS[soundId];
         if (!sound) return null;
 
         const pool = this.html5SFXPool.get(soundId);
-        if (pool) {
+        if (pool && pool.length > 0) {
             // Find one that's not playing
             for (const audio of pool) {
                 if (audio.paused || audio.ended) {
                     audio.currentTime = 0;
-                    return audio;
+                    return { audio, isPreloaded: true };
                 }
             }
-            // All busy, create a new one and add to pool
+            // All busy, create a new one and add to pool (still counts as "from pool")
             const audio = new Audio(sound.src);
             pool.push(audio);
-            return audio;
+            return { audio, isPreloaded: false }; // New element, will have latency
         }
 
-        // No pool, create new audio element
-        return new Audio(sound.src);
+        // No pool at all - create new audio element on demand (will have latency!)
+        return { audio: new Audio(sound.src), isPreloaded: false };
     }
 
     /**
      * Play a sound effect using HTML5 Audio (iOS fallback)
+     * Uses preloaded pool if available for instant playback
      */
     private playHTML5SFX(soundId: string, options: PlayOptions = {}): void {
         const sound = SOUNDS[soundId];
         if (!sound) return;
 
         try {
-            const pool = this.html5SFXPool.get(soundId);
-            console.log('[AudioEngine] playHTML5SFX:', { soundId, poolSize: pool?.length ?? 0, hasPool: !!pool });
-
-            const audio = this.getHTML5SFXFromPool(soundId);
-            if (!audio) {
-                console.log('[AudioEngine] playHTML5SFX: no audio element from pool');
+            const result = this.getHTML5SFXFromPool(soundId);
+            if (!result) {
+                console.log('[AudioEngine] playHTML5SFX: sound not found:', soundId);
                 return;
             }
 
-            const volume = (options.volume ?? sound.volume ?? 1) * this.volumes.sfx * this.volumes.master;
+            const { audio, isPreloaded } = result;
+
+            if (!isPreloaded) {
+                console.log('[AudioEngine] playHTML5SFX: NOT PRELOADED, loading on demand (will have latency):', soundId);
+            }
+
+            // Apply HTML5-specific volume override if defined (e.g., starEarned at 50%)
+            const html5Multiplier = HTML5_SFX_VOLUME_OVERRIDES[soundId] ?? 1;
+            const volume = (options.volume ?? sound.volume ?? 1) * this.volumes.sfx * this.volumes.master * html5Multiplier;
             audio.volume = Math.min(1, Math.max(0, volume));
             audio.playbackRate = options.pitch ?? 1;
-            console.log('[AudioEngine] playHTML5SFX playing:', { soundId, volume: audio.volume, readyState: audio.readyState });
-            audio.play().catch((e) => { console.log('[AudioEngine] playHTML5SFX play error:', e); });
+
+            audio.play().catch((e) => {
+                console.log('[AudioEngine] playHTML5SFX play error:', soundId, e);
+            });
         } catch (e) {
-            console.log('[AudioEngine] playHTML5SFX exception:', e);
+            console.log('[AudioEngine] playHTML5SFX exception:', soundId, e);
         }
     }
 
     /**
      * Play music using HTML5 Audio (iOS fallback)
+     * Uses preloaded audio if available for instant start
      */
     private playHTML5Music(soundId: string, options: MusicOptions = {}): void {
         const sound = SOUNDS[soundId];
@@ -454,28 +543,42 @@ class AudioEngine {
         }
 
         try {
-            const audio = new Audio(sound.src);
+            // Use preloaded audio if available, otherwise create new
+            let audio = this.html5MusicPool.get(soundId);
+
+            if (!audio) {
+                // Not preloaded - create on demand (will have latency)
+                console.log('[AudioEngine] playHTML5Music: not preloaded, loading on demand:', soundId);
+                audio = new Audio(sound.src);
+            } else {
+                // Remove from pool since music elements can't be reused while playing
+                this.html5MusicPool.delete(soundId);
+            }
+
             audio.loop = sound.loop ?? true;
+            audio.currentTime = 0;
             const baseVolume = sound.volume ?? 1;
             this.html5MusicBaseVolume = baseVolume;
             audio.volume = 0; // Start at 0 for fade in
 
             audio.play().then(() => {
-                // Fade in - use current user volume settings
+                // Fade in - use current user volume settings with HTML5 multiplier
                 const fadeIn = options.fadeIn ?? options.crossfade ?? 800;
                 const steps = 20;
                 const stepTime = fadeIn / steps;
                 let step = 0;
                 const fadeInterval = setInterval(() => {
                     step++;
-                    // Always use current volume settings during fade
-                    const targetVolume = this.html5MusicBaseVolume * this.volumes.music * this.volumes.master;
-                    audio.volume = Math.min(1, Math.max(0, (step / steps) * targetVolume));
+                    // Always use current volume settings during fade (with HTML5 music multiplier)
+                    const targetVolume = this.html5MusicBaseVolume * this.volumes.music * this.volumes.master * HTML5_MUSIC_VOLUME_MULTIPLIER;
+                    audio!.volume = Math.min(1, Math.max(0, (step / steps) * targetVolume));
                     if (step >= steps) {
                         clearInterval(fadeInterval);
                     }
                 }, stepTime);
-            }).catch(() => { /* ignore */ });
+            }).catch((e) => {
+                console.log('[AudioEngine] playHTML5Music play error:', soundId, e);
+            });
 
             this.html5Music = audio;
             this.html5MusicId = soundId;
@@ -575,6 +678,7 @@ class AudioEngine {
 
     /**
      * Play speech using HTML5 Audio (iOS fallback)
+     * Uses preloaded audio if available, otherwise loads on demand
      */
     private playHTML5Speech(soundId: string, options: PlayOptions = {}): Promise<void> {
         return new Promise((resolve) => {
@@ -587,12 +691,22 @@ class AudioEngine {
             // Stop any current speech
             if (this.html5Speech) {
                 this.html5Speech.pause();
-                this.html5Speech.src = '';
-                this.html5Speech = null;
+                this.html5Speech.currentTime = 0;
+                // Don't clear src - we want to reuse preloaded audio
             }
 
             try {
-                const audio = new Audio(sound.src);
+                // Use preloaded audio if available, otherwise create new
+                let audio = this.html5SpeechPool.get(soundId);
+                const isPreloaded = !!audio;
+
+                if (!audio) {
+                    // Not preloaded - create on demand (will have latency)
+                    console.log('[AudioEngine] playHTML5Speech: not preloaded, loading on demand:', soundId);
+                    audio = new Audio(sound.src);
+                }
+
+                audio.currentTime = 0;
                 const volume = (options.volume ?? sound.volume ?? 0.8) * this.volumes.speech * this.volumes.master;
                 audio.volume = Math.min(1, Math.max(0, volume));
 
@@ -604,10 +718,17 @@ class AudioEngine {
 
                 audio.onerror = () => {
                     this.html5Speech = null;
+                    // Remove from pool if it failed
+                    if (isPreloaded) {
+                        this.html5SpeechPool.delete(soundId);
+                    }
                     resolve();
                 };
 
-                audio.play().catch(() => resolve());
+                audio.play().catch((e) => {
+                    console.log('[AudioEngine] playHTML5Speech play error:', soundId, e);
+                    resolve();
+                });
 
                 this.html5Speech = audio;
             } catch {
@@ -1481,9 +1602,9 @@ class AudioEngine {
         if (this.musicGain) {
             this.musicGain.gain.value = this.volumes.music;
         }
-        // Update HTML5 music volume on iOS (include base track volume)
+        // Update HTML5 music volume on iOS (include base track volume and HTML5 multiplier)
         if (this.html5Music) {
-            const volume = this.html5MusicBaseVolume * this.volumes.music * this.volumes.master;
+            const volume = this.html5MusicBaseVolume * this.volumes.music * this.volumes.master * HTML5_MUSIC_VOLUME_MULTIPLIER;
             this.html5Music.volume = Math.min(1, Math.max(0, volume));
             console.log('[AudioEngine] setMusicVolume iOS:', { value, baseVol: this.html5MusicBaseVolume, master: this.volumes.master, finalVol: this.html5Music.volume });
         } else {
@@ -1532,7 +1653,7 @@ class AudioEngine {
      */
     private updateHTML5Volumes(): void {
         if (this.html5Music) {
-            const volume = this.html5MusicBaseVolume * this.volumes.music * this.volumes.master;
+            const volume = this.html5MusicBaseVolume * this.volumes.music * this.volumes.master * HTML5_MUSIC_VOLUME_MULTIPLIER;
             this.html5Music.volume = Math.min(1, Math.max(0, volume));
         }
         for (const [soundId, audio] of this.html5Ambience.entries()) {

@@ -45,9 +45,17 @@ Changed from 3 to 5 copies per sound in AudioEngine.ts
 **File:** `src/audio/AudioEngine.ts`
 - `preloadHTML5SFX()` default poolSize changed from 3 to 5
 
+#### 3. ✅ DONE - Lower HTML5 Audio Volumes
+Music and specific SFX were too loud in HTML5 mode (iOS). Added volume multipliers:
+
+**File:** `src/audio/AudioEngine.ts`
+- `HTML5_MUSIC_VOLUME_MULTIPLIER = 0.7` - Reduces music to 70% volume in HTML5 mode
+- `HTML5_SFX_VOLUME_OVERRIDES` map - Allows per-sound volume adjustments
+  - `starEarned: 0.5` - Star sound reduced to 50% in HTML5 mode
+
 ### Medium Effort
 
-#### 3. Add Background Preloading of Speech Files
+#### 4. Add Background Preloading of Speech Files
 After app starts, silently preload commonly-used sounds in the background.
 
 **Implementation:**
@@ -55,7 +63,7 @@ After app starts, silently preload commonly-used sounds in the background.
 - Prioritize: encouragement lines, common alien taunts, boss defeat lines
 - Use `requestIdleCallback` or setTimeout to avoid blocking UI
 
-#### 4. Preload Core SFX Earlier
+#### 5. Preload Core SFX Earlier
 Move critical sounds (laser, explosion, buttons) to preload on app init, not just on "Start Mission" click.
 
 **File:** `src/pages/StartScreen.tsx` or create an audio init hook
