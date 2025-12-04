@@ -11,7 +11,8 @@ import {
 } from "../tokens/effects";
 import { fontFamilies as rawFontFamilies, fontWeights, typography } from "../tokens/typography";
 
-type NestedToken = Record<string, string | NestedToken>;
+type NestedTokenValue = string | Record<string, unknown>;
+type NestedToken = Record<string, NestedTokenValue>;
 
 type TailwindExtend = {
   colors: Record<string, unknown>;

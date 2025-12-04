@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { loadPlayerStats, savePlayerStats, updateWeakAreas, calculateXP } from '@/utils/gameLogic';
 import { initializeCampaignProgress, completeMission } from '@/utils/campaignLogic';
 import { isFinalBoss as checkIsFinalBoss } from '@/data/narrative';
-import { useSFX } from '@/audio';
+import { useSFX, audioEngine } from '@/audio';
 import { speechService } from '@/audio/SpeechService';
 import { selectVictoryLine, selectDefeatLine } from '@/audio/speechSounds';
 import { useBattleInit, useBattleAnimations, type LocationState } from '@/hooks/battle';
