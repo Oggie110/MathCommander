@@ -350,6 +350,14 @@ const BattleScreen: React.FC = () => {
 
         savePlayerStats(newStats);
 
+        // Preload result screen sounds for smooth playback
+        audioEngine.preloadAll([
+            'resultPercentage',
+            'resultStarPop',
+            'resultCorrectCount',
+            'resultXP',
+        ]).catch(() => {});
+
         // Store navigation data for when player clicks through victory dialogue
         const navData = {
             questions: finalQuestions,

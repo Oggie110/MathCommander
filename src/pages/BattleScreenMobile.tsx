@@ -309,6 +309,14 @@ const BattleScreenMobile: React.FC = () => {
         };
         savePlayerStats(newStats);
 
+        // Preload result screen sounds for smooth playback
+        audioEngine.preloadAll([
+            'resultPercentage',
+            'resultStarPop',
+            'resultCorrectCount',
+            'resultXP',
+        ]).catch(() => {});
+
         const navData = {
             questions: finalQuestions,
             xpEarned,

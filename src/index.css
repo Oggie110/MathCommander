@@ -387,3 +387,31 @@
 .animate-starPop {
   animation: starPop 0.5s ease-out;
 }
+
+/* XP bounce animation for result screen */
+@keyframes xpBounce {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  20% {
+    transform: scale(2);
+    opacity: 1;
+  }
+  40% {
+    transform: scale(1.6);
+  }
+  60% {
+    transform: scale(1.8);
+  }
+  80% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-xpBounce {
+  animation: xpBounce 0.8s ease-out forwards;
+}

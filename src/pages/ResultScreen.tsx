@@ -223,7 +223,7 @@ const ResultScreen: React.FC = () => {
 
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-4">
-            <SpaceBackground showParallax={false} />
+            <SpaceBackground />
 
             <div className="relative z-10 w-full max-w-lg">
                 {/* Final victory special screen - CRT Style */}
