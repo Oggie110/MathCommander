@@ -183,8 +183,8 @@ const HomeBaseScreen: React.FC = () => {
             </div>
 
             {/* Main content area - centered panels side by side */}
-            <div className="relative z-10 flex items-center justify-center w-full p-4 pt-20">
-                <div className="flex flex-col md:flex-row md:items-start gap-4 max-h-[calc(100vh-6rem)] overflow-y-auto">
+            <div className="relative z-10 flex items-center justify-center w-full p-4 pt-24">
+                <div className="flex flex-col md:flex-row md:items-start gap-4 max-h-[calc(100vh-7rem)] overflow-y-auto">
                     {/* Left column - Pilot Stats & Ship */}
                     <div className="flex flex-col gap-4 w-80">
                     <PixelCard className="p-8 bg-industrial-dark/95 backdrop-blur-sm">
