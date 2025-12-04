@@ -753,7 +753,6 @@ const BattleScreenMobile: React.FC = () => {
                                         key={i}
                                         disabled={showFeedback}
                                         onClick={() => {
-                                            playSFX('buttonClick');
                                             setUserAnswer(opt.toString());
                                             setSelectedAnswer(opt);
                                             setFrozenChoices([...answerChoices]);
