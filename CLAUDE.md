@@ -1,5 +1,10 @@
 # Space Math Commander - Project Guide
 
+## Important Guidelines
+
+### Reverting Failed Fixes
+If a fix does not work and you are asked to revert it, you must remove ALL code traces of that fix unless they added additional functionality. Ask if unsure.
+
 ## Design System Architecture
 
 This project uses a centralized design system with tokens, theme plumbing, and Tailwind integration.

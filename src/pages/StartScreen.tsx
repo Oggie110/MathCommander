@@ -88,28 +88,26 @@ const StartScreen: React.FC = () => {
         log('BRIEFING tapped');
 
         try {
-            // TEST: Try HTML5 Audio directly (bypasses Web Audio API)
-            log('Trying HTML5 Audio element...');
-            const audio = new Audio('/assets/audio/sfx/ambience/mc_ambience_loop.wav');
-            audio.loop = true;
-            audio.volume = 0.3;
-
-            audio.play()
-                .then(() => log('HTML5 Audio: play() succeeded'))
-                .catch((e) => log(`HTML5 Audio: play() failed: ${e}`));
-
-            // Also try Web Audio for comparison
-            log('Step 1: Calling init()...');
+            // Step 1: Initialize AudioEngine (creates context + resume)
+            log('Step 1: Initializing AudioEngine...');
             await audioEngine.init();
-            log(`Step 1 done: ${audioEngine.getDebugState()}`);
+            log(`AudioEngine: ${audioEngine.getDebugState()}`);
 
-            log('Step 2: Preloading menuAmbience...');
+            // Step 2: IMMEDIATELY play oscillator on the SAME context to "unlock" iOS
+            // This must happen before any more async work
+            log('Step 2: Playing unlock oscillator...');
+            audioEngine.playUnlockTone();
+            log('Oscillator started');
+
+            // Step 3: Preload the ambience
+            log('Step 3: Preloading menuAmbience...');
             await audioEngine.preloadAll(['menuAmbience']);
-            log('Step 2 done: Preload complete');
+            log('Preload complete');
 
-            log('Step 3: Starting ambience (Web Audio)...');
+            // Step 4: Start the ambience
+            log('Step 4: Starting ambience...');
             audioEngine.startAmbience('menuAmbience');
-            log(`Step 3 done: ${audioEngine.getDebugState()}`);
+            log(`Final state: ${audioEngine.getDebugState()}`);
 
         } catch (e) {
             log(`ERROR: ${e}`);

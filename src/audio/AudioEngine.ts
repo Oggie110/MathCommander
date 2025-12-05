@@ -257,6 +257,26 @@ class AudioEngine {
     }
 
     /**
+     * Play a nearly-silent oscillator tone to "unlock" iOS audio
+     * Must be called immediately after init() in a user gesture handler
+     */
+    playUnlockTone(): void {
+        if (!this.context) {
+            console.warn('[AudioEngine] playUnlockTone: no context');
+            return;
+        }
+
+        console.log('[AudioEngine] Playing unlock oscillator tone');
+        const osc = this.context.createOscillator();
+        const gain = this.context.createGain();
+        gain.gain.value = 0.0001; // Nearly silent
+        osc.connect(gain);
+        gain.connect(this.context.destination);
+        osc.start();
+        osc.stop(this.context.currentTime + 0.05);
+    }
+
+    /**
      * Force reinitialize the audio engine by destroying and recreating the AudioContext.
      * This is needed for iOS Safari after video playback corrupts the context.
      */
