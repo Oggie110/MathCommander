@@ -88,18 +88,26 @@ const StartScreen: React.FC = () => {
         log('BRIEFING tapped');
 
         try {
-            // Step 1: Init
+            // TEST: Try HTML5 Audio directly (bypasses Web Audio API)
+            log('Trying HTML5 Audio element...');
+            const audio = new Audio('/assets/audio/sfx/ambience/mc_ambience_loop.wav');
+            audio.loop = true;
+            audio.volume = 0.3;
+
+            audio.play()
+                .then(() => log('HTML5 Audio: play() succeeded'))
+                .catch((e) => log(`HTML5 Audio: play() failed: ${e}`));
+
+            // Also try Web Audio for comparison
             log('Step 1: Calling init()...');
             await audioEngine.init();
             log(`Step 1 done: ${audioEngine.getDebugState()}`);
 
-            // Step 2: Preload
             log('Step 2: Preloading menuAmbience...');
             await audioEngine.preloadAll(['menuAmbience']);
             log('Step 2 done: Preload complete');
 
-            // Step 3: Start ambience
-            log('Step 3: Starting ambience...');
+            log('Step 3: Starting ambience (Web Audio)...');
             audioEngine.startAmbience('menuAmbience');
             log(`Step 3 done: ${audioEngine.getDebugState()}`);
 
