@@ -145,7 +145,12 @@ const StartScreen: React.FC = () => {
         // Music will start on the map screen
     };
 
-    const handleSkipCinematic = () => {
+    const handleSkipCinematic = async () => {
+        console.log('[StartScreen] Skip cinematic tapped - resuming audio context');
+        // iOS: Resume context during user gesture
+        await audioEngine.resume();
+
+        console.log('[StartScreen] Playing transition SFX and menu music');
         audioEngine.playSFX('transition');
         // Start music here during user gesture (required for iOS)
         audioEngine.playMusic('menuMusic');

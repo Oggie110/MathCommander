@@ -241,11 +241,25 @@ class AudioEngine {
     }
 
     /**
-     * Resume audio context (needed after tab loses focus in some browsers)
+     * Resume audio context (needed after tab loses focus or iOS suspensions)
+     * Should be called during user gestures on iOS
      */
     async resume(): Promise<void> {
-        if (this.context?.state === 'suspended') {
+        if (!this.context) return;
+
+        console.log('[AudioEngine] resume called, current state:', this.context.state);
+
+        if (this.context.state === 'suspended') {
             await this.context.resume();
+            console.log('[AudioEngine] After resume(), state:', this.context.state);
+
+            // Play silent buffer to ensure iOS is fully unlocked
+            const buffer = this.context.createBuffer(1, 1, 22050);
+            const source = this.context.createBufferSource();
+            source.buffer = buffer;
+            source.connect(this.context.destination);
+            source.start(0);
+            console.log('[AudioEngine] Silent buffer played during resume');
         }
     }
 
