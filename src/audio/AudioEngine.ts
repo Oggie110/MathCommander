@@ -103,7 +103,13 @@ class AudioEngine {
         try {
             // Use webkitAudioContext for older iOS Safari
             const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-            this.context = new AudioContextClass();
+
+            // iOS devices use 48kHz - specify this to avoid sample rate mismatch
+            const options: AudioContextOptions = {
+                sampleRate: 48000,
+                latencyHint: 'interactive'
+            };
+            this.context = new AudioContextClass(options);
 
             console.log('[AudioEngine] AudioContext created, initial state:', this.context.state);
 

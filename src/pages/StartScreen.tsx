@@ -84,39 +84,27 @@ const StartScreen: React.FC = () => {
         setStage('ready');
     };
 
-    // HTML5 Audio element for iOS fallback (persists across renders)
-    const html5AmbienceRef = useRef<HTMLAudioElement | null>(null);
-
     const handleBriefing = async () => {
         log('BRIEFING tapped');
 
-        // Detect iOS
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
         try {
-            if (isIOS) {
-                // iOS: Use HTML5 Audio for ambience (only reliable method)
-                log('iOS detected - using HTML5 Audio for ambience');
-                const audio = new Audio('/assets/audio/sfx/ambience/mc_ambience_loop.wav');
-                audio.loop = true;
-                audio.volume = 0.3;
-                html5AmbienceRef.current = audio;
+            // Test: Web Audio with 48kHz sample rate for iOS
+            log('Step 1: Initializing AudioEngine (48kHz)...');
+            await audioEngine.init();
+            log(`AudioEngine: ${audioEngine.getDebugState()}`);
 
-                await audio.play();
-                log('HTML5 Audio playing!');
+            log('Step 2: Playing unlock tone...');
+            audioEngine.playUnlockTone();
+            log('Unlock tone played');
 
-                // Still init Web Audio for SFX (might work after HTML5 "warms up")
-                await audioEngine.init();
-                log(`Web Audio also initialized: ${audioEngine.getDebugState()}`);
-            } else {
-                // Desktop: Use Web Audio as normal
-                log('Desktop - using Web Audio');
-                await audioEngine.init();
-                await audioEngine.preloadAll(['menuAmbience']);
-                audioEngine.startAmbience('menuAmbience');
-                log(`Final state: ${audioEngine.getDebugState()}`);
-            }
+            log('Step 3: Preloading menuAmbience...');
+            await audioEngine.preloadAll(['menuAmbience']);
+            log('Preload complete');
+
+            log('Step 4: Starting ambience...');
+            audioEngine.startAmbience('menuAmbience');
+            log(`Final state: ${audioEngine.getDebugState()}`);
+
         } catch (e) {
             log(`ERROR: ${e}`);
         }
