@@ -146,13 +146,16 @@ const StartScreen: React.FC = () => {
     };
 
     const handleSkipCinematic = async () => {
-        console.log('[StartScreen] Skip cinematic tapped - resuming audio context');
-        // iOS: Resume context during user gesture
-        await audioEngine.resume();
+        // If video has ended, this is the "Tap to continue" which we use to unlock audio
+        if (videoEnded) {
+            console.log('[StartScreen] "Tap to continue" - re-initializing audio for iOS');
+            // Re-init audio during this fresh user gesture
+            await audioEngine.init();
+            await audioEngine.resume();
+        }
 
-        console.log('[StartScreen] Playing transition SFX and menu music');
+        console.log('[StartScreen] Skip cinematic - playing transition and music');
         audioEngine.playSFX('transition');
-        // Start music here during user gesture (required for iOS)
         audioEngine.playMusic('menuMusic');
         navigate('/map', { state: { fromCinematic: true } });
     };
