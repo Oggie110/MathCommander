@@ -1164,6 +1164,7 @@ class AudioEngine {
         // Calculate target volume (HTML5 is louder without compressors)
         // HARDCODED for iOS testing - 0.01 = 1% volume
         const targetVolume = 0.01;
+        console.log('[AudioEngine] HTML5 music playing with HARDCODED volume:', targetVolume, 'soundId:', soundId);
 
         if (fadeInDuration > 0) {
             audio.volume = 0;
