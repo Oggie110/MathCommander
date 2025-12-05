@@ -84,31 +84,39 @@ const StartScreen: React.FC = () => {
         setStage('ready');
     };
 
+    // HTML5 Audio element for iOS fallback (persists across renders)
+    const html5AmbienceRef = useRef<HTMLAudioElement | null>(null);
+
     const handleBriefing = async () => {
         log('BRIEFING tapped');
 
+        // Detect iOS
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
         try {
-            // Step 1: Initialize AudioEngine (creates context + resume)
-            log('Step 1: Initializing AudioEngine...');
-            await audioEngine.init();
-            log(`AudioEngine: ${audioEngine.getDebugState()}`);
+            if (isIOS) {
+                // iOS: Use HTML5 Audio for ambience (only reliable method)
+                log('iOS detected - using HTML5 Audio for ambience');
+                const audio = new Audio('/assets/audio/sfx/ambience/mc_ambience_loop.wav');
+                audio.loop = true;
+                audio.volume = 0.3;
+                html5AmbienceRef.current = audio;
 
-            // Step 2: IMMEDIATELY play oscillator on the SAME context to "unlock" iOS
-            // This must happen before any more async work
-            log('Step 2: Playing unlock oscillator...');
-            audioEngine.playUnlockTone();
-            log('Oscillator started');
+                await audio.play();
+                log('HTML5 Audio playing!');
 
-            // Step 3: Preload the ambience
-            log('Step 3: Preloading menuAmbience...');
-            await audioEngine.preloadAll(['menuAmbience']);
-            log('Preload complete');
-
-            // Step 4: Start the ambience
-            log('Step 4: Starting ambience...');
-            audioEngine.startAmbience('menuAmbience');
-            log(`Final state: ${audioEngine.getDebugState()}`);
-
+                // Still init Web Audio for SFX (might work after HTML5 "warms up")
+                await audioEngine.init();
+                log(`Web Audio also initialized: ${audioEngine.getDebugState()}`);
+            } else {
+                // Desktop: Use Web Audio as normal
+                log('Desktop - using Web Audio');
+                await audioEngine.init();
+                await audioEngine.preloadAll(['menuAmbience']);
+                audioEngine.startAmbience('menuAmbience');
+                log(`Final state: ${audioEngine.getDebugState()}`);
+            }
         } catch (e) {
             log(`ERROR: ${e}`);
         }
