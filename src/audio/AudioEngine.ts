@@ -93,6 +93,7 @@ class AudioEngine {
 
     /**
      * Initialize the audio context (must be called after user interaction)
+     * iOS Safari requires this to be called during a user gesture (touchend/click)
      */
     async init(): Promise<void> {
         if (this._isInitialized) return;
@@ -104,19 +105,44 @@ class AudioEngine {
             const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
             this.context = new AudioContextClass();
 
+            console.log('[AudioEngine] AudioContext created, initial state:', this.context.state);
+
             // iOS Safari requires explicit resume after user interaction
             if (this.context.state === 'suspended') {
+                console.log('[AudioEngine] Context suspended, attempting resume...');
                 await this.context.resume();
+                console.log('[AudioEngine] After resume, state:', this.context.state);
             }
 
-            // iOS unlock trick: play a silent buffer to fully unlock audio
+            // iOS unlock trick #1: Play a silent buffer synchronously during user gesture
+            // This is critical for iOS - must happen in the same call stack as user interaction
             const silentBuffer = this.context.createBuffer(1, 1, 22050);
             const silentSource = this.context.createBufferSource();
             silentSource.buffer = silentBuffer;
             silentSource.connect(this.context.destination);
             silentSource.start(0);
+            console.log('[AudioEngine] Silent buffer played');
 
-            console.log('[AudioEngine] Web Audio context created, state:', this.context.state);
+            // iOS unlock trick #2: Create and play an oscillator (some iOS versions need this)
+            const oscillator = this.context.createOscillator();
+            const oscGain = this.context.createGain();
+            oscGain.gain.value = 0; // Silent
+            oscillator.connect(oscGain);
+            oscGain.connect(this.context.destination);
+            oscillator.start(0);
+            oscillator.stop(this.context.currentTime + 0.001);
+            console.log('[AudioEngine] Silent oscillator played');
+
+            // Wait a tiny bit for iOS to fully unlock
+            await new Promise(resolve => setTimeout(resolve, 10));
+
+            // Check state again
+            if (this.context.state === 'suspended') {
+                console.log('[AudioEngine] Still suspended after tricks, trying resume again...');
+                await this.context.resume();
+            }
+
+            console.log('[AudioEngine] Final context state:', this.context.state);
 
             // Create gain nodes for each category
             this.masterGain = this.context.createGain();
@@ -185,18 +211,32 @@ class AudioEngine {
             this.speechGain.gain.value = this.volumes.speech;
 
             this._isInitialized = true;
+            console.log('[AudioEngine] Initialization complete, isInitialized:', this._isInitialized);
 
             // iOS Safari: Add touch/click listener to unlock audio on any subsequent interaction
+            // These listeners help if the context gets suspended again (e.g., after tab switch)
             const unlockAudio = async () => {
                 if (this.context?.state === 'suspended') {
+                    console.log('[AudioEngine] unlockAudio triggered, resuming...');
                     await this.context.resume();
+
+                    // Play silent buffer again to ensure unlock
+                    const buffer = this.context.createBuffer(1, 1, 22050);
+                    const source = this.context.createBufferSource();
+                    source.buffer = buffer;
+                    source.connect(this.context.destination);
+                    source.start(0);
+
+                    console.log('[AudioEngine] unlockAudio complete, state:', this.context.state);
                 }
             };
-            document.addEventListener('touchstart', unlockAudio, { once: true });
-            document.addEventListener('touchend', unlockAudio, { once: true });
-            document.addEventListener('click', unlockAudio, { once: true });
-        } catch {
-            // Failed to initialize
+
+            // Use multiple event types for better iOS coverage
+            document.addEventListener('touchstart', unlockAudio);
+            document.addEventListener('touchend', unlockAudio);
+            document.addEventListener('click', unlockAudio);
+        } catch (e) {
+            console.error('[AudioEngine] init failed:', e);
         }
     }
 
