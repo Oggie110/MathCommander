@@ -1114,11 +1114,53 @@ class AudioEngine {
             const sound = SOUNDS[soundId];
             if (!sound) return null;
             try {
-                const audio = new Audio(sound.src);
+                // Use pool if available, otherwise create new (same as playHTML5SFX)
+                const result = this.getHTML5SFXFromPool(soundId);
+                if (!result) {
+                    console.log('[AudioEngine] playSFXWithStop: sound not found in pool:', soundId);
+                    return null;
+                }
+                const { audio, isPreloaded } = result;
+                if (!isPreloaded) {
+                    console.log('[AudioEngine] playSFXWithStop: NOT PRELOADED, loading on demand:', soundId);
+                }
+                audio.currentTime = 0;
                 const baseVolume = (options.volume ?? sound.volume ?? 1);
 
                 // Route through Web Audio for volume control (iOS ignores audio.volume)
                 if (this.context && this.masterGain) {
+                    // Check if this audio element is already connected to Web Audio
+                    if (this.html5SFXConnected.has(audio)) {
+                        // Already connected - reuse the existing GainNode
+                        const gainNode = this.html5SFXGains.get(audio);
+                        if (gainNode) {
+                            const volume = baseVolume * this.volumes.sfx;
+                            gainNode.gain.value = Math.min(1, Math.max(0, volume));
+
+                            audio.play().catch((e) => {
+                                console.log('[AudioEngine] playSFXWithStop replay error:', soundId, e);
+                            });
+
+                            // Return stop function that uses GainNode for fade
+                            return (fadeOut = 300) => {
+                                const startVol = gainNode.gain.value;
+                                const steps = 10;
+                                const stepTime = fadeOut / steps;
+                                let step = 0;
+                                const interval = setInterval(() => {
+                                    step++;
+                                    gainNode.gain.value = Math.max(0, startVol * (1 - step / steps));
+                                    if (step >= steps) {
+                                        clearInterval(interval);
+                                        audio.pause();
+                                        audio.currentTime = 0;
+                                    }
+                                }, stepTime);
+                            };
+                        }
+                    }
+
+                    // First time - create MediaElementSource and connect
                     try {
                         const source = this.context.createMediaElementSource(audio);
                         const gainNode = this.context.createGain();
@@ -1127,6 +1169,10 @@ class AudioEngine {
 
                         source.connect(gainNode);
                         gainNode.connect(this.masterGain);
+
+                        // Track this element as connected
+                        this.html5SFXConnected.add(audio);
+                        this.html5SFXGains.set(audio, gainNode);
 
                         audio.play().catch((e) => {
                             console.log('[AudioEngine] playSFXWithStop HTML5+WebAudio play error:', soundId, e);
@@ -1144,9 +1190,7 @@ class AudioEngine {
                                 if (step >= steps) {
                                     clearInterval(interval);
                                     audio.pause();
-                                    try {
-                                        source.disconnect();
-                                    } catch { /* ignore */ }
+                                    audio.currentTime = 0;
                                 }
                             }, stepTime);
                         };

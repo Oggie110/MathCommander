@@ -116,8 +116,14 @@ const StartScreen: React.FC = () => {
         // Ensure context is running before playing audio
         await audioEngine.resume();
 
+        console.log('[StartScreen] Audio engine state:', audioEngine.getDebugState());
+
         // Start intro: play introData SFX (with stop ref) and ambience, NO music yet
+        console.log('[StartScreen] Playing introData...');
         stopIntroDataRef.current = audioEngine.playSFXWithStop('introData');
+        console.log('[StartScreen] introData stop function:', stopIntroDataRef.current ? 'received' : 'null');
+
+        console.log('[StartScreen] Starting menuAmbience...');
         audioEngine.startAmbience('menuAmbience');
 
         setIsAudioLoading(false);
