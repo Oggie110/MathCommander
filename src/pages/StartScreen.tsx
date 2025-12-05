@@ -116,7 +116,8 @@ const StartScreen: React.FC = () => {
         // Ensure context is running before playing audio
         await audioEngine.resume();
 
-        console.log('[StartScreen] Audio engine state:', audioEngine.getDebugState());
+        const debugState = audioEngine.getDebugState();
+        console.log('[StartScreen] Audio engine state:', debugState);
 
         // Start intro: play introData SFX (with stop ref) and ambience, NO music yet
         console.log('[StartScreen] Playing introData...');
@@ -125,6 +126,11 @@ const StartScreen: React.FC = () => {
 
         console.log('[StartScreen] Starting menuAmbience...');
         audioEngine.startAmbience('menuAmbience');
+
+        // Debug: show alert on iOS if stop function is null (means audio failed)
+        if (debugState.includes('HTML5') && !stopIntroDataRef.current) {
+            alert('iOS Audio Debug: introData failed to play. State: ' + debugState);
+        }
 
         setIsAudioLoading(false);
         setStage('briefing');
