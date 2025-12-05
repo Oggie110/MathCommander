@@ -170,7 +170,7 @@ const CORE_SOUNDS: Record<string, SoundDefinition> = {
         id: 'resultStarPop',
         src: '/assets/audio/sfx/sfx/mission_complete/SFX_Pop_Cork_PSEF234 1.wav',
         category: 'sfx',
-        volume: 0.6,
+        volume: 0.8,
         pitchVariation: 0.1,
     },
     resultXP: {
