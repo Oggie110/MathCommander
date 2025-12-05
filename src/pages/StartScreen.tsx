@@ -145,23 +145,27 @@ const StartScreen: React.FC = () => {
 
     const handleSkipCinematic = () => {
         audioEngine.playSFX('transition');
+        // Start music here during user gesture (required for iOS)
+        audioEngine.playMusic('menuMusic');
         navigate('/map', { state: { fromCinematic: true } });
     };
+
+    // Track if video has ended (for iOS - need user gesture to start music)
+    const [videoEnded, setVideoEnded] = useState(false);
 
     // Handle video and voiceover for cinematic
     useEffect(() => {
         if (stage === 'cinematic' && videoRef.current) {
             const video = videoRef.current;
 
-
             video.play().catch(() => {
-                // If autoplay fails, navigate anyway
-                navigate('/map');
+                // If autoplay fails, show "tap to continue" immediately
+                setVideoEnded(true);
             });
 
             const handleEnded = () => {
-                audioEngine.playSFX('transition');
-                navigate('/map', { state: { fromCinematic: true } });
+                // Don't auto-navigate - show "tap to continue" for iOS audio gesture
+                setVideoEnded(true);
             };
             video.addEventListener('ended', handleEnded);
 
@@ -169,7 +173,7 @@ const StartScreen: React.FC = () => {
                 video.removeEventListener('ended', handleEnded);
             };
         }
-    }, [stage, navigate]);
+    }, [stage]);
 
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-4 text-center relative">
@@ -302,7 +306,7 @@ const StartScreen: React.FC = () => {
                         muted={false}
                     />
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/50 text-sm font-pixel animate-pulse">
-                        Click anywhere to skip
+                        {videoEnded ? 'Tap to continue' : 'Click anywhere to skip'}
                     </div>
                 </div>
             )}
