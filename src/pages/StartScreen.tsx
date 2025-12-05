@@ -16,8 +16,15 @@ const StartScreen: React.FC = () => {
     const [stage, setStage] = useState<Stage>('title');
     const [displayedText, setDisplayedText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [debugLog, setDebugLog] = useState<string[]>([]);
     const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
+
+    // Debug logger for iOS testing
+    const log = (msg: string) => {
+        console.log(msg);
+        setDebugLog(prev => [...prev.slice(-10), `${new Date().toLocaleTimeString()}: ${msg}`]);
+    };
 
     // On mount: stop music if returning to start screen
     // NOTE: Don't start ambience here - it's already running from START MISSION tap
@@ -78,15 +85,27 @@ const StartScreen: React.FC = () => {
     };
 
     const handleBriefing = async () => {
-        console.log('[StartScreen] BRIEFING tapped - ALL audio init in this gesture');
+        log('BRIEFING tapped');
 
-        // ALL audio initialization in ONE user gesture
-        await audioEngine.init();
-        await audioEngine.preloadAll(['menuAmbience']);
-        audioEngine.startAmbience('menuAmbience');
+        try {
+            // Step 1: Init
+            log('Step 1: Calling init()...');
+            await audioEngine.init();
+            log(`Step 1 done: ${audioEngine.getDebugState()}`);
 
-        const debugState = audioEngine.getDebugState();
-        console.log('[StartScreen] Audio started, state:', debugState);
+            // Step 2: Preload
+            log('Step 2: Preloading menuAmbience...');
+            await audioEngine.preloadAll(['menuAmbience']);
+            log('Step 2 done: Preload complete');
+
+            // Step 3: Start ambience
+            log('Step 3: Starting ambience...');
+            audioEngine.startAmbience('menuAmbience');
+            log(`Step 3 done: ${audioEngine.getDebugState()}`);
+
+        } catch (e) {
+            log(`ERROR: ${e}`);
+        }
 
         setStage('briefing');
 
@@ -279,6 +298,15 @@ const StartScreen: React.FC = () => {
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/50 text-sm font-pixel animate-pulse">
                         {videoEnded ? 'Tap to continue' : 'Click anywhere to skip'}
                     </div>
+                </div>
+            )}
+
+            {/* Debug overlay for iOS testing */}
+            {debugLog.length > 0 && (
+                <div className="fixed bottom-0 left-0 right-0 bg-black/90 text-green-400 text-[10px] font-mono p-2 z-[100] max-h-40 overflow-y-auto">
+                    {debugLog.map((line, i) => (
+                        <div key={i}>{line}</div>
+                    ))}
                 </div>
             )}
         </div>
