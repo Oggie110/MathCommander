@@ -111,7 +111,13 @@ const StartScreen: React.FC = () => {
     const handleBriefing = () => {
         // Start ambience and intro data sound on briefing screen
         audioEngine.startAmbience('menuAmbience');
-        audioEngine.playSFX('introData');
+        // Play intro data and fade it out after 2 seconds
+        const stopIntroData = audioEngine.playSFXWithStop('introData');
+        if (stopIntroData) {
+            setTimeout(() => {
+                (stopIntroData as (fadeOut?: number) => void)(2000);
+            }, 2000);
+        }
         setStage('briefing');
     };
 
