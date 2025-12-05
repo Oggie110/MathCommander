@@ -1016,15 +1016,18 @@ class AudioEngine {
 
     /**
      * Start an ambience layer (can have multiple)
+     * IMPORTANT: Caller must ensure init() and preloadAll() are called first!
+     * This function is synchronous to preserve iOS gesture context.
      */
     startAmbience(soundId: string, fadeIn = 1000): void {
-        if (!this.context || !this.ambienceGain) return;
+        if (!this.context || !this.ambienceGain) {
+            console.error('[AudioEngine] startAmbience: not initialized');
+            return;
+        }
 
-        // If context is suspended, wait for resume then retry
+        // Fail fast if context suspended - caller should have initialized properly
         if (this.context.state === 'suspended') {
-            this.context.resume().then(() => {
-                this.startAmbience(soundId, fadeIn);
-            });
+            console.error('[AudioEngine] startAmbience: context suspended, call init() first');
             return;
         }
 
@@ -1032,11 +1035,14 @@ class AudioEngine {
         if (this.ambienceLayers.has(soundId)) return;
 
         const sound = SOUNDS[soundId];
-        if (!sound) return;
+        if (!sound) {
+            console.error('[AudioEngine] startAmbience: unknown sound', soundId);
+            return;
+        }
 
         const buffer = this.buffers.get(soundId);
         if (!buffer) {
-            this.preload(soundId).then(() => this.startAmbience(soundId, fadeIn));
+            console.error('[AudioEngine] startAmbience: buffer not loaded, preload first', soundId);
             return;
         }
 
