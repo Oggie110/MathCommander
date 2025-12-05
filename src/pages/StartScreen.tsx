@@ -9,14 +9,13 @@ import { Rocket, Radio } from 'lucide-react';
 
 type Stage = 'title' | 'ready' | 'briefing' | 'cinematic';
 // Flow: title -> ready (BRIEFING button) -> briefing -> cinematic
-// Audio is initialized on START MISSION, started on BRIEFING tap
+// ALL audio (init, preload, play) happens on BRIEFING tap for iOS compatibility
 
 const StartScreen: React.FC = () => {
     const navigate = useNavigate();
     const [stage, setStage] = useState<Stage>('title');
     const [displayedText, setDisplayedText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
-    const [isAudioLoading, setIsAudioLoading] = useState(false);
     const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -73,26 +72,17 @@ const StartScreen: React.FC = () => {
         }
     };
 
-    const handleStartMission = async () => {
-        if (isAudioLoading) return;
-
-        setIsAudioLoading(true);
-
-        // Initialize audio engine during user gesture
-        await audioEngine.init();
-
-        // Preload the ambience sound
-        await audioEngine.preloadAll(['menuAmbience']);
-
-        console.log('[StartScreen] Audio initialized, showing BRIEFING button');
-        setIsAudioLoading(false);
-        setStage('ready'); // Show BRIEFING button
+    const handleStartMission = () => {
+        // Just show BRIEFING button - no audio here
+        setStage('ready');
     };
 
-    const handleBriefing = () => {
-        console.log('[StartScreen] BRIEFING tapped - starting ambience');
+    const handleBriefing = async () => {
+        console.log('[StartScreen] BRIEFING tapped - ALL audio init in this gesture');
 
-        // Start audio on this fresh user gesture
+        // ALL audio initialization in ONE user gesture
+        await audioEngine.init();
+        await audioEngine.preloadAll(['menuAmbience']);
         audioEngine.startAmbience('menuAmbience');
 
         const debugState = audioEngine.getDebugState();
@@ -180,7 +170,6 @@ const StartScreen: React.FC = () => {
                         {stage === 'title' ? (
                             <button
                                 onClick={handleStartMission}
-                                disabled={isAudioLoading}
                                 className={`
                                     text-xl px-12 py-6 animate-pulse
                                     bg-gradient-to-b from-blue-500 to-blue-700
@@ -189,14 +178,13 @@ const StartScreen: React.FC = () => {
                                     shadow-[0_4px_0_0_#1e40af,0_6px_0_0_#1e3a8a]
                                     hover:from-blue-400 hover:to-blue-600
                                     active:translate-y-1 active:shadow-[0_2px_0_0_#1e40af]
-                                    disabled:opacity-50 disabled:cursor-not-allowed
                                     transition-all
                                     font-pixel uppercase tracking-wider
                                 `}
                             >
                                 <div className="flex items-center gap-4">
-                                    <Rocket className={`w-8 h-8 ${isAudioLoading ? 'animate-spin' : ''}`} />
-                                    {isAudioLoading ? 'LOADING...' : 'START MISSION'}
+                                    <Rocket className="w-8 h-8" />
+                                    START MISSION
                                 </div>
                             </button>
                         ) : (
