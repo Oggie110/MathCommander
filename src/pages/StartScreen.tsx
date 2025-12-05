@@ -229,7 +229,7 @@ const StartScreen: React.FC = () => {
                             >
                                 <div className="flex items-center gap-4">
                                     <Radio className="w-8 h-8" />
-                                    GO TO BRIEFING
+                                    BRIEFING
                                 </div>
                             </button>
                         )}
