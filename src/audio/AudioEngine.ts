@@ -114,35 +114,7 @@ class AudioEngine {
                 console.log('[AudioEngine] After resume, state:', this.context.state);
             }
 
-            // iOS unlock trick #1: Play a silent buffer synchronously during user gesture
-            // This is critical for iOS - must happen in the same call stack as user interaction
-            const silentBuffer = this.context.createBuffer(1, 1, 22050);
-            const silentSource = this.context.createBufferSource();
-            silentSource.buffer = silentBuffer;
-            silentSource.connect(this.context.destination);
-            silentSource.start(0);
-            console.log('[AudioEngine] Silent buffer played');
-
-            // iOS unlock trick #2: Create and play an oscillator (some iOS versions need this)
-            const oscillator = this.context.createOscillator();
-            const oscGain = this.context.createGain();
-            oscGain.gain.value = 0; // Silent
-            oscillator.connect(oscGain);
-            oscGain.connect(this.context.destination);
-            oscillator.start(0);
-            oscillator.stop(this.context.currentTime + 0.001);
-            console.log('[AudioEngine] Silent oscillator played');
-
-            // Wait a tiny bit for iOS to fully unlock
-            await new Promise(resolve => setTimeout(resolve, 10));
-
-            // Check state again
-            if (this.context.state === 'suspended') {
-                console.log('[AudioEngine] Still suspended after tricks, trying resume again...');
-                await this.context.resume();
-            }
-
-            console.log('[AudioEngine] Final context state:', this.context.state);
+            console.log('[AudioEngine] Context ready, state:', this.context.state);
 
             // Create gain nodes for each category
             this.masterGain = this.context.createGain();
