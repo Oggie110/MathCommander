@@ -130,15 +130,24 @@ class AudioEngine {
     async init(): Promise<void> {
         if (this._isInitialized) return;
 
+        // DEBUG: Log detection info
+        const ua = navigator.userAgent;
+        const platform = navigator.platform;
+        const maxTouch = navigator.maxTouchPoints;
+        const iosDetected = isIOS();
+        console.log('[AudioEngine] INIT DEBUG:', { ua, platform, maxTouch, iosDetected });
+
         // Check if we should use HTML5 fallback for iOS
-        if (isIOS()) {
+        if (iosDetected) {
             // iOS detected - using HTML5 Audio fallback
+            console.log('[AudioEngine] Using HTML5 FALLBACK for iOS');
             this.useHTML5Fallback = true;
             this._isInitialized = true;
             return;
         }
 
         // Using Web Audio for non-iOS
+        console.log('[AudioEngine] Using Web Audio API (not iOS)');
 
         try {
             // Use webkitAudioContext for older iOS Safari
