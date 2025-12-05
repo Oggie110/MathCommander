@@ -14,6 +14,7 @@ type Stage = 'title' | 'ready' | 'briefing' | 'cinematic';
 const StartScreen: React.FC = () => {
     const navigate = useNavigate();
     const [stage, setStage] = useState<Stage>('title');
+    const [isLoading, setIsLoading] = useState(false);
     const [displayedText, setDisplayedText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -73,6 +74,8 @@ const StartScreen: React.FC = () => {
     };
 
     const handleStartMission = async () => {
+        setIsLoading(true);
+
         // Initialize and preload audio on first tap (iOS needs user gesture)
         try {
             await audioEngine.init();
@@ -101,6 +104,7 @@ const StartScreen: React.FC = () => {
             console.error('[StartScreen] Audio init failed:', e);
         }
 
+        setIsLoading(false);
         setStage('ready');
     };
 
@@ -166,8 +170,9 @@ const StartScreen: React.FC = () => {
                         {stage === 'title' ? (
                             <button
                                 onClick={handleStartMission}
+                                disabled={isLoading}
                                 className={`
-                                    text-xl px-12 py-6 animate-pulse
+                                    text-xl px-12 py-6 ${isLoading ? '' : 'animate-pulse'}
                                     bg-gradient-to-b from-blue-500 to-blue-700
                                     border-4 border-blue-400
                                     text-white font-bold
@@ -176,11 +181,12 @@ const StartScreen: React.FC = () => {
                                     active:translate-y-1 active:shadow-[0_2px_0_0_#1e40af]
                                     transition-all
                                     font-pixel uppercase tracking-wider
+                                    disabled:opacity-70 disabled:cursor-not-allowed
                                 `}
                             >
                                 <div className="flex items-center gap-4">
-                                    <Rocket className="w-8 h-8" />
-                                    START MISSION
+                                    <Rocket className={`w-8 h-8 ${isLoading ? 'animate-spin' : ''}`} />
+                                    {isLoading ? 'LOADING...' : 'START MISSION'}
                                 </div>
                             </button>
                         ) : (
