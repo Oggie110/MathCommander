@@ -1,8 +1,16 @@
-// Web Audio API based Audio Engine
+// Web Audio API based Audio Engine with HTML5 fallback for iOS
 import type { PlayOptions, MusicOptions, CategoryVolumes } from './types';
 import { SOUNDS } from './sounds';
 
 const STORAGE_KEY = 'space-math-audio-settings';
+
+// Detect iOS (iPhone, iPad, iPod)
+const isIOS = (): boolean => {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent;
+    return /iPad|iPhone|iPod/.test(ua) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+};
 
 class AudioEngine {
     private context: AudioContext | null = null;
@@ -33,6 +41,14 @@ class AudioEngine {
 
     // Ambience layers (can have multiple)
     private ambienceLayers: Map<string, { source: AudioBufferSourceNode; gain: GainNode }> = new Map();
+
+    // === iOS HTML5 Audio Fallback ===
+    private useHTML5Fallback = false;
+    private html5Music: HTMLAudioElement | null = null;
+    private html5MusicId: string | null = null;
+    private html5Ambience: Map<string, HTMLAudioElement> = new Map();
+    private html5Speech: HTMLAudioElement | null = null;
+    private html5SpeechResolve: (() => void) | null = null;
 
     // Volume settings
     private volumes: CategoryVolumes = {
@@ -70,9 +86,16 @@ class AudioEngine {
     private pauseAll(): void {
         this._isPaused = true;
 
-        // Pause Web Audio context
-        if (this.context && this.context.state === 'running') {
-            this.context.suspend();
+        if (this.useHTML5Fallback) {
+            // Pause HTML5 audio
+            this.html5Music?.pause();
+            this.html5Ambience.forEach(audio => audio.pause());
+            this.html5Speech?.pause();
+        } else {
+            // Pause Web Audio context
+            if (this.context && this.context.state === 'running') {
+                this.context.suspend();
+            }
         }
     }
 
@@ -83,9 +106,16 @@ class AudioEngine {
         if (!this._isPaused) return;
         this._isPaused = false;
 
-        // Resume Web Audio context
-        if (this.context && this.context.state === 'suspended') {
-            this.context.resume();
+        if (this.useHTML5Fallback) {
+            // Resume HTML5 audio
+            this.html5Music?.play().catch(() => {});
+            this.html5Ambience.forEach(audio => audio.play().catch(() => {}));
+            // Don't auto-resume speech
+        } else {
+            // Resume Web Audio context
+            if (this.context && this.context.state === 'suspended') {
+                this.context.resume();
+            }
         }
     }
 
@@ -98,18 +128,22 @@ class AudioEngine {
     async init(): Promise<void> {
         if (this._isInitialized) return;
 
-        console.log('[AudioEngine] init called - using pure Web Audio');
+        // Check if we should use HTML5 fallback for iOS
+        if (isIOS()) {
+            console.log('[AudioEngine] iOS detected - using HTML5 Audio fallback');
+            this.useHTML5Fallback = true;
+            this._isInitialized = true;
+            return;
+        }
+
+        console.log('[AudioEngine] init called - using Web Audio');
 
         try {
             // Use webkitAudioContext for older iOS Safari
             const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
 
-            // iOS devices use 48kHz - specify this to avoid sample rate mismatch
-            const options: AudioContextOptions = {
-                sampleRate: 48000,
-                latencyHint: 'interactive'
-            };
-            this.context = new AudioContextClass(options);
+            // Create context with default sample rate (let browser decide)
+            this.context = new AudioContextClass();
 
             console.log('[AudioEngine] AudioContext created, initial state:', this.context.state);
 
@@ -259,7 +293,17 @@ class AudioEngine {
      * Get current audio context state for debugging
      */
     getDebugState(): string {
-        return `initialized=${this._isInitialized}, context=${this.context?.state ?? 'null'}`;
+        if (this.useHTML5Fallback) {
+            return `initialized=${this._isInitialized}, mode=HTML5, music=${this.html5MusicId ?? 'none'}, ambience=${this.html5Ambience.size}`;
+        }
+        return `initialized=${this._isInitialized}, mode=WebAudio, context=${this.context?.state ?? 'null'}`;
+    }
+
+    /**
+     * Check if using HTML5 fallback (for iOS)
+     */
+    isUsingHTML5Fallback(): boolean {
+        return this.useHTML5Fallback;
     }
 
     /**
@@ -384,6 +428,12 @@ class AudioEngine {
      * Play a sound effect (one-shot, can overlap)
      */
     playSFX(soundId: string, options: PlayOptions = {}): void {
+        // === HTML5 Fallback for iOS ===
+        if (this.useHTML5Fallback) {
+            this.playSFXHTML5(soundId, options);
+            return;
+        }
+
         if (!this.context || !this.sfxGain) return;
 
         // If context is suspended, wait for resume then retry
@@ -447,9 +497,91 @@ class AudioEngine {
     }
 
     /**
+     * HTML5 Audio fallback for SFX (iOS)
+     * Creates a new Audio element for each play (allows overlapping)
+     */
+    private playSFXHTML5(soundId: string, options: PlayOptions = {}): void {
+        const sound = SOUNDS[soundId];
+        if (!sound) return;
+
+        const audio = new Audio(sound.src);
+
+        // Calculate volume
+        let volume = options.volume ?? sound.volume ?? 1;
+        if (sound.volumeVariation) {
+            const variation = (Math.random() * 2 - 1) * sound.volumeVariation;
+            volume *= (1 + variation);
+        }
+        audio.volume = volume * this.volumes.sfx * this.volumes.master;
+
+        // Note: HTML5 Audio doesn't support pitch variation
+        // We could use playbackRate but it affects duration too
+
+        // Callback when finished
+        if (options.onEnd) {
+            audio.onended = options.onEnd;
+        }
+
+        audio.play().catch(() => {
+            // Silently fail - SFX are non-critical
+        });
+    }
+
+    /**
+     * HTML5 Audio fallback for SFX with stop function (iOS)
+     */
+    private playSFXWithStopHTML5(soundId: string, options: PlayOptions = {}): (() => void) | null {
+        const sound = SOUNDS[soundId];
+        if (!sound) return null;
+
+        const audio = new Audio(sound.src);
+
+        // Calculate volume
+        let volume = options.volume ?? sound.volume ?? 1;
+        if (sound.volumeVariation) {
+            const variation = (Math.random() * 2 - 1) * sound.volumeVariation;
+            volume *= (1 + variation);
+        }
+        audio.volume = volume * this.volumes.sfx * this.volumes.master;
+
+        if (options.onEnd) {
+            audio.onended = options.onEnd;
+        }
+
+        audio.play().catch(() => {});
+
+        // Return a stop function with fade out
+        return (fadeOut = 300) => {
+            if (fadeOut > 0) {
+                const startVolume = audio.volume;
+                const steps = 10;
+                const stepTime = fadeOut / steps;
+                const volumeStep = startVolume / steps;
+                let currentStep = 0;
+
+                const fadeInterval = setInterval(() => {
+                    currentStep++;
+                    audio.volume = Math.max(0, startVolume - volumeStep * currentStep);
+                    if (currentStep >= steps) {
+                        clearInterval(fadeInterval);
+                        audio.pause();
+                    }
+                }, stepTime);
+            } else {
+                audio.pause();
+            }
+        };
+    }
+
+    /**
      * Play a sound effect and return a stop function (for sounds that need to be cut short)
      */
     playSFXWithStop(soundId: string, options: PlayOptions = {}): (() => void) | null {
+        // === HTML5 Fallback for iOS ===
+        if (this.useHTML5Fallback) {
+            return this.playSFXWithStopHTML5(soundId, options);
+        }
+
         if (!this.context || !this.sfxGain) return null;
 
         const sound = SOUNDS[soundId];
@@ -518,6 +650,11 @@ class AudioEngine {
      * Returns a Promise that resolves when speech ends or is stopped
      */
     playHeavyRadioSpeech(soundId: string, options: PlayOptions = {}): Promise<void> {
+        // === HTML5 Fallback for iOS (no audio effects, just plain speech) ===
+        if (this.useHTML5Fallback) {
+            return this.playSpeechHTML5(soundId, options);
+        }
+
         return new Promise((resolve) => {
             if (!this.context || !this.speechGain) {
                 resolve();
@@ -628,6 +765,11 @@ class AudioEngine {
      * Returns a Promise that resolves when speech ends or is stopped
      */
     playAlienSpeech(soundId: string, options: PlayOptions = {}): Promise<void> {
+        // === HTML5 Fallback for iOS (no audio effects, just plain speech) ===
+        if (this.useHTML5Fallback) {
+            return this.playSpeechHTML5(soundId, options);
+        }
+
         return new Promise((resolve) => {
             if (!this.context || !this.speechGain) {
                 resolve();
@@ -731,6 +873,11 @@ class AudioEngine {
      * Returns a Promise that resolves when speech ends or is stopped
      */
     playSpeech(soundId: string, options: PlayOptions = {}): Promise<void> {
+        // === HTML5 Fallback for iOS ===
+        if (this.useHTML5Fallback) {
+            return this.playSpeechHTML5(soundId, options);
+        }
+
         return new Promise((resolve) => {
             if (!this.context || !this.speechGain) {
                 resolve();
@@ -807,9 +954,59 @@ class AudioEngine {
     }
 
     /**
+     * HTML5 Audio fallback for speech (iOS)
+     */
+    private playSpeechHTML5(soundId: string, options: PlayOptions = {}): Promise<void> {
+        return new Promise((resolve) => {
+            const sound = SOUNDS[soundId];
+            if (!sound) {
+                resolve();
+                return;
+            }
+
+            // Stop any currently playing speech
+            this.stopSpeech();
+
+            const audio = new Audio(sound.src);
+            const volume = options.volume ?? sound.volume ?? 0.8;
+            audio.volume = volume * this.volumes.speech * this.volumes.master;
+
+            this.html5SpeechResolve = resolve;
+
+            audio.onended = () => {
+                if (this.html5Speech === audio) {
+                    this.html5Speech = null;
+                    this.html5SpeechResolve = null;
+                }
+                options.onEnd?.();
+                resolve();
+            };
+
+            this.html5Speech = audio;
+
+            audio.play().catch(() => {
+                this.html5Speech = null;
+                this.html5SpeechResolve = null;
+                resolve();
+            });
+        });
+    }
+
+    /**
      * Stop currently playing speech with optional fade out
      */
     stopSpeech(fadeOut = 100): void {
+        // === HTML5 Fallback for iOS ===
+        if (this.useHTML5Fallback) {
+            if (this.html5Speech) {
+                this.html5Speech.pause();
+                this.html5SpeechResolve?.();
+                this.html5Speech = null;
+                this.html5SpeechResolve = null;
+            }
+            return;
+        }
+
         if (!this.context || !this.currentSpeech || !this.currentSpeechGain) {
             return;
         }
@@ -840,6 +1037,9 @@ class AudioEngine {
      * Check if speech is currently playing
      */
     isSpeechPlaying(): boolean {
+        if (this.useHTML5Fallback) {
+            return this.html5Speech !== null;
+        }
         return this.currentSpeech !== null;
     }
 
@@ -849,6 +1049,12 @@ class AudioEngine {
      * Play music (only one track at a time, with crossfade)
      */
     playMusic(soundId: string, options: MusicOptions = {}): void {
+        // === HTML5 Fallback for iOS ===
+        if (this.useHTML5Fallback) {
+            this.playMusicHTML5(soundId, options);
+            return;
+        }
+
         if (!this.context || !this.musicGain) return;
 
         // If context is suspended, wait for resume then retry
@@ -915,11 +1121,104 @@ class AudioEngine {
     }
 
     /**
+     * HTML5 Audio fallback for music (iOS)
+     */
+    private playMusicHTML5(soundId: string, options: MusicOptions = {}): void {
+        // Skip if same music already playing
+        if (this.html5MusicId === soundId && this.html5Music) {
+            return;
+        }
+
+        const sound = SOUNDS[soundId];
+        if (!sound || sound.category !== 'music') return;
+
+        console.log('[AudioEngine] Playing HTML5 music:', soundId);
+
+        const crossfadeDuration = options.crossfade ?? 800;
+        const fadeInDuration = options.fadeIn ?? crossfadeDuration;
+
+        // Fade out current music if playing
+        if (this.html5Music) {
+            this.stopMusicHTML5(crossfadeDuration);
+        }
+
+        const audio = new Audio(sound.src);
+        audio.loop = sound.loop ?? true;
+
+        // Calculate target volume
+        const targetVolume = (sound.volume ?? 1) * this.volumes.music * this.volumes.master;
+
+        if (fadeInDuration > 0) {
+            audio.volume = 0;
+            audio.play().then(() => {
+                // Fade in
+                const steps = 20;
+                const stepTime = fadeInDuration / steps;
+                const volumeStep = targetVolume / steps;
+                let currentStep = 0;
+
+                const fadeInterval = setInterval(() => {
+                    currentStep++;
+                    audio.volume = Math.min(targetVolume, volumeStep * currentStep);
+                    if (currentStep >= steps) {
+                        clearInterval(fadeInterval);
+                    }
+                }, stepTime);
+            }).catch(e => {
+                console.error('[AudioEngine] HTML5 music play failed:', e);
+            });
+        } else {
+            audio.volume = targetVolume;
+            audio.play().catch(e => {
+                console.error('[AudioEngine] HTML5 music play failed:', e);
+            });
+        }
+
+        this.html5Music = audio;
+        this.html5MusicId = soundId;
+    }
+
+    /**
      * Stop current music with fade out
      */
     stopMusic(fadeOut = 500): void {
+        if (this.useHTML5Fallback) {
+            this.stopMusicHTML5(fadeOut);
+            return;
+        }
         this.fadeOutMusic(fadeOut);
         this.currentMusicId = null;
+    }
+
+    /**
+     * HTML5 Audio fallback for stopping music (iOS)
+     */
+    private stopMusicHTML5(fadeOut = 500): void {
+        if (!this.html5Music) return;
+
+        const audio = this.html5Music;
+
+        if (fadeOut > 0) {
+            const startVolume = audio.volume;
+            const steps = 20;
+            const stepTime = fadeOut / steps;
+            const volumeStep = startVolume / steps;
+            let currentStep = 0;
+
+            const fadeInterval = setInterval(() => {
+                currentStep++;
+                audio.volume = Math.max(0, startVolume - volumeStep * currentStep);
+                if (currentStep >= steps) {
+                    clearInterval(fadeInterval);
+                    audio.pause();
+                }
+            }, stepTime);
+        } else {
+            audio.pause();
+        }
+
+        this.html5Music = null;
+        this.html5MusicId = null;
     }
 
     /**
@@ -936,6 +1235,13 @@ class AudioEngine {
             newTrackVolume?: number;
         } = {}
     ): void {
+        // === HTML5 Fallback for iOS - use simple crossfade instead of overlap ===
+        if (this.useHTML5Fallback) {
+            // For iOS, just do a simple music change (no fancy overlap)
+            this.playMusicHTML5(soundId, { fadeIn: options.fadeInNew ?? 0, crossfade: options.fadeOutCurrent ?? 1000 });
+            return;
+        }
+
         if (!this.context || !this.musicGain) return;
 
         const {
@@ -1046,6 +1352,12 @@ class AudioEngine {
      * This function is synchronous to preserve iOS gesture context.
      */
     startAmbience(soundId: string, fadeIn = 1000): void {
+        // === HTML5 Fallback for iOS ===
+        if (this.useHTML5Fallback) {
+            this.startAmbienceHTML5(soundId, fadeIn);
+            return;
+        }
+
         if (!this.context || !this.ambienceGain) {
             console.error('[AudioEngine] startAmbience: not initialized');
             return;
@@ -1101,9 +1413,66 @@ class AudioEngine {
     }
 
     /**
+     * HTML5 Audio fallback for ambience (iOS)
+     */
+    private startAmbienceHTML5(soundId: string, fadeIn = 1000): void {
+        // Skip if already playing
+        if (this.html5Ambience.has(soundId)) return;
+
+        const sound = SOUNDS[soundId];
+        if (!sound) {
+            console.error('[AudioEngine] startAmbienceHTML5: unknown sound', soundId);
+            return;
+        }
+
+        console.log('[AudioEngine] Starting HTML5 ambience:', soundId);
+
+        const audio = new Audio(sound.src);
+        audio.loop = true;
+
+        // Calculate final volume
+        const targetVolume = (sound.volume ?? 0.2) * this.volumes.ambience * this.volumes.master;
+
+        if (fadeIn > 0) {
+            // Start at 0 and fade in
+            audio.volume = 0;
+            audio.play().then(() => {
+                // Fade in using setInterval
+                const steps = 20;
+                const stepTime = fadeIn / steps;
+                const volumeStep = targetVolume / steps;
+                let currentStep = 0;
+
+                const fadeInterval = setInterval(() => {
+                    currentStep++;
+                    audio.volume = Math.min(targetVolume, volumeStep * currentStep);
+                    if (currentStep >= steps) {
+                        clearInterval(fadeInterval);
+                    }
+                }, stepTime);
+            }).catch(e => {
+                console.error('[AudioEngine] HTML5 ambience play failed:', e);
+            });
+        } else {
+            audio.volume = targetVolume;
+            audio.play().catch(e => {
+                console.error('[AudioEngine] HTML5 ambience play failed:', e);
+            });
+        }
+
+        this.html5Ambience.set(soundId, audio);
+    }
+
+    /**
      * Stop an ambience layer
      */
     stopAmbience(soundId: string, fadeOut = 1000): void {
+        // === HTML5 Fallback for iOS ===
+        if (this.useHTML5Fallback) {
+            this.stopAmbienceHTML5(soundId, fadeOut);
+            return;
+        }
+
         const layer = this.ambienceLayers.get(soundId);
         if (!layer || !this.context) return;
 
@@ -1124,9 +1493,46 @@ class AudioEngine {
     }
 
     /**
+     * HTML5 Audio fallback for stopping ambience (iOS)
+     */
+    private stopAmbienceHTML5(soundId: string, fadeOut = 1000): void {
+        const audio = this.html5Ambience.get(soundId);
+        if (!audio) return;
+
+        if (fadeOut > 0) {
+            // Fade out using setInterval
+            const startVolume = audio.volume;
+            const steps = 20;
+            const stepTime = fadeOut / steps;
+            const volumeStep = startVolume / steps;
+            let currentStep = 0;
+
+            const fadeInterval = setInterval(() => {
+                currentStep++;
+                audio.volume = Math.max(0, startVolume - volumeStep * currentStep);
+                if (currentStep >= steps) {
+                    clearInterval(fadeInterval);
+                    audio.pause();
+                    this.html5Ambience.delete(soundId);
+                }
+            }, stepTime);
+        } else {
+            audio.pause();
+            this.html5Ambience.delete(soundId);
+        }
+    }
+
+    /**
      * Stop all ambience layers
      */
     stopAllAmbience(fadeOut = 1000): void {
+        if (this.useHTML5Fallback) {
+            for (const soundId of this.html5Ambience.keys()) {
+                this.stopAmbienceHTML5(soundId, fadeOut);
+            }
+            return;
+        }
+
         for (const soundId of this.ambienceLayers.keys()) {
             this.stopAmbience(soundId, fadeOut);
         }
