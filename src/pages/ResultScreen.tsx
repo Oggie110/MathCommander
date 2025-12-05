@@ -169,6 +169,7 @@ const ResultScreen: React.FC = () => {
     }, [battleInfo.isBoss, battleInfo.isFinal, battleInfo.bodyId, passed]);
 
     // Switch music when entering result screen
+    // NOTE: Ambience is already running from StartScreen - never stop it
     React.useEffect(() => {
         // Play victory music only for final boss victory, otherwise menu music
         if (battleInfo.isFinal && passed) {
@@ -176,9 +177,6 @@ const ResultScreen: React.FC = () => {
         } else {
             audioEngine.playMusic('menuMusic');
         }
-        // Stop space ambience and start menu ambience
-        audioEngine.stopAmbience('spaceAmbience');
-        audioEngine.startAmbience('menuAmbience');
     }, [battleInfo.isFinal, passed]);
 
     // Ref to store the stop function for radio static

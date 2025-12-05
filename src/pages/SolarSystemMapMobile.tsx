@@ -174,10 +174,9 @@ const SolarSystemMapMobile: React.FC = () => {
     const [statsPanelVisible, setStatsPanelVisible] = useState(false);
 
     // Start menu music
+    // NOTE: Ambience is already running from StartScreen - never stop it
     useEffect(() => {
         audioEngine.playMusic('menuMusic');
-        audioEngine.stopAmbience('spaceAmbience');
-        audioEngine.startAmbience('menuAmbience');
     }, []);
 
     // Check for milestone

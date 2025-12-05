@@ -191,7 +191,8 @@ const SolarSystemMap: React.FC = () => {
     // Rank-up modal state
     const [rankUpModal, setRankUpModal] = useState<{ show: boolean; rank: typeof RANKS[0] | null }>({ show: false, rank: null });
 
-    // Start menu music and ambience when entering map (e.g., after battle)
+    // Start menu music when entering map (e.g., after battle)
+    // NOTE: Ambience is already running from StartScreen - never stop it
     useEffect(() => {
         const startAudio = async () => {
             // Make sure audio engine is initialized (in case we got here without going through start screen)
@@ -203,9 +204,6 @@ const SolarSystemMap: React.FC = () => {
             // Switch to menu music (crossfades from battle music if coming from battle)
             console.log('Playing menu music...');
             audioEngine.playMusic('menuMusic');
-            // Stop space ambience and start menu ambience
-            audioEngine.stopAmbience('spaceAmbience');
-            audioEngine.startAmbience('menuAmbience');
         };
         startAudio();
     }, []);

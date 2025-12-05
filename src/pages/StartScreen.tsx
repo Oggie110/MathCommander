@@ -8,7 +8,9 @@ import { audioEngine } from '@/audio';
 import { Rocket, Radio } from 'lucide-react';
 
 type StopFn = ((fadeOut?: number) => void) | null;
-type Stage = 'title' | 'ready' | 'briefing' | 'cinematic';
+type Stage = 'title' | 'briefing' | 'cinematic';
+// NOTE: Removed 'ready' stage - we now go directly from title to briefing
+// Audio is unlocked on START MISSION tap, ambience starts and never stops
 
 const StartScreen: React.FC = () => {
     const navigate = useNavigate();
@@ -20,11 +22,11 @@ const StartScreen: React.FC = () => {
     const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
 
-    // Start ambience on mount if audio is already initialized (e.g., returning to start screen)
+    // On mount: stop music if returning to start screen
+    // NOTE: Don't start ambience here - it's already running from START MISSION tap
     useEffect(() => {
         if (audioEngine.isInitialized()) {
-            audioEngine.startAmbience('menuAmbience');
-            // Stop any music that might be playing
+            // Stop any music that might be playing (e.g., returning from map)
             audioEngine.stopMusic();
         }
     }, []);
@@ -88,8 +90,7 @@ const StartScreen: React.FC = () => {
 
         setIsAudioLoading(true);
 
-        // iOS CRITICAL: Initialize audio engine SYNCHRONOUSLY during user gesture
-        // The init() creates AudioContext and plays silent buffer - must happen immediately
+        // iOS CRITICAL: Initialize audio engine during user gesture
         await audioEngine.init();
 
         // Preload essential sounds for the start screen and beyond
@@ -100,7 +101,6 @@ const StartScreen: React.FC = () => {
             'battleMusicPhase1',
             'battleMusicPhase2',
             'battleMusicPhase3',
-            'spaceAmbience',
             'laser',
             'explosion',
             'doors',
@@ -113,28 +113,19 @@ const StartScreen: React.FC = () => {
             'shipSlide4',
         ]);
 
+        // iOS CRITICAL: Start ambience NOW during user gesture - this keeps AudioContext alive
+        // This ambience will run throughout the entire game session and never stop
+        console.log('[StartScreen] Starting menuAmbience (persistent audio keeper)...');
+        audioEngine.startAmbience('menuAmbience');
+
+        // Play intro data sound for briefing
+        console.log('[StartScreen] Playing introData...');
+        stopIntroDataRef.current = audioEngine.playSFXWithStop('introData');
+
         const debugState = audioEngine.getDebugState();
         console.log('[StartScreen] Audio loaded, state:', debugState);
 
         setIsAudioLoading(false);
-        setStage('ready');
-    };
-
-    // iOS: This second tap is critical for audio to work on iOS Safari
-    // The user gesture here triggers audio playback which iOS requires
-    const handleGoToBriefing = async () => {
-        console.log('[StartScreen] BRIEFING button tapped - this is the iOS audio unlock gesture');
-
-        // Ensure context is running during this user gesture
-        await audioEngine.resume();
-
-        // Start ambience and intro data sound - NOW with user gesture
-        console.log('[StartScreen] Starting menuAmbience...');
-        audioEngine.startAmbience('menuAmbience');
-
-        console.log('[StartScreen] Playing introData...');
-        stopIntroDataRef.current = audioEngine.playSFXWithStop('introData');
-
         setStage('briefing');
     };
 
@@ -226,46 +217,6 @@ const StartScreen: React.FC = () => {
 
                         <div className="text-industrial-highlight text-xs mt-8 font-pixel tracking-widest">
                             v1.0.0 - INDUSTRIAL EDITION
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {stage === 'ready' && (
-                // Ready Screen - Second tap needed for iOS audio
-                <div className="relative z-10">
-                    <div className="mb-12">
-                        <h1 className="text-4xl md:text-6xl text-brand-accent mb-4 drop-shadow-[4px_4px_0_rgba(255,42,42,1)]">
-                            SPACE MA<span style={{ marginLeft: '-0.3em' }}>TH</span>
-                        </h1>
-                        <h2 className="text-2xl md:text-4xl text-white drop-shadow-[4px_4px_0_rgba(37,99,235,1)]">
-                            COMMANDER
-                        </h2>
-                    </div>
-
-                    <div className="space-y-6">
-                        <button
-                            onClick={handleGoToBriefing}
-                            className={`
-                                text-xl px-12 py-6 animate-pulse
-                                bg-gradient-to-b from-green-500 to-green-700
-                                border-4 border-green-400
-                                text-white font-bold
-                                shadow-[0_4px_0_0_#166534,0_6px_0_0_#14532d]
-                                hover:from-green-400 hover:to-green-600
-                                active:translate-y-1 active:shadow-[0_2px_0_0_#166534]
-                                transition-all
-                                font-pixel uppercase tracking-wider
-                            `}
-                        >
-                            <div className="flex items-center gap-4">
-                                <Radio className="w-8 h-8" />
-                                BRIEFING
-                            </div>
-                        </button>
-
-                        <div className="text-industrial-highlight text-xs mt-8 font-pixel tracking-widest">
-                            INCOMING TRANSMISSION...
                         </div>
                     </div>
                 </div>
