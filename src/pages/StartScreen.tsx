@@ -7,7 +7,6 @@ import { openingNarrative } from '@/data/narrative';
 import { audioEngine } from '@/audio';
 import { Rocket, Radio } from 'lucide-react';
 
-type StopFn = ((fadeOut?: number) => void) | null;
 type Stage = 'title' | 'briefing' | 'cinematic';
 // NOTE: Removed 'ready' stage - we now go directly from title to briefing
 // Audio is unlocked on START MISSION tap, ambience starts and never stops
@@ -18,7 +17,6 @@ const StartScreen: React.FC = () => {
     const [displayedText, setDisplayedText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [isAudioLoading, setIsAudioLoading] = useState(false);
-    const stopIntroDataRef = useRef<StopFn>(null);
     const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -51,11 +49,6 @@ const StartScreen: React.FC = () => {
                         typeIntervalRef.current = null;
                     }
                     setIsTyping(false);
-                    // Stop intro data sound when typing finishes
-                    if (stopIntroDataRef.current) {
-                        stopIntroDataRef.current(500);
-                        stopIntroDataRef.current = null;
-                    }
                 }
             }, 30);
         }
@@ -77,11 +70,6 @@ const StartScreen: React.FC = () => {
             }
             setDisplayedText(openingNarrative.message);
             setIsTyping(false);
-            // Stop intro data sound when skipping
-            if (stopIntroDataRef.current) {
-                stopIntroDataRef.current(300);
-                stopIntroDataRef.current = null;
-            }
         }
     };
 
@@ -93,18 +81,12 @@ const StartScreen: React.FC = () => {
         // iOS CRITICAL: Initialize audio engine during user gesture
         await audioEngine.init();
 
-        // iOS CRITICAL: Preload ONLY the sounds we need RIGHT NOW (minimal delay)
-        // This must be fast to stay within iOS gesture context timeout
-        await audioEngine.preloadAll(['menuAmbience', 'introData']);
+        // iOS CRITICAL: Preload ONLY the sound we need RIGHT NOW (minimal delay)
+        await audioEngine.preloadAll(['menuAmbience']);
 
         // iOS CRITICAL: Start audio IMMEDIATELY while still in gesture context
-        // The gesture context expires quickly - don't await heavy operations before this!
         console.log('[StartScreen] Starting menuAmbience (within gesture context)...');
         audioEngine.startAmbience('menuAmbience');
-
-        // Play intro data sound for briefing
-        console.log('[StartScreen] Playing introData...');
-        stopIntroDataRef.current = audioEngine.playSFXWithStop('introData');
 
         const debugState = audioEngine.getDebugState();
         console.log('[StartScreen] Audio started, state:', debugState);
@@ -114,7 +96,6 @@ const StartScreen: React.FC = () => {
         setStage('briefing');
 
         // Preload remaining sounds in BACKGROUND (non-blocking)
-        // No await - these load while user reads briefing text
         audioEngine.preloadAll([
             'menuMusic',
             'buttonClick',
@@ -140,38 +121,13 @@ const StartScreen: React.FC = () => {
         // Music will start on the map screen
     };
 
-    const handleSkipCinematic = async () => {
-        console.log('[StartScreen] Skip cinematic - reinitializing audio for iOS');
+    const handleSkipCinematic = () => {
+        console.log('[StartScreen] Skip cinematic - navigating immediately');
 
-        // iOS CRITICAL: Force recreate AudioContext after video corrupts it
-        // Native video playback corrupts the Web Audio context - must destroy and recreate
-        await audioEngine.forceReinit();
-
-        // Preload only essential sounds for immediate use (fast, stay in gesture context)
-        await audioEngine.preloadAll(['menuMusic', 'menuAmbience', 'transition']);
-
-        // Start audio fresh with the new context
-        audioEngine.startAmbience('menuAmbience');
-        audioEngine.playSFX('transition');
-        audioEngine.playMusic('menuMusic');
-
+        // Navigate FIRST for instant response
         navigate('/map', { state: { fromCinematic: true } });
 
-        // Background preload remaining sounds (non-blocking)
-        audioEngine.preloadAll([
-            'buttonClick',
-            'battleMusicPhase1',
-            'battleMusicPhase2',
-            'battleMusicPhase3',
-            'laser',
-            'explosion',
-            'doors',
-            'starEarned',
-            'shipSlide1',
-            'shipSlide2',
-            'shipSlide3',
-            'shipSlide4',
-        ]);
+        // Audio recovery happens in background (map screen will handle it)
     };
 
     // Track if video has ended (for iOS - need user gesture to start music)
