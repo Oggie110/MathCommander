@@ -7,9 +7,9 @@ import { openingNarrative } from '@/data/narrative';
 import { audioEngine } from '@/audio';
 import { Rocket, Radio } from 'lucide-react';
 
-type Stage = 'title' | 'briefing' | 'cinematic';
-// NOTE: Removed 'ready' stage - we now go directly from title to briefing
-// Audio is unlocked on START MISSION tap, ambience starts and never stops
+type Stage = 'title' | 'ready' | 'briefing' | 'cinematic';
+// Flow: title -> ready (BRIEFING button) -> briefing -> cinematic
+// Audio is initialized on START MISSION, started on BRIEFING tap
 
 const StartScreen: React.FC = () => {
     const navigate = useNavigate();
@@ -78,21 +78,26 @@ const StartScreen: React.FC = () => {
 
         setIsAudioLoading(true);
 
-        // iOS CRITICAL: Initialize audio engine during user gesture
+        // Initialize audio engine during user gesture
         await audioEngine.init();
 
-        // iOS CRITICAL: Preload ONLY the sound we need RIGHT NOW (minimal delay)
+        // Preload the ambience sound
         await audioEngine.preloadAll(['menuAmbience']);
 
-        // iOS CRITICAL: Start audio IMMEDIATELY while still in gesture context
-        console.log('[StartScreen] Starting menuAmbience (within gesture context)...');
+        console.log('[StartScreen] Audio initialized, showing BRIEFING button');
+        setIsAudioLoading(false);
+        setStage('ready'); // Show BRIEFING button
+    };
+
+    const handleBriefing = () => {
+        console.log('[StartScreen] BRIEFING tapped - starting ambience');
+
+        // Start audio on this fresh user gesture
         audioEngine.startAmbience('menuAmbience');
 
         const debugState = audioEngine.getDebugState();
         console.log('[StartScreen] Audio started, state:', debugState);
 
-        // Go to briefing - audio is now playing
-        setIsAudioLoading(false);
         setStage('briefing');
 
         // Preload remaining sounds in BACKGROUND (non-blocking)
@@ -159,8 +164,8 @@ const StartScreen: React.FC = () => {
         <div className="flex-1 flex flex-col items-center justify-center p-4 text-center relative">
             {stage !== 'cinematic' && <SpaceBackground />}
 
-            {stage === 'title' && (
-                // Title Screen
+            {(stage === 'title' || stage === 'ready') && (
+                // Title Screen / Ready Screen
                 <div className="relative z-10">
                     <div className="mb-12">
                         <h1 className="text-4xl md:text-6xl text-brand-accent mb-4 drop-shadow-[4px_4px_0_rgba(255,42,42,1)]">
@@ -172,27 +177,49 @@ const StartScreen: React.FC = () => {
                     </div>
 
                     <div className="space-y-6">
-                        <button
-                            onClick={handleStartMission}
-                            disabled={isAudioLoading}
-                            className={`
-                                text-xl px-12 py-6 animate-pulse
-                                bg-gradient-to-b from-blue-500 to-blue-700
-                                border-4 border-blue-400
-                                text-white font-bold
-                                shadow-[0_4px_0_0_#1e40af,0_6px_0_0_#1e3a8a]
-                                hover:from-blue-400 hover:to-blue-600
-                                active:translate-y-1 active:shadow-[0_2px_0_0_#1e40af]
-                                disabled:opacity-50 disabled:cursor-not-allowed
-                                transition-all
-                                font-pixel uppercase tracking-wider
-                            `}
-                        >
-                            <div className="flex items-center gap-4">
-                                <Rocket className={`w-8 h-8 ${isAudioLoading ? 'animate-spin' : ''}`} />
-                                {isAudioLoading ? 'LOADING...' : 'START MISSION'}
-                            </div>
-                        </button>
+                        {stage === 'title' ? (
+                            <button
+                                onClick={handleStartMission}
+                                disabled={isAudioLoading}
+                                className={`
+                                    text-xl px-12 py-6 animate-pulse
+                                    bg-gradient-to-b from-blue-500 to-blue-700
+                                    border-4 border-blue-400
+                                    text-white font-bold
+                                    shadow-[0_4px_0_0_#1e40af,0_6px_0_0_#1e3a8a]
+                                    hover:from-blue-400 hover:to-blue-600
+                                    active:translate-y-1 active:shadow-[0_2px_0_0_#1e40af]
+                                    disabled:opacity-50 disabled:cursor-not-allowed
+                                    transition-all
+                                    font-pixel uppercase tracking-wider
+                                `}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <Rocket className={`w-8 h-8 ${isAudioLoading ? 'animate-spin' : ''}`} />
+                                    {isAudioLoading ? 'LOADING...' : 'START MISSION'}
+                                </div>
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleBriefing}
+                                className={`
+                                    text-xl px-12 py-6 animate-pulse
+                                    bg-gradient-to-b from-green-500 to-green-700
+                                    border-4 border-green-400
+                                    text-white font-bold
+                                    shadow-[0_4px_0_0_#166534,0_6px_0_0_#14532d]
+                                    hover:from-green-400 hover:to-green-600
+                                    active:translate-y-1 active:shadow-[0_2px_0_0_#166534]
+                                    transition-all
+                                    font-pixel uppercase tracking-wider
+                                `}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <Radio className="w-8 h-8" />
+                                    BRIEFING
+                                </div>
+                            </button>
+                        )}
 
                         <div className="text-industrial-highlight text-xs mt-8 font-pixel tracking-widest">
                             v1.0.0 - INDUSTRIAL EDITION
