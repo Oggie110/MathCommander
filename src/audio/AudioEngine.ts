@@ -1,20 +1,8 @@
-// Web Audio API based Audio Engine with iOS HTML5 Audio fallback
+// Web Audio API based Audio Engine
 import type { PlayOptions, MusicOptions, CategoryVolumes } from './types';
 import { SOUNDS } from './sounds';
 
 const STORAGE_KEY = 'space-math-audio-settings';
-
-// Detect iOS Safari
-const isIOS = (): boolean => {
-    const ua = navigator.userAgent;
-    return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-};
-
-// HTML5 fallback volume adjustments (iOS tends to be louder/harsher)
-const HTML5_MUSIC_VOLUME_MULTIPLIER = 0.525; // Lower music volume in HTML5 mode (~52%)
-const HTML5_SFX_VOLUME_OVERRIDES: Record<string, number> = {
-    starEarned: 0.375, // Star sound is too loud in HTML5 mode - reduce to 37.5% (was 50%, -25%)
-};
 
 class AudioEngine {
     private context: AudioContext | null = null;
@@ -151,37 +139,7 @@ class AudioEngine {
     async init(): Promise<void> {
         if (this._isInitialized) return;
 
-        console.log('[AudioEngine] init called, isIOS:', isIOS());
-
-        // On iOS, use HTML5 Audio fallback but still create Web Audio context for volume control
-        if (isIOS()) {
-            console.log('[AudioEngine] Using HTML5 fallback for iOS (with Web Audio for volume control)');
-            this.useHTML5Fallback = true;
-
-            // Still create Web Audio context for volume control via GainNodes
-            // HTML5 Audio element .volume is read-only on iOS, but we can route through Web Audio
-            try {
-                const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-                this.context = new AudioContextClass();
-
-                // iOS Safari requires explicit resume after user interaction
-                if (this.context.state === 'suspended') {
-                    await this.context.resume();
-                }
-
-                // Create master gain for iOS
-                this.masterGain = this.context.createGain();
-                this.masterGain.connect(this.context.destination);
-                this.masterGain.gain.value = this.volumes.master;
-
-                console.log('[AudioEngine] iOS Web Audio context created for volume control, state:', this.context.state);
-            } catch (e) {
-                console.warn('[AudioEngine] Could not create Web Audio context for iOS volume control:', e);
-            }
-
-            this._isInitialized = true;
-            return;
-        }
+        console.log('[AudioEngine] init called - using pure Web Audio');
 
         try {
             // Use webkitAudioContext for older iOS Safari
@@ -200,14 +158,7 @@ class AudioEngine {
             silentSource.connect(this.context.destination);
             silentSource.start(0);
 
-            // Additional iOS unlock: create and play a silent HTML5 Audio element
-            try {
-                const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
-                silentAudio.volume = 0.01;
-                silentAudio.play().catch(() => { /* ignore */ });
-            } catch {
-                // Non-critical
-            }
+            console.log('[AudioEngine] Web Audio context created, state:', this.context.state);
 
             // Create gain nodes for each category
             this.masterGain = this.context.createGain();
@@ -543,9 +494,7 @@ class AudioEngine {
 
             audio.playbackRate = options.pitch ?? 1;
 
-            // Apply HTML5-specific volume override if defined (e.g., starEarned at 50%)
-            const html5Multiplier = HTML5_SFX_VOLUME_OVERRIDES[soundId] ?? 1;
-            const baseVolume = (options.volume ?? sound.volume ?? 1) * html5Multiplier;
+            const baseVolume = options.volume ?? sound.volume ?? 1;
 
             // Route through Web Audio for volume control (iOS ignores audio.volume)
             if (this.context && this.masterGain) {
@@ -668,7 +617,7 @@ class AudioEngine {
                             let step = 0;
                             const fadeInterval = setInterval(() => {
                                 step++;
-                                const targetVolume = this.html5MusicBaseVolume * this.volumes.music * HTML5_MUSIC_VOLUME_MULTIPLIER;
+                                const targetVolume = this.html5MusicBaseVolume * this.volumes.music;
                                 if (this.html5MusicGain) {
                                     this.html5MusicGain.gain.value = Math.min(1, Math.max(0, (step / steps) * targetVolume));
                                 }
@@ -706,7 +655,7 @@ class AudioEngine {
                             let step = 0;
                             const fadeInterval = setInterval(() => {
                                 step++;
-                                const targetVolume = this.html5MusicBaseVolume * this.volumes.music * HTML5_MUSIC_VOLUME_MULTIPLIER;
+                                const targetVolume = this.html5MusicBaseVolume * this.volumes.music;
                                 if (this.html5MusicGain) {
                                     this.html5MusicGain.gain.value = Math.min(1, Math.max(0, (step / steps) * targetVolume));
                                 }
@@ -751,7 +700,7 @@ class AudioEngine {
             let step = 0;
             const fadeInterval = setInterval(() => {
                 step++;
-                const targetVolume = baseVolume * this.volumes.music * this.volumes.master * HTML5_MUSIC_VOLUME_MULTIPLIER;
+                const targetVolume = baseVolume * this.volumes.music * this.volumes.master;
                 audio.volume = Math.min(1, Math.max(0, (step / steps) * targetVolume));
                 if (step >= steps) {
                     clearInterval(fadeInterval);
@@ -2035,12 +1984,12 @@ class AudioEngine {
         }
         // Update HTML5 music volume on iOS via GainNode (audio.volume is read-only on iOS)
         if (this.html5MusicGain) {
-            const volume = this.html5MusicBaseVolume * this.volumes.music * HTML5_MUSIC_VOLUME_MULTIPLIER;
+            const volume = this.html5MusicBaseVolume * this.volumes.music;
             this.html5MusicGain.gain.value = Math.min(1, Math.max(0, volume));
             console.log('[AudioEngine] setMusicVolume iOS GainNode:', { value, baseVol: this.html5MusicBaseVolume, finalVol: volume });
         } else if (this.html5Music) {
             // Fallback: try setting audio.volume (won't work on iOS but works on other browsers)
-            const volume = this.html5MusicBaseVolume * this.volumes.music * this.volumes.master * HTML5_MUSIC_VOLUME_MULTIPLIER;
+            const volume = this.html5MusicBaseVolume * this.volumes.music * this.volumes.master;
             this.html5Music.volume = Math.min(1, Math.max(0, volume));
             console.log('[AudioEngine] setMusicVolume HTML5 fallback:', { value, finalVol: volume });
         }
