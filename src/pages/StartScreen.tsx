@@ -72,17 +72,10 @@ const StartScreen: React.FC = () => {
         }
     };
 
-    const handleStartMission = () => {
-        // Just show BRIEFING button - no audio here
-        setStage('ready');
-    };
-
-    const handleBriefing = async () => {
+    const handleStartMission = async () => {
+        // Initialize and preload audio on first tap (iOS needs user gesture)
         try {
-            // Initialize audio engine (uses HTML5 on iOS, Web Audio elsewhere)
             await audioEngine.init();
-
-            // Play unlock tone to warm up audio on non-iOS
             audioEngine.playUnlockTone();
 
             // Preload essential sounds
@@ -104,15 +97,17 @@ const StartScreen: React.FC = () => {
                 'shipSlide3',
                 'shipSlide4',
             ]);
-
-            // Start ambience and intro data sound on briefing screen
-            audioEngine.startAmbience('menuAmbience');
-            audioEngine.playSFX('introData');
-
         } catch (e) {
             console.error('[StartScreen] Audio init failed:', e);
         }
 
+        setStage('ready');
+    };
+
+    const handleBriefing = () => {
+        // Start ambience and intro data sound on briefing screen
+        audioEngine.startAmbience('menuAmbience');
+        audioEngine.playSFX('introData');
         setStage('briefing');
     };
 

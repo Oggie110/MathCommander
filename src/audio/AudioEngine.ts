@@ -1161,8 +1161,8 @@ class AudioEngine {
         const audio = new Audio(sound.src);
         audio.loop = sound.loop ?? true;
 
-        // Calculate target volume (HTML5 is louder without compressors, so reduce by 50%)
-        const html5VolumeMultiplier = 0.5;
+        // Calculate target volume (HTML5 is louder without compressors, reduce drastically for testing)
+        const html5VolumeMultiplier = 0.1;
         const targetVolume = (sound.volume ?? 1) * this.volumes.music * this.volumes.master * html5VolumeMultiplier;
 
         if (fadeInDuration > 0) {
