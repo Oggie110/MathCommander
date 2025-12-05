@@ -1109,18 +1109,58 @@ class AudioEngine {
      * Play a sound effect and return a stop function (for sounds that need to be cut short)
      */
     playSFXWithStop(soundId: string, options: PlayOptions = {}): (() => void) | null {
-        // iOS HTML5 fallback
+        // iOS HTML5 fallback - route through Web Audio for volume control
         if (this.useHTML5Fallback) {
             const sound = SOUNDS[soundId];
             if (!sound) return null;
             try {
                 const audio = new Audio(sound.src);
-                const volume = (options.volume ?? sound.volume ?? 1) * this.volumes.sfx * this.volumes.master;
+                const baseVolume = (options.volume ?? sound.volume ?? 1);
+
+                // Route through Web Audio for volume control (iOS ignores audio.volume)
+                if (this.context && this.masterGain) {
+                    try {
+                        const source = this.context.createMediaElementSource(audio);
+                        const gainNode = this.context.createGain();
+                        const volume = baseVolume * this.volumes.sfx;
+                        gainNode.gain.value = Math.min(1, Math.max(0, volume));
+
+                        source.connect(gainNode);
+                        gainNode.connect(this.masterGain);
+
+                        audio.play().catch((e) => {
+                            console.log('[AudioEngine] playSFXWithStop HTML5+WebAudio play error:', soundId, e);
+                        });
+
+                        // Return stop function that uses GainNode for fade
+                        return (fadeOut = 300) => {
+                            const startVol = gainNode.gain.value;
+                            const steps = 10;
+                            const stepTime = fadeOut / steps;
+                            let step = 0;
+                            const interval = setInterval(() => {
+                                step++;
+                                gainNode.gain.value = Math.max(0, startVol * (1 - step / steps));
+                                if (step >= steps) {
+                                    clearInterval(interval);
+                                    audio.pause();
+                                    try {
+                                        source.disconnect();
+                                    } catch { /* ignore */ }
+                                }
+                            }, stepTime);
+                        };
+                    } catch (e) {
+                        console.warn('[AudioEngine] playSFXWithStop: Web Audio routing failed:', e);
+                        // Fallback to direct HTML5 (volume won't work on iOS)
+                    }
+                }
+
+                // Fallback: direct HTML5 (volume won't work on iOS but sound will play)
+                const volume = baseVolume * this.volumes.sfx * this.volumes.master;
                 audio.volume = Math.min(1, Math.max(0, volume));
                 audio.play().catch(() => { /* ignore */ });
-                // Return stop function
                 return (fadeOut = 300) => {
-                    // Simple fade out for HTML5
                     const startVol = audio.volume;
                     const steps = 10;
                     const stepTime = fadeOut / steps;
