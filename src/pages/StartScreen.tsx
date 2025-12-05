@@ -85,56 +85,54 @@ const StartScreen: React.FC = () => {
     };
 
     const handleBriefing = async () => {
-        log('BRIEFING tapped');
+        log('BRIEFING tapped - init + preload only');
 
         try {
-            // Test: Web Audio with 48kHz sample rate for iOS
+            // BRIEFING: Just init and preload (warm up iOS audio)
             log('Step 1: Initializing AudioEngine (48kHz)...');
             await audioEngine.init();
             log(`AudioEngine: ${audioEngine.getDebugState()}`);
 
-            log('Step 2: Playing unlock tone...');
+            log('Step 2: Playing unlock tone to warm up iOS...');
             audioEngine.playUnlockTone();
             log('Unlock tone played');
 
-            log('Step 3: Preloading menuAmbience...');
-            await audioEngine.preloadAll(['menuAmbience']);
-            log('Preload complete');
-
-            log('Step 4: Starting ambience...');
-            audioEngine.startAmbience('menuAmbience');
-            log(`Final state: ${audioEngine.getDebugState()}`);
+            log('Step 3: Preloading all sounds...');
+            await audioEngine.preloadAll([
+                'menuAmbience',
+                'menuMusic',
+                'buttonClick',
+                'battleMusicPhase1',
+                'battleMusicPhase2',
+                'battleMusicPhase3',
+                'laser',
+                'explosion',
+                'doors',
+                'transition',
+                'starEarned',
+                'shipSlide1',
+                'shipSlide2',
+                'shipSlide3',
+                'shipSlide4',
+            ]);
+            log('Preload complete - audio ready for BEGIN MISSION');
 
         } catch (e) {
             log(`ERROR: ${e}`);
         }
 
         setStage('briefing');
-
-        // Preload remaining sounds in BACKGROUND (non-blocking)
-        audioEngine.preloadAll([
-            'menuMusic',
-            'buttonClick',
-            'battleMusicPhase1',
-            'battleMusicPhase2',
-            'battleMusicPhase3',
-            'laser',
-            'explosion',
-            'doors',
-            'transition',
-            'starEarned',
-            'shipSlide1',
-            'shipSlide2',
-            'shipSlide3',
-            'shipSlide4',
-        ]);
     };
 
     const handleContinue = () => {
-        // Start cinematic instead of navigating directly
+        log('BEGIN MISSION tapped - starting ambience now');
+
+        // Start ambience on this gesture (second gesture - iOS should work now)
+        audioEngine.startAmbience('menuAmbience');
+        log(`Ambience started: ${audioEngine.getDebugState()}`);
+
+        // Start cinematic
         setStage('cinematic');
-        // Don't start music here - video has its own audio
-        // Music will start on the map screen
     };
 
     const handleSkipCinematic = () => {
