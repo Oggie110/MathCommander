@@ -11,9 +11,9 @@ const isIOS = (): boolean => {
 };
 
 // HTML5 fallback volume adjustments (iOS tends to be louder/harsher)
-const HTML5_MUSIC_VOLUME_MULTIPLIER = 0.7; // Lower music volume in HTML5 mode
+const HTML5_MUSIC_VOLUME_MULTIPLIER = 0.525; // Lower music volume in HTML5 mode (~52%)
 const HTML5_SFX_VOLUME_OVERRIDES: Record<string, number> = {
-    starEarned: 0.5, // Star sound is too loud in HTML5 mode - reduce to 50%
+    starEarned: 0.375, // Star sound is too loud in HTML5 mode - reduce to 37.5% (was 50%, -25%)
 };
 
 class AudioEngine {
