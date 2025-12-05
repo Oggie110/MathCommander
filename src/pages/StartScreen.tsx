@@ -93,29 +93,13 @@ const StartScreen: React.FC = () => {
         // iOS CRITICAL: Initialize audio engine during user gesture
         await audioEngine.init();
 
-        // Preload essential sounds for the start screen and beyond
-        await audioEngine.preloadAll([
-            'menuMusic',
-            'menuAmbience',
-            'buttonClick',
-            'battleMusicPhase1',
-            'battleMusicPhase2',
-            'battleMusicPhase3',
-            'laser',
-            'explosion',
-            'doors',
-            'introData',
-            'transition',
-            'starEarned',
-            'shipSlide1',
-            'shipSlide2',
-            'shipSlide3',
-            'shipSlide4',
-        ]);
+        // iOS CRITICAL: Preload ONLY the sounds we need RIGHT NOW (minimal delay)
+        // This must be fast to stay within iOS gesture context timeout
+        await audioEngine.preloadAll(['menuAmbience', 'introData']);
 
-        // iOS CRITICAL: Start ambience NOW during user gesture - this keeps AudioContext alive
-        // This ambience will run throughout the entire game session and never stop
-        console.log('[StartScreen] Starting menuAmbience (persistent audio keeper)...');
+        // iOS CRITICAL: Start audio IMMEDIATELY while still in gesture context
+        // The gesture context expires quickly - don't await heavy operations before this!
+        console.log('[StartScreen] Starting menuAmbience (within gesture context)...');
         audioEngine.startAmbience('menuAmbience');
 
         // Play intro data sound for briefing
@@ -123,10 +107,30 @@ const StartScreen: React.FC = () => {
         stopIntroDataRef.current = audioEngine.playSFXWithStop('introData');
 
         const debugState = audioEngine.getDebugState();
-        console.log('[StartScreen] Audio loaded, state:', debugState);
+        console.log('[StartScreen] Audio started, state:', debugState);
 
+        // Go to briefing - audio is now playing
         setIsAudioLoading(false);
         setStage('briefing');
+
+        // Preload remaining sounds in BACKGROUND (non-blocking)
+        // No await - these load while user reads briefing text
+        audioEngine.preloadAll([
+            'menuMusic',
+            'buttonClick',
+            'battleMusicPhase1',
+            'battleMusicPhase2',
+            'battleMusicPhase3',
+            'laser',
+            'explosion',
+            'doors',
+            'transition',
+            'starEarned',
+            'shipSlide1',
+            'shipSlide2',
+            'shipSlide3',
+            'shipSlide4',
+        ]);
     };
 
     const handleContinue = () => {
@@ -137,18 +141,37 @@ const StartScreen: React.FC = () => {
     };
 
     const handleSkipCinematic = async () => {
-        // If video has ended, this is the "Tap to continue" which we use to unlock audio
-        if (videoEnded) {
-            console.log('[StartScreen] "Tap to continue" - re-initializing audio for iOS');
-            // Re-init audio during this fresh user gesture
-            await audioEngine.init();
-            await audioEngine.resume();
-        }
+        console.log('[StartScreen] Skip cinematic - reinitializing audio for iOS');
 
-        console.log('[StartScreen] Skip cinematic - playing transition and music');
+        // iOS CRITICAL: Force recreate AudioContext after video corrupts it
+        // Native video playback corrupts the Web Audio context - must destroy and recreate
+        await audioEngine.forceReinit();
+
+        // Preload only essential sounds for immediate use (fast, stay in gesture context)
+        await audioEngine.preloadAll(['menuMusic', 'menuAmbience', 'transition']);
+
+        // Start audio fresh with the new context
+        audioEngine.startAmbience('menuAmbience');
         audioEngine.playSFX('transition');
         audioEngine.playMusic('menuMusic');
+
         navigate('/map', { state: { fromCinematic: true } });
+
+        // Background preload remaining sounds (non-blocking)
+        audioEngine.preloadAll([
+            'buttonClick',
+            'battleMusicPhase1',
+            'battleMusicPhase2',
+            'battleMusicPhase3',
+            'laser',
+            'explosion',
+            'doors',
+            'starEarned',
+            'shipSlide1',
+            'shipSlide2',
+            'shipSlide3',
+            'shipSlide4',
+        ]);
     };
 
     // Track if video has ended (for iOS - need user gesture to start music)

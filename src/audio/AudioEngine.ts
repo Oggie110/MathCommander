@@ -284,6 +284,54 @@ class AudioEngine {
         return `initialized=${this._isInitialized}, context=${this.context?.state ?? 'null'}`;
     }
 
+    /**
+     * Force reinitialize the audio engine by destroying and recreating the AudioContext.
+     * This is needed for iOS Safari after video playback corrupts the context.
+     */
+    async forceReinit(): Promise<void> {
+        console.log('[AudioEngine] Force reinitializing (destroying old context)...');
+
+        // Stop all current audio
+        this.stopMusic();
+        this.stopAllAmbience();
+
+        // Stop any playing speech
+        if (this.currentSpeech) {
+            try { this.currentSpeech.stop(); } catch {}
+            this.currentSpeech = null;
+        }
+
+        // Close old context
+        if (this.context) {
+            try { await this.context.close(); } catch {}
+            this.context = null;
+        }
+
+        // Clear gain nodes (they're invalid after context close)
+        this.masterGain = null;
+        this.musicGain = null;
+        this.sfxGain = null;
+        this.ambienceGain = null;
+        this.speechGain = null;
+        this.speechCompressor = null;
+        this.speechMakeupGain = null;
+        this.sfxCompressor = null;
+        this.sfxMakeupGain = null;
+        this.musicCompressor = null;
+        this.musicMakeupGain = null;
+
+        // Clear all buffers (invalid after context close)
+        this.buffers.clear();
+        this._isInitialized = false;
+
+        console.log('[AudioEngine] Old context destroyed, reinitializing fresh...');
+
+        // Reinitialize with fresh context
+        await this.init();
+
+        console.log('[AudioEngine] Force reinit complete, new state:', this.getDebugState());
+    }
+
     // === PRELOADING ===
 
     /**
