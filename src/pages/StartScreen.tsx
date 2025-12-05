@@ -9,22 +9,15 @@ import { Rocket, Radio } from 'lucide-react';
 
 type Stage = 'title' | 'ready' | 'briefing' | 'cinematic';
 // Flow: title -> ready (BRIEFING button) -> briefing -> cinematic
-// ALL audio (init, preload, play) happens on BRIEFING tap for iOS compatibility
+// Audio init + preload + start happens on BRIEFING tap for iOS compatibility
 
 const StartScreen: React.FC = () => {
     const navigate = useNavigate();
     const [stage, setStage] = useState<Stage>('title');
     const [displayedText, setDisplayedText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
-    const [debugLog, setDebugLog] = useState<string[]>([]);
     const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
-
-    // Debug logger for iOS testing
-    const log = (msg: string) => {
-        console.log(msg);
-        setDebugLog(prev => [...prev.slice(-10), `${new Date().toLocaleTimeString()}: ${msg}`]);
-    };
 
     // On mount: stop music if returning to start screen
     // NOTE: Don't start ambience here - it's already running from START MISSION tap
@@ -85,21 +78,17 @@ const StartScreen: React.FC = () => {
     };
 
     const handleBriefing = async () => {
-        log('BRIEFING tapped - init + preload only');
-
         try {
-            // BRIEFING: Just init and preload (warm up iOS audio)
-            log('Step 1: Initializing AudioEngine (48kHz)...');
+            // Initialize audio engine (uses HTML5 on iOS, Web Audio elsewhere)
             await audioEngine.init();
-            log(`AudioEngine: ${audioEngine.getDebugState()}`);
 
-            log('Step 2: Playing unlock tone to warm up iOS...');
+            // Play unlock tone to warm up audio on non-iOS
             audioEngine.playUnlockTone();
-            log('Unlock tone played');
 
-            log('Step 3: Preloading all sounds...');
+            // Preload essential sounds
             await audioEngine.preloadAll([
                 'menuAmbience',
+                'introData',
                 'menuMusic',
                 'buttonClick',
                 'battleMusicPhase1',
@@ -115,33 +104,26 @@ const StartScreen: React.FC = () => {
                 'shipSlide3',
                 'shipSlide4',
             ]);
-            log('Preload complete - audio ready for BEGIN MISSION');
+
+            // Start ambience and intro data sound on briefing screen
+            audioEngine.startAmbience('menuAmbience');
+            audioEngine.playSFX('introData');
 
         } catch (e) {
-            log(`ERROR: ${e}`);
+            console.error('[StartScreen] Audio init failed:', e);
         }
 
         setStage('briefing');
     };
 
     const handleContinue = () => {
-        log('BEGIN MISSION tapped - starting ambience now');
-
-        // Start ambience on this gesture (second gesture - iOS should work now)
-        audioEngine.startAmbience('menuAmbience');
-        log(`Ambience started: ${audioEngine.getDebugState()}`);
-
-        // Start cinematic
+        // Ambience already running from briefing screen, just start cinematic
         setStage('cinematic');
     };
 
     const handleSkipCinematic = () => {
-        console.log('[StartScreen] Skip cinematic - navigating immediately');
-
         // Navigate FIRST for instant response
         navigate('/map', { state: { fromCinematic: true } });
-
-        // Audio recovery happens in background (map screen will handle it)
     };
 
     // Track if video has ended (for iOS - need user gesture to start music)
@@ -301,14 +283,6 @@ const StartScreen: React.FC = () => {
                 </div>
             )}
 
-            {/* Debug overlay for iOS testing */}
-            {debugLog.length > 0 && (
-                <div className="fixed bottom-0 left-0 right-0 bg-black/90 text-green-400 text-[10px] font-mono p-2 z-[100] max-h-40 overflow-y-auto">
-                    {debugLog.map((line, i) => (
-                        <div key={i}>{line}</div>
-                    ))}
-                </div>
-            )}
         </div>
     );
 };

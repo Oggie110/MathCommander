@@ -151,7 +151,7 @@ const CORE_SOUNDS: Record<string, SoundDefinition> = {
         id: 'starEarned',
         src: '/assets/audio/sfx/sfx/sparkling_star.wav',
         category: 'sfx',
-        volume: 0.1,
+        volume: 0.05,
     },
     // Result screen animation sounds
     resultPercentage: {

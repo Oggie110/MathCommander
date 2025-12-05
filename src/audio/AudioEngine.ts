@@ -49,6 +49,8 @@ class AudioEngine {
     private html5Ambience: Map<string, HTMLAudioElement> = new Map();
     private html5Speech: HTMLAudioElement | null = null;
     private html5SpeechResolve: (() => void) | null = null;
+    // Preloaded HTML5 Audio elements for reduced latency
+    private html5Preloaded: Map<string, HTMLAudioElement> = new Map();
 
     // Volume settings
     private volumes: CategoryVolumes = {
@@ -130,13 +132,13 @@ class AudioEngine {
 
         // Check if we should use HTML5 fallback for iOS
         if (isIOS()) {
-            console.log('[AudioEngine] iOS detected - using HTML5 Audio fallback');
+            // iOS detected - using HTML5 Audio fallback
             this.useHTML5Fallback = true;
             this._isInitialized = true;
             return;
         }
 
-        console.log('[AudioEngine] init called - using Web Audio');
+        // Using Web Audio for non-iOS
 
         try {
             // Use webkitAudioContext for older iOS Safari
@@ -145,16 +147,10 @@ class AudioEngine {
             // Create context with default sample rate (let browser decide)
             this.context = new AudioContextClass();
 
-            console.log('[AudioEngine] AudioContext created, initial state:', this.context.state);
-
             // iOS Safari requires explicit resume after user interaction
             if (this.context.state === 'suspended') {
-                console.log('[AudioEngine] Context suspended, attempting resume...');
                 await this.context.resume();
-                console.log('[AudioEngine] After resume, state:', this.context.state);
             }
-
-            console.log('[AudioEngine] Context ready, state:', this.context.state);
 
             // Create gain nodes for each category
             this.masterGain = this.context.createGain();
@@ -223,13 +219,11 @@ class AudioEngine {
             this.speechGain.gain.value = this.volumes.speech;
 
             this._isInitialized = true;
-            console.log('[AudioEngine] Initialization complete, isInitialized:', this._isInitialized);
 
-            // iOS Safari: Add touch/click listener to unlock audio on any subsequent interaction
+            // Add touch/click listener to unlock audio on any subsequent interaction
             // These listeners help if the context gets suspended again (e.g., after tab switch)
             const unlockAudio = async () => {
                 if (this.context?.state === 'suspended') {
-                    console.log('[AudioEngine] unlockAudio triggered, resuming...');
                     await this.context.resume();
 
                     // Play silent buffer again to ensure unlock
@@ -238,8 +232,6 @@ class AudioEngine {
                     source.buffer = buffer;
                     source.connect(this.context.destination);
                     source.start(0);
-
-                    console.log('[AudioEngine] unlockAudio complete, state:', this.context.state);
                 }
             };
 
@@ -259,11 +251,8 @@ class AudioEngine {
     async resume(): Promise<void> {
         if (!this.context) return;
 
-        console.log('[AudioEngine] resume called, current state:', this.context.state);
-
         if (this.context.state === 'suspended') {
             await this.context.resume();
-            console.log('[AudioEngine] After resume(), state:', this.context.state);
 
             // Play silent buffer to ensure iOS is fully unlocked
             const buffer = this.context.createBuffer(1, 1, 22050);
@@ -271,7 +260,6 @@ class AudioEngine {
             source.buffer = buffer;
             source.connect(this.context.destination);
             source.start(0);
-            console.log('[AudioEngine] Silent buffer played during resume');
         }
     }
 
@@ -316,7 +304,7 @@ class AudioEngine {
             return;
         }
 
-        console.log('[AudioEngine] Playing unlock oscillator tone');
+        // Play unlock oscillator tone
         const osc = this.context.createOscillator();
         const gain = this.context.createGain();
         gain.gain.value = 0.0001; // Nearly silent
@@ -331,7 +319,7 @@ class AudioEngine {
      * This is needed for iOS Safari after video playback corrupts the context.
      */
     async forceReinit(): Promise<void> {
-        console.log('[AudioEngine] Force reinitializing (destroying old context)...');
+        // Force reinitializing (destroying old context)
 
         // Stop all current audio
         this.stopMusic();
@@ -366,12 +354,12 @@ class AudioEngine {
         this.buffers.clear();
         this._isInitialized = false;
 
-        console.log('[AudioEngine] Old context destroyed, reinitializing fresh...');
+        // Old context destroyed, reinitializing fresh
 
         // Reinitialize with fresh context
         await this.init();
 
-        console.log('[AudioEngine] Force reinit complete, new state:', this.getDebugState());
+        // Force reinit complete
     }
 
     // === PRELOADING ===
@@ -383,6 +371,26 @@ class AudioEngine {
         const sound = SOUNDS[soundId];
         if (!sound) return;
 
+        // HTML5 fallback preloading - create audio element and load it
+        if (this.useHTML5Fallback) {
+            if (this.html5Preloaded.has(soundId)) return; // Already loaded
+
+            const audio = new Audio();
+            audio.preload = 'auto';
+            audio.src = sound.src;
+
+            // Wait for audio to be loaded enough to play
+            await new Promise<void>((resolve) => {
+                audio.oncanplaythrough = () => resolve();
+                audio.onerror = () => resolve(); // Don't fail on error
+                audio.load();
+            });
+
+            this.html5Preloaded.set(soundId, audio);
+            return;
+        }
+
+        // Web Audio preloading
         if (this.buffers.has(soundId)) return; // Already loaded
 
         try {
@@ -498,13 +506,17 @@ class AudioEngine {
 
     /**
      * HTML5 Audio fallback for SFX (iOS)
-     * Creates a new Audio element for each play (allows overlapping)
+     * Clones preloaded audio for instant playback, falls back to new Audio if not preloaded
      */
     private playSFXHTML5(soundId: string, options: PlayOptions = {}): void {
         const sound = SOUNDS[soundId];
         if (!sound) return;
 
-        const audio = new Audio(sound.src);
+        // Use preloaded audio if available (cloneNode for overlapping sounds)
+        const preloaded = this.html5Preloaded.get(soundId);
+        const audio = preloaded
+            ? preloaded.cloneNode() as HTMLAudioElement
+            : new Audio(sound.src);
 
         // Calculate volume
         let volume = options.volume ?? sound.volume ?? 1;
@@ -534,7 +546,11 @@ class AudioEngine {
         const sound = SOUNDS[soundId];
         if (!sound) return null;
 
-        const audio = new Audio(sound.src);
+        // Use preloaded audio if available
+        const preloaded = this.html5Preloaded.get(soundId);
+        const audio = preloaded
+            ? preloaded.cloneNode() as HTMLAudioElement
+            : new Audio(sound.src);
 
         // Calculate volume
         let volume = options.volume ?? sound.volume ?? 1;
@@ -1132,7 +1148,7 @@ class AudioEngine {
         const sound = SOUNDS[soundId];
         if (!sound || sound.category !== 'music') return;
 
-        console.log('[AudioEngine] Playing HTML5 music:', soundId);
+        // Playing HTML5 music
 
         const crossfadeDuration = options.crossfade ?? 800;
         const fadeInDuration = options.fadeIn ?? crossfadeDuration;
@@ -1145,8 +1161,9 @@ class AudioEngine {
         const audio = new Audio(sound.src);
         audio.loop = sound.loop ?? true;
 
-        // Calculate target volume
-        const targetVolume = (sound.volume ?? 1) * this.volumes.music * this.volumes.master;
+        // Calculate target volume (HTML5 is louder without compressors, so reduce by 50%)
+        const html5VolumeMultiplier = 0.5;
+        const targetVolume = (sound.volume ?? 1) * this.volumes.music * this.volumes.master * html5VolumeMultiplier;
 
         if (fadeInDuration > 0) {
             audio.volume = 0;
@@ -1425,7 +1442,7 @@ class AudioEngine {
             return;
         }
 
-        console.log('[AudioEngine] Starting HTML5 ambience:', soundId);
+        // Starting HTML5 ambience
 
         const audio = new Audio(sound.src);
         audio.loop = true;
