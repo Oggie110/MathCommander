@@ -992,7 +992,12 @@ class AudioEngine {
             // Stop any currently playing speech
             this.stopSpeech();
 
-            const audio = new Audio(sound.src);
+            // Use preloaded audio if available (like SFX does)
+            const preloaded = this.html5Preloaded.get(soundId);
+            const audio = preloaded
+                ? preloaded.cloneNode() as HTMLAudioElement
+                : new Audio(sound.src);
+
             const volume = options.volume ?? sound.volume ?? 0.8;
             audio.volume = volume * this.volumes.speech * this.volumes.master;
 
@@ -1009,7 +1014,8 @@ class AudioEngine {
 
             this.html5Speech = audio;
 
-            audio.play().catch(() => {
+            audio.play().catch((e) => {
+                console.error('[AudioEngine] Speech play failed:', soundId, e);
                 this.html5Speech = null;
                 this.html5SpeechResolve = null;
                 resolve();
