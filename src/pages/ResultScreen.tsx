@@ -85,6 +85,8 @@ const ResultScreen: React.FC = () => {
     }, [percentage]);
 
     // Animate stars appearing one by one
+    // Use 3 separate sound files to allow overlapping playback on iOS
+    const starPopSounds = ['resultStarPop1', 'resultStarPop2', 'resultStarPop3'];
     useEffect(() => {
         if (starsEarned === 0) return;
 
@@ -92,8 +94,8 @@ const ResultScreen: React.FC = () => {
         for (let i = 1; i <= starsEarned; i++) {
             const timer = setTimeout(() => {
                 setVisibleStars(i);
-                // Play pop sound for each star
-                audioEngine.playSFX('resultStarPop');
+                // Play pop sound for each star (cycling through 3 copies)
+                audioEngine.playSFX(starPopSounds[(i - 1) % 3]);
             }, STARS_START_DELAY + (i - 1) * STAR_INTERVAL);
             timers.push(timer);
         }

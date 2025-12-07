@@ -52,6 +52,14 @@ class AudioEngine {
     // Preloaded HTML5 Audio elements for reduced latency
     private html5Preloaded: Map<string, HTMLAudioElement> = new Map();
 
+    // Sound rotation counters for iOS (allows overlapping playback)
+    private soundRotation: Map<string, number> = new Map();
+    // Map of sound IDs that have multiple copies for rotation
+    private static readonly ROTATING_SOUNDS: Record<string, string[]> = {
+        'laser': ['laser1', 'laser2', 'laser3'],
+        'buttonClick': ['buttonClick1', 'buttonClick2', 'buttonClick3'],
+    };
+
     // Volume settings
     private volumes: CategoryVolumes = {
         master: 1.0,
@@ -442,12 +450,30 @@ class AudioEngine {
     // === SFX PLAYBACK ===
 
     /**
+     * Get the actual sound ID for rotating sounds (laser, buttonClick)
+     * This allows multiple instances to play simultaneously on iOS
+     */
+    private getRotatingSoundId(soundId: string): string {
+        const rotatingIds = AudioEngine.ROTATING_SOUNDS[soundId];
+        if (!rotatingIds) return soundId;
+
+        // Get current rotation index and increment
+        const currentIndex = this.soundRotation.get(soundId) ?? 0;
+        this.soundRotation.set(soundId, (currentIndex + 1) % rotatingIds.length);
+
+        return rotatingIds[currentIndex];
+    }
+
+    /**
      * Play a sound effect (one-shot, can overlap)
      */
     playSFX(soundId: string, options: PlayOptions = {}): void {
+        // Map rotating sounds (laser, buttonClick) to their numbered variants
+        const actualSoundId = this.getRotatingSoundId(soundId);
+
         // === HTML5 Fallback for iOS ===
         if (this.useHTML5Fallback) {
-            this.playSFXHTML5(soundId, options);
+            this.playSFXHTML5(actualSoundId, options);
             return;
         }
 
@@ -461,13 +487,13 @@ class AudioEngine {
             return;
         }
 
-        const sound = SOUNDS[soundId];
+        const sound = SOUNDS[actualSoundId];
         if (!sound) return;
 
         // Load on demand if not preloaded
-        const buffer = this.buffers.get(soundId);
+        const buffer = this.buffers.get(actualSoundId);
         if (!buffer) {
-            this.preload(soundId).then(() => this.playSFX(soundId, options));
+            this.preload(actualSoundId).then(() => this.playSFX(soundId, options));
             return;
         }
 

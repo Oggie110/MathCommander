@@ -77,8 +77,9 @@ const MissionScreen: React.FC = () => {
     const handleStartMission = async (waypointIndex: number) => {
         play('doors');
 
+        // Wait for speech to preload before navigating to battle
         const speechIds = getBattleSpeechIds(destination.id as BodyId);
-        audioEngine.preloadAll(speechIds).catch(() => {});
+        await audioEngine.preloadAll(speechIds).catch(() => {});
 
         navigate('/battle', {
             state: {

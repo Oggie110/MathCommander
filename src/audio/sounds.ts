@@ -81,16 +81,45 @@ const CORE_SOUNDS: Record<string, SoundDefinition> = {
     },
 
     // === SFX ===
-    buttonClick: {
-        id: 'buttonClick',
-        src: '/assets/audio/sfx/sfx/mc_button_click1.wav',
+    // 3 copies each to allow overlapping playback on iOS (HTML5 Audio reuse limitation)
+    buttonClick1: {
+        id: 'buttonClick1',
+        src: '/assets/audio/sfx/sfx/button_1.wav',
         category: 'sfx',
         volume: 0.5,
         pitchVariation: 0.05,
     },
-    laser: {
-        id: 'laser',
-        src: '/assets/audio/sfx/sfx/mc_laser_shot.wav',
+    buttonClick2: {
+        id: 'buttonClick2',
+        src: '/assets/audio/sfx/sfx/button_2.wav',
+        category: 'sfx',
+        volume: 0.5,
+        pitchVariation: 0.05,
+    },
+    buttonClick3: {
+        id: 'buttonClick3',
+        src: '/assets/audio/sfx/sfx/button_3.wav',
+        category: 'sfx',
+        volume: 0.5,
+        pitchVariation: 0.05,
+    },
+    laser1: {
+        id: 'laser1',
+        src: '/assets/audio/sfx/sfx/laser_1.wav',
+        category: 'sfx',
+        volume: 0.6,
+        pitchVariation: 0.1,
+    },
+    laser2: {
+        id: 'laser2',
+        src: '/assets/audio/sfx/sfx/laser_2.wav',
+        category: 'sfx',
+        volume: 0.6,
+        pitchVariation: 0.1,
+    },
+    laser3: {
+        id: 'laser3',
+        src: '/assets/audio/sfx/sfx/laser_3.wav',
         category: 'sfx',
         volume: 0.6,
         pitchVariation: 0.1,
@@ -166,9 +195,24 @@ const CORE_SOUNDS: Record<string, SoundDefinition> = {
         category: 'sfx',
         volume: 0.6,
     },
-    resultStarPop: {
-        id: 'resultStarPop',
-        src: '/assets/audio/sfx/sfx/mission_complete/SFX_Pop_Cork_PSEF234 1.wav',
+    // 3 copies to allow overlapping playback on iOS (HTML5 Audio reuse limitation)
+    resultStarPop1: {
+        id: 'resultStarPop1',
+        src: '/assets/audio/sfx/sfx/mission_complete/star_pop_1.wav',
+        category: 'sfx',
+        volume: 0.8,
+        pitchVariation: 0.1,
+    },
+    resultStarPop2: {
+        id: 'resultStarPop2',
+        src: '/assets/audio/sfx/sfx/mission_complete/star_pop_2.wav',
+        category: 'sfx',
+        volume: 0.8,
+        pitchVariation: 0.1,
+    },
+    resultStarPop3: {
+        id: 'resultStarPop3',
+        src: '/assets/audio/sfx/sfx/mission_complete/star_pop_3.wav',
         category: 'sfx',
         volume: 0.8,
         pitchVariation: 0.1,
