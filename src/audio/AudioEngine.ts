@@ -521,11 +521,23 @@ class AudioEngine {
         const sound = SOUNDS[soundId];
         if (!sound) return;
 
-        // Use preloaded audio if available (cloneNode for overlapping sounds)
+        // Use preloaded audio - try to reuse if not playing, otherwise clone
         const preloaded = this.html5Preloaded.get(soundId);
-        const audio = preloaded
-            ? preloaded.cloneNode() as HTMLAudioElement
-            : new Audio(sound.src);
+        let audio: HTMLAudioElement;
+
+        if (preloaded) {
+            // Check if preloaded element is available (not currently playing)
+            if (preloaded.paused || preloaded.ended) {
+                // Reuse the preloaded element directly (fastest)
+                audio = preloaded;
+                audio.currentTime = 0;
+            } else {
+                // Element is playing, need to clone (may have latency on iOS)
+                audio = preloaded.cloneNode() as HTMLAudioElement;
+            }
+        } else {
+            audio = new Audio(sound.src);
+        }
 
         // Calculate volume
         let volume = options.volume ?? sound.volume ?? 1;
@@ -534,9 +546,6 @@ class AudioEngine {
             volume *= (1 + variation);
         }
         audio.volume = volume * this.volumes.sfx * this.volumes.master;
-
-        // Note: HTML5 Audio doesn't support pitch variation
-        // We could use playbackRate but it affects duration too
 
         // Callback when finished
         if (options.onEnd) {
@@ -555,11 +564,20 @@ class AudioEngine {
         const sound = SOUNDS[soundId];
         if (!sound) return null;
 
-        // Use preloaded audio if available
+        // Use preloaded audio - try to reuse if not playing, otherwise clone
         const preloaded = this.html5Preloaded.get(soundId);
-        const audio = preloaded
-            ? preloaded.cloneNode() as HTMLAudioElement
-            : new Audio(sound.src);
+        let audio: HTMLAudioElement;
+
+        if (preloaded) {
+            if (preloaded.paused || preloaded.ended) {
+                audio = preloaded;
+                audio.currentTime = 0;
+            } else {
+                audio = preloaded.cloneNode() as HTMLAudioElement;
+            }
+        } else {
+            audio = new Audio(sound.src);
+        }
 
         // Calculate volume
         let volume = options.volume ?? sound.volume ?? 1;
@@ -992,11 +1010,20 @@ class AudioEngine {
             // Stop any currently playing speech
             this.stopSpeech();
 
-            // Use preloaded audio if available (like SFX does)
+            // Use preloaded audio - try to reuse if not playing, otherwise clone
             const preloaded = this.html5Preloaded.get(soundId);
-            const audio = preloaded
-                ? preloaded.cloneNode() as HTMLAudioElement
-                : new Audio(sound.src);
+            let audio: HTMLAudioElement;
+
+            if (preloaded) {
+                if (preloaded.paused || preloaded.ended) {
+                    audio = preloaded;
+                    audio.currentTime = 0;
+                } else {
+                    audio = preloaded.cloneNode() as HTMLAudioElement;
+                }
+            } else {
+                audio = new Audio(sound.src);
+            }
 
             const volume = options.volume ?? sound.volume ?? 0.8;
             audio.volume = volume * this.volumes.speech * this.volumes.master;
