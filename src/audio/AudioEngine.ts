@@ -1169,37 +1169,38 @@ class AudioEngine {
 
         const audio = new Audio(sound.src);
         audio.loop = sound.loop ?? true;
+        // iOS ignores audio.volume, so we need to use Web Audio API for volume control
+        // But we use HTML5 Audio as the source since it works better on iOS
 
-        // Calculate target volume (HTML5 is louder without compressors)
-        // HARDCODED for iOS testing - 0.01 = 1% volume
-        const targetVolume = 0.01;
-        console.log('[AudioEngine] HTML5 music playing with HARDCODED volume:', targetVolume, 'soundId:', soundId);
+        const targetVolume = 0.01; // 1% volume for testing
+        console.log('[AudioEngine] HTML5+WebAudio hybrid - targetVolume:', targetVolume, 'soundId:', soundId);
 
-        if (fadeInDuration > 0) {
-            audio.volume = 0;
-            audio.play().then(() => {
-                // Fade in
-                const steps = 20;
-                const stepTime = fadeInDuration / steps;
-                const volumeStep = targetVolume / steps;
-                let currentStep = 0;
-
-                const fadeInterval = setInterval(() => {
-                    currentStep++;
-                    audio.volume = Math.min(targetVolume, volumeStep * currentStep);
-                    if (currentStep >= steps) {
-                        clearInterval(fadeInterval);
-                    }
-                }, stepTime);
-            }).catch(e => {
-                console.error('[AudioEngine] HTML5 music play failed:', e);
-            });
-        } else {
-            audio.volume = targetVolume;
-            audio.play().catch(e => {
-                console.error('[AudioEngine] HTML5 music play failed:', e);
-            });
+        // Create a Web Audio context if we don't have one (for volume control only)
+        if (!this.context) {
+            const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+            this.context = new AudioContextClass();
         }
+
+        // Resume context if suspended
+        if (this.context.state === 'suspended') {
+            this.context.resume();
+        }
+
+        // Create media element source from HTML5 Audio
+        const source = this.context.createMediaElementSource(audio);
+
+        // Create gain node for volume control
+        const gainNode = this.context.createGain();
+        gainNode.gain.value = targetVolume;
+
+        // Connect: audio element -> gain -> destination
+        source.connect(gainNode);
+        gainNode.connect(this.context.destination);
+
+        // Start playback
+        audio.play().catch(e => {
+            console.error('[AudioEngine] HTML5+WebAudio music play failed:', e);
+        });
 
         this.html5Music = audio;
         this.html5MusicId = soundId;
