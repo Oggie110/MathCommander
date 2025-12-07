@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AnimatedPlanet, SpaceBackground } from '@/components/game';
 import { loadPlayerStats } from '@/utils/gameLogic';
@@ -6,9 +6,8 @@ import { initializeCampaignProgress, getLegById, getLegIndex, isBossLevel } from
 import { celestialBodies } from '@/data/campaignRoute';
 import { Star } from 'lucide-react';
 import { Header } from '@/components/ui/Header';
-import { useSFX, audioEngine } from '@/audio';
+import { useSFX } from '@/audio';
 import { useIsMobile } from '@/hooks/useIsMobile';
-import { getBattleSpeechIds, type BodyId } from '@/audio/speechSounds';
 
 interface LocationState {
     legId: string;
@@ -45,14 +44,6 @@ const MissionScreen: React.FC = () => {
     const isCurrentLeg = legId === progress.currentLegId;
     const isCompletedLeg = legIndex < currentLegIndex;
 
-    // Preload speech for this destination when entering the mission screen
-    useEffect(() => {
-        const speechIds = getBattleSpeechIds(destination.id as BodyId);
-        audioEngine.preloadAll(speechIds).catch(() => {
-            // Ignore preload errors - audio will load on demand if needed
-        });
-    }, [destination.id]);
-
     const getWaypointStatus = (waypointIndex: number) => {
         if (isCompletedLeg) {
             return { isCompleted: true, isLocked: false, isCurrent: false };
@@ -77,10 +68,7 @@ const MissionScreen: React.FC = () => {
     const handleStartMission = (waypointIndex: number) => {
         play('doors');
 
-        // Start preloading speech in background (don't block navigation)
-        const speechIds = getBattleSpeechIds(destination.id as BodyId);
-        audioEngine.preloadAll(speechIds).catch(() => {});
-
+        // Speech preloading happens in useBattleInit for just the needed sounds
         navigate('/battle', {
             state: {
                 legId,
