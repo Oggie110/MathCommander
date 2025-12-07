@@ -16,6 +16,7 @@ const StartScreen: React.FC = () => {
     const [stage, setStage] = useState<Stage>('title');
     const [isLoading, setIsLoading] = useState(false);
     const [displayedText, setDisplayedText] = useState('');
+    const [debugInfo, setDebugInfo] = useState<string>('');
     const [isTyping, setIsTyping] = useState(false);
     const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -76,9 +77,16 @@ const StartScreen: React.FC = () => {
     const handleStartMission = async () => {
         setIsLoading(true);
 
+        // DEBUG: Show detection info on screen
+        const ua = navigator.userAgent;
+        const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        setDebugInfo(`iOS: ${isIOS}, UA: ${ua.substring(0, 50)}...`);
+
         // Initialize and preload audio on first tap (iOS needs user gesture)
         try {
             await audioEngine.init();
+            // Update debug with audio mode
+            setDebugInfo(`iOS: ${isIOS}, HTML5: ${audioEngine.isUsingHTML5Fallback()}`);
             audioEngine.playUnlockTone();
 
             // Preload essential sounds
@@ -159,6 +167,13 @@ const StartScreen: React.FC = () => {
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-4 text-center relative">
             {stage !== 'cinematic' && <SpaceBackground />}
+
+            {/* DEBUG OVERLAY - remove after testing */}
+            {debugInfo && (
+                <div className="fixed top-0 left-0 right-0 bg-red-600 text-white text-xs p-2 z-[9999] font-mono">
+                    DEBUG: {debugInfo}
+                </div>
+            )}
 
             {(stage === 'title' || stage === 'ready') && (
                 // Title Screen / Ready Screen
