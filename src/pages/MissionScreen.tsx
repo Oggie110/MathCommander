@@ -74,12 +74,12 @@ const MissionScreen: React.FC = () => {
         return progress.starsEarned[key] || 0;
     };
 
-    const handleStartMission = async (waypointIndex: number) => {
+    const handleStartMission = (waypointIndex: number) => {
         play('doors');
 
-        // Wait for speech to preload before navigating to battle
+        // Start preloading speech in background (don't block navigation)
         const speechIds = getBattleSpeechIds(destination.id as BodyId);
-        await audioEngine.preloadAll(speechIds).catch(() => {});
+        audioEngine.preloadAll(speechIds).catch(() => {});
 
         navigate('/battle', {
             state: {

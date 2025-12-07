@@ -106,6 +106,15 @@ export function useBattleInit(locationState: LocationState | null): BattleInitRe
         const waveDialogue = selectWaveLine(currentLeg.toBodyId as BodyId, isBoss);
         const alienDialogue = selectAlienLine(currentLeg.toBodyId as BodyId, isBoss);
 
+        // Preload just the intro dialogue sounds (don't await - let them load in background)
+        // These are the most critical as they play first
+        if (waveDialogue.soundId) {
+            audioEngine.preload(waveDialogue.soundId).catch(() => {});
+        }
+        if (alienDialogue.soundId) {
+            audioEngine.preload(alienDialogue.soundId).catch(() => {});
+        }
+
         // Determine background
         const backgroundImage = isBoss
             ? planetBackgrounds[currentLeg.toBodyId] || '/assets/helianthus/Landscapes/Barren/4.png'
