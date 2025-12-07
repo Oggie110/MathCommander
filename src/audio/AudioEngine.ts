@@ -1160,7 +1160,7 @@ class AudioEngine {
         // Playing HTML5 music
 
         const crossfadeDuration = options.crossfade ?? 800;
-        const fadeInDuration = options.fadeIn ?? crossfadeDuration;
+        // Note: fadeIn not used in hybrid approach since we use GainNode
 
         // Fade out current music if playing
         if (this.html5Music) {
