@@ -4,7 +4,7 @@ import { initializeCampaignProgress, generateCampaignMission, isBossLevel, getLe
 import { isFinalBoss as checkIsFinalBoss } from '@/data/narrative';
 import { audioEngine } from '@/audio';
 import { getBattleMusicForChapter } from '@/audio/sounds';
-import { selectWaveLine, selectAlienLine, type BodyId } from '@/audio/speechSounds';
+import { selectWaveLine, selectAlienLine, selectVictoryLine, selectDefeatLine, selectEncourageLine, selectBossDefeatLine, type BodyId } from '@/audio/speechSounds';
 import type { Question } from '@/types/game.ts';
 
 // Planet background mapping for boss battles
@@ -52,11 +52,22 @@ export interface BattleInitResult {
     currentBodyId: string;
     backgroundImage: string;
     enemyImage: string;
+    // Intro dialogue
     commanderLine: string;
     commanderSoundId: string;
     alienLine: string;
     alienSoundId: string;
     alienSpeaker: string | undefined;
+    // Victory/defeat dialogue (pre-selected for preloading)
+    victoryLine: string;
+    victorySoundId: string;
+    defeatLine: string;
+    defeatSoundId: string;
+    encourageLine: string;
+    encourageSoundId: string;
+    bossDefeatLine: string | undefined;
+    bossDefeatSoundId: string | undefined;
+    // Meta
     activeLegId: string;
     activeWaypointIndex: number;
     isReplay: boolean;
@@ -102,18 +113,27 @@ export function useBattleInit(locationState: LocationState | null): BattleInitRe
         audioEngine.stopAmbience('menuAmbience');
         audioEngine.startAmbience('spaceAmbience');
 
-        // Generate dialogue
+        // Generate all dialogue upfront so we can preload the exact sounds needed
         const waveDialogue = selectWaveLine(currentLeg.toBodyId as BodyId, isBoss);
         const alienDialogue = selectAlienLine(currentLeg.toBodyId as BodyId, isBoss);
+        const victoryDialogue = selectVictoryLine(isBoss, isFinal);
+        const defeatDialogue = selectDefeatLine(isBoss);
+        const encourageDialogue = selectEncourageLine();
+        const bossDefeatDialogue = isBoss && !isFinal
+            ? selectBossDefeatLine(currentLeg.toBodyId as BodyId)
+            : undefined;
 
-        // Preload just the intro dialogue sounds (don't await - let them load in background)
-        // These are the most critical as they play first
-        if (waveDialogue.soundId) {
-            audioEngine.preload(waveDialogue.soundId).catch(() => {});
-        }
-        if (alienDialogue.soundId) {
-            audioEngine.preload(alienDialogue.soundId).catch(() => {});
-        }
+        // Preload all needed sounds (don't await - let them load in background)
+        const soundsToPreload = [
+            waveDialogue.soundId,
+            alienDialogue.soundId,
+            victoryDialogue.soundId,
+            defeatDialogue.soundId,
+            encourageDialogue.soundId,
+            bossDefeatDialogue?.soundId,
+        ].filter((id): id is string => !!id);
+
+        audioEngine.preloadAll(soundsToPreload).catch(() => {});
 
         // Determine background
         const backgroundImage = isBoss
@@ -132,11 +152,22 @@ export function useBattleInit(locationState: LocationState | null): BattleInitRe
             currentBodyId: currentLeg.toBodyId,
             backgroundImage,
             enemyImage,
+            // Intro dialogue
             commanderLine: waveDialogue.text,
             commanderSoundId: waveDialogue.soundId,
             alienLine: alienDialogue.text,
             alienSoundId: alienDialogue.soundId,
             alienSpeaker: alienDialogue.name,
+            // Victory/defeat dialogue
+            victoryLine: victoryDialogue.text,
+            victorySoundId: victoryDialogue.soundId,
+            defeatLine: defeatDialogue.text,
+            defeatSoundId: defeatDialogue.soundId,
+            encourageLine: encourageDialogue.text,
+            encourageSoundId: encourageDialogue.soundId,
+            bossDefeatLine: bossDefeatDialogue?.text,
+            bossDefeatSoundId: bossDefeatDialogue?.soundId,
+            // Meta
             activeLegId,
             activeWaypointIndex,
             isReplay,
