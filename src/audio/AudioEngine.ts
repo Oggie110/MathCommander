@@ -1172,8 +1172,8 @@ class AudioEngine {
         // iOS ignores audio.volume, so we need to use Web Audio API for volume control
         // But we use HTML5 Audio as the source since it works better on iOS
 
-        const targetVolume = 0.01; // 1% volume for testing
-        console.log('[AudioEngine] HTML5+WebAudio hybrid - targetVolume:', targetVolume, 'soundId:', soundId);
+        // Calculate volume same as Web Audio path: sound.volume * musicVolume * masterVolume
+        const targetVolume = (sound.volume ?? 1) * this.volumes.music * this.volumes.master;
 
         // Create a Web Audio context if we don't have one (for volume control only)
         if (!this.context) {
