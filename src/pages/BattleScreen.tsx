@@ -55,7 +55,6 @@ const BattleScreen: React.FC = () => {
     // Extract values from init hook (with defaults while loading)
     const isBossBattle = battleInit?.isBossBattle ?? false;
     const isFinalBoss = battleInit?.isFinalBoss ?? false;
-    const _currentBodyId = battleInit?.currentBodyId ?? 'moon';
     const backgroundImage = battleInit?.backgroundImage ?? '/assets/images/backgrounds/base/dark-blue-purple.png';
     const enemyImage = battleInit?.enemyImage ?? '';
     const alienSpeaker = battleInit?.alienSpeaker;
