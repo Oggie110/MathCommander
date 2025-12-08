@@ -1021,12 +1021,12 @@ const BattleScreen: React.FC = () => {
                                         {/* Right side - Gauges layout (ON TOP of panel) */}
                                         <div className="flex-1 flex flex-col z-20">
                                             {/* Top row - Radar above disk station */}
-                                            {/* Portrait: shift right 15px (less negative margin) */}
-                                            <div className={`flex justify-center mt-[22px] ${isPortrait ? 'ml-[-262px]' : 'ml-[-257px]'}`}>
+                                            {/* Portrait: shift right (less negative margin) */}
+                                            <div className={`flex justify-center mt-[22px] ${isPortrait ? 'ml-[-260px]' : 'ml-[-257px]'}`}>
                                                 {/* Mini radar - positioned above disk station */}
-                                                {/* Portrait: 7px narrower */}
+                                                {/* Portrait: 12px narrower */}
                                                 <div
-                                                    className={`h-[68px] rounded relative overflow-hidden ${isPortrait ? 'w-[88px]' : 'w-[95px]'}`}
+                                                    className={`h-[68px] rounded relative overflow-hidden ${isPortrait ? 'w-[83px]' : 'w-[95px]'}`}
                                                     style={{
                                                         background: 'linear-gradient(145deg, #0a1a0a, #0d1a0d)',
                                                         border: '3px solid #1a2a1a',
@@ -1075,8 +1075,8 @@ const BattleScreen: React.FC = () => {
                                                     }}
                                                 />
                                             </div>
-                                            {/* Portrait: shift right 30px (less right offset) */}
-                                            <div className={`absolute top-[45px] flex items-center gap-[22px] z-20 ${isPortrait ? 'right-[40px]' : 'right-[50px]'}`}>
+                                            {/* Portrait: shift right 10px more (content only) */}
+                                            <div className={`absolute top-[45px] flex items-center gap-[22px] z-20 ${isPortrait ? 'right-[30px]' : 'right-[50px]'}`}>
                                                 {/* Circular gauge - Power */}
                                                 <div className="flex flex-col items-center mr-[-7px]">
                                                     <div
