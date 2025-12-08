@@ -403,6 +403,18 @@ class AudioEngine {
                 audio.load();
             });
 
+            // iOS: "unlock" the audio element by playing at volume 0 then pausing
+            // This must happen during a user gesture (preload is called on START MISSION tap)
+            try {
+                audio.volume = 0;
+                await audio.play();
+                audio.pause();
+                audio.currentTime = 0;
+                audio.volume = 1; // Reset volume for actual playback
+            } catch {
+                // Ignore - this is just an unlock attempt
+            }
+
             this.html5Preloaded.set(soundId, audio);
             return;
         }
@@ -578,8 +590,8 @@ class AudioEngine {
             audio.onended = options.onEnd;
         }
 
-        audio.play().catch(() => {
-            // Silently fail - SFX are non-critical
+        audio.play().catch((e) => {
+            console.warn('[AudioEngine] SFX play failed:', soundId, e.message);
         });
     }
 
