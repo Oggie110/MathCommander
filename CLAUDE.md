@@ -1,5 +1,11 @@
 # Space Math Commander - Project Guide
 
+## Quick Links
+
+| Topic | Documentation |
+|-------|---------------|
+| Audio System | `docs/AUDIO-SYSTEM.md` - volumes, playback locations, architecture |
+
 ## Important Guidelines
 
 ### Reverting Failed Fixes
