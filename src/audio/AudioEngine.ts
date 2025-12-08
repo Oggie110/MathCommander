@@ -404,21 +404,6 @@ class AudioEngine {
                 audio.load();
             });
 
-            // iOS requires "unlocking" audio by playing during a user gesture
-            // Play silently and immediately pause to unlock for later playback
-            if (sound.category === 'sfx') {
-                const originalVolume = audio.volume;
-                audio.volume = 0;
-                try {
-                    await audio.play();
-                    audio.pause();
-                    audio.currentTime = 0;
-                } catch {
-                    // Play failed - likely not in gesture context, will try again later
-                }
-                audio.volume = originalVolume;
-            }
-
             this.html5Preloaded.set(soundId, audio);
             return;
         }
