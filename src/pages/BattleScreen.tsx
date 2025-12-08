@@ -1021,10 +1021,12 @@ const BattleScreen: React.FC = () => {
                                         {/* Right side - Gauges layout (ON TOP of panel) */}
                                         <div className="flex-1 flex flex-col z-20">
                                             {/* Top row - Radar above disk station */}
-                                            <div className="flex justify-center ml-[-257px] mt-[22px]">
+                                            {/* Portrait: shift right (less negative margin) */}
+                                            <div className={`flex justify-center mt-[22px] ${isPortrait ? 'ml-[-237px]' : 'ml-[-257px]'}`}>
                                                 {/* Mini radar - positioned above disk station */}
+                                                {/* Portrait: slightly smaller */}
                                                 <div
-                                                    className="w-[95px] h-[68px] rounded relative overflow-hidden"
+                                                    className={`rounded relative overflow-hidden ${isPortrait ? 'w-[80px] h-[58px]' : 'w-[95px] h-[68px]'}`}
                                                     style={{
                                                         background: 'linear-gradient(145deg, #0a1a0a, #0d1a0d)',
                                                         border: '3px solid #1a2a1a',
@@ -1052,8 +1054,9 @@ const BattleScreen: React.FC = () => {
                                             </div>
 
                                             {/* Top right rectangle - Gauges */}
+                                            {/* Portrait: smaller and shift right (less right offset) */}
                                             <div
-                                                className="absolute right-[30px] top-[35px] w-[250px] h-[73px] overflow-hidden"
+                                                className={`absolute overflow-hidden ${isPortrait ? 'right-[10px] top-[35px] w-[210px] h-[63px]' : 'right-[30px] top-[35px] w-[250px] h-[73px]'}`}
                                                 style={{
                                                     background: 'linear-gradient(180deg, #0a0a0a, #050505)',
                                                     border: '2px solid #1a2a1a',
@@ -1072,7 +1075,8 @@ const BattleScreen: React.FC = () => {
                                                     }}
                                                 />
                                             </div>
-                                            <div className="absolute right-[50px] top-[45px] flex items-center gap-[22px] z-20">
+                                            {/* Portrait: shift right and tighter spacing */}
+                                            <div className={`absolute top-[45px] flex items-center z-20 ${isPortrait ? 'right-[25px] gap-[16px]' : 'right-[50px] gap-[22px]'}`}>
                                                 {/* Circular gauge - Power */}
                                                 <div className="flex flex-col items-center mr-[-7px]">
                                                     <div
@@ -1149,8 +1153,9 @@ const BattleScreen: React.FC = () => {
                                             </div>
 
                                             {/* Bottom right rectangle - Battlezone-style vector display */}
+                                            {/* Portrait: smaller and shift right */}
                                             <div
-                                                className="absolute right-[30px] top-[140px] w-[250px] h-[70px] overflow-hidden"
+                                                className={`absolute overflow-hidden ${isPortrait ? 'right-[10px] top-[130px] w-[210px] h-[60px]' : 'right-[30px] top-[140px] w-[250px] h-[70px]'}`}
                                                 style={{
                                                     background: 'linear-gradient(180deg, #0a0a0a, #050505)',
                                                     border: '2px solid #1a2a1a',
