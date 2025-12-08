@@ -76,7 +76,7 @@ const CORE_SOUNDS: Record<string, SoundDefinition> = {
         id: 'introData',
         src: '/assets/audio/sfx/ambience/mc_intro_data.wav',
         category: 'sfx',
-        loop: false,
+        loop: true, // Loops until player clicks BEGIN MISSION
         volume: 0.15,
     },
 

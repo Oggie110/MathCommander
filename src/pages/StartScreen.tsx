@@ -122,21 +122,26 @@ const StartScreen: React.FC = () => {
         setStage('ready');
     };
 
+    // Store stop function for intro data sound
+    const stopIntroDataRef = useRef<((fadeOut?: number) => void) | null>(null);
+
     const handleBriefing = () => {
         // Start ambience and intro data sound on briefing screen
         audioEngine.startAmbience('menuAmbience');
-        // Play intro data and fade it out after 2 seconds
-        const stopIntroData = audioEngine.playSFXWithStop('introData');
-        if (stopIntroData) {
-            setTimeout(() => {
-                (stopIntroData as (fadeOut?: number) => void)(2000);
-            }, 2000);
+        // Play intro data - it will play until user clicks BEGIN MISSION
+        const stopFn = audioEngine.playSFXWithStop('introData');
+        if (stopFn) {
+            stopIntroDataRef.current = stopFn as (fadeOut?: number) => void;
         }
         setStage('briefing');
     };
 
     const handleContinue = () => {
-        // Ambience already running from briefing screen, just start cinematic
+        // Stop intro data with fade when going to cinematic
+        if (stopIntroDataRef.current) {
+            stopIntroDataRef.current(1000); // 1 second fade out
+            stopIntroDataRef.current = null;
+        }
         setStage('cinematic');
     };
 
