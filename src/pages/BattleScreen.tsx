@@ -916,7 +916,7 @@ const BattleScreen: React.FC = () => {
                                                 />
 
                                                 {introStage === 'playing' ? (
-                                                    <div className="relative z-0">
+                                                    <div className="relative z-0 flex flex-col items-center justify-center h-full">
                                                         {/* Question Display */}
                                                         <div className="text-2xl font-bold flex items-center justify-center gap-2 font-pixel mb-3">
                                                             <span className="text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.9)]">{currentQuestion.num1}</span>
