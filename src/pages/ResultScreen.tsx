@@ -62,8 +62,10 @@ const ResultScreen: React.FC = () => {
 
     // Animate percentage from 0 to final value
     useEffect(() => {
-        // Play percentage sound at start
-        audioEngine.playSFX('resultPercentage');
+        // Resume audio context (iOS) then play percentage sound
+        audioEngine.resume().then(() => {
+            audioEngine.playSFX('resultPercentage');
+        });
 
         const startTime = performance.now();
         let animationFrame: number;

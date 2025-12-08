@@ -76,6 +76,11 @@ const StartScreen: React.FC = () => {
             }
             setDisplayedText(openingNarrative.message);
             setIsTyping(false);
+            // Stop intro data sound when skipping (same as when typing finishes)
+            if (stopIntroDataRef.current) {
+                stopIntroDataRef.current(500); // 0.5s fade
+                stopIntroDataRef.current = null;
+            }
         }
     };
 

@@ -2,10 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom';
 import { loadPlayerStats, savePlayerStats, updateWeakAreas, calculateXP } from '@/utils/gameLogic';
 import { initializeCampaignProgress, completeMission } from '@/utils/campaignLogic';
-import { isFinalBoss as checkIsFinalBoss } from '@/data/narrative';
 import { useSFX, audioEngine } from '@/audio';
 import { speechService } from '@/audio/SpeechService';
-import { selectVictoryLine, selectDefeatLine } from '@/audio/speechSounds';
 import { useBattleInit, useBattleAnimations, type LocationState } from '@/hooks/battle';
 import type { Question } from '@/types/game.ts';
 import { Star, ArrowLeft } from 'lucide-react';
@@ -65,6 +63,12 @@ const BattleScreen: React.FC = () => {
     const commanderSoundId = battleInit?.commanderSoundId ?? '';
     const alienLine = battleInit?.alienLine ?? '';
     const alienSoundId = battleInit?.alienSoundId ?? '';
+    // Pre-selected victory/defeat dialogue (must use these exact IDs since they're preloaded)
+    const preselectedVictoryLine = battleInit?.victoryLine ?? '';
+    const preselectedVictorySoundId = battleInit?.victorySoundId ?? '';
+    const preselectedDefeatLine = battleInit?.defeatLine ?? '';
+    const preselectedDefeatSoundId = battleInit?.defeatSoundId ?? '';
+    const preselectedEncourageLine = battleInit?.encourageLine ?? '';
 
     // Refs for cleanup and stable callbacks
     const escapeNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -84,16 +88,14 @@ const BattleScreen: React.FC = () => {
             // Short delay after explosion, then show victory dialogue (waits for click)
             const timeout = setTimeout(() => {
                 setIntroStage('victory');
-                // Use unified selection for synced text/audio
-                const isFinal = checkIsFinalBoss(currentBodyId, isBossBattle);
-                const victoryDialogue = selectVictoryLine(isBossBattle, isFinal);
-                setIntroMessage(victoryDialogue.text);
-                setVictorySoundId(victoryDialogue.soundId);
+                // Use pre-selected dialogue from useBattleInit (these sounds are preloaded)
+                setIntroMessage(preselectedVictoryLine);
+                setVictorySoundId(preselectedVictorySoundId);
             }, 500);
 
             return () => clearTimeout(timeout);
         }
-    }, [gameEnding, explosionFrame, currentBodyId, isBossBattle]);
+    }, [gameEnding, explosionFrame, preselectedVictoryLine, preselectedVictorySoundId]);
 
     // Handle advancing to next question (called by click or auto-advance timer)
     const advanceToNextQuestion = useCallback(() => {
@@ -331,9 +333,9 @@ const BattleScreen: React.FC = () => {
         } else {
             setGameEnding('escape');
             playSFX('shipSlide4', { volume: 0.5 });
-            const defeatDialogue = selectDefeatLine(isBossBattle);
-            setDefeatMessage({ message: defeatDialogue.text, encouragement: '' });
-            setDefeatSoundId(defeatDialogue.soundId);
+            // Use pre-selected dialogue from useBattleInit (these sounds are preloaded)
+            setDefeatMessage({ message: preselectedDefeatLine, encouragement: preselectedEncourageLine });
+            setDefeatSoundId(preselectedDefeatSoundId);
         }
 
         // Update stats (only advance campaign if not replaying a completed level)

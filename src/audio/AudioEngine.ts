@@ -1233,8 +1233,8 @@ class AudioEngine {
         // But we use HTML5 Audio as the source since it works better on iOS
 
         // Calculate volume same as Web Audio path: sound.volume * musicVolume * masterVolume
-        // Boost HTML5 music volume slightly since it doesn't go through compressor chain
-        const html5MusicBoost = 1.5;
+        // Boost HTML5 music volume since it doesn't go through compressor chain
+        const html5MusicBoost = 2.5;
         const targetVolume = (sound.volume ?? 1) * this.volumes.music * this.volumes.master * html5MusicBoost;
 
         // Create a Web Audio context if we don't have one (for volume control only)
