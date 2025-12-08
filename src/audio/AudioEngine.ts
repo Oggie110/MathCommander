@@ -574,9 +574,7 @@ class AudioEngine {
             const variation = (Math.random() * 2 - 1) * sound.volumeVariation;
             volume *= (1 + variation);
         }
-        const finalVolume = volume * this.volumes.sfx * this.volumes.master;
-        console.log(`[AudioEngine] playSFXHTML5: ${soundId}, html5Vol=${sound.html5Volume}, vol=${sound.volume}, base=${baseVolume}, final=${finalVolume}`);
-        audio.volume = finalVolume;
+        audio.volume = volume * this.volumes.sfx * this.volumes.master;
 
         // Callback when finished
         if (options.onEnd) {
