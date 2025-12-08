@@ -1021,8 +1021,7 @@ const BattleScreen: React.FC = () => {
                                         {/* Right side - Gauges layout (ON TOP of panel) */}
                                         <div className="flex-1 flex flex-col z-20">
                                             {/* Top row - Radar above disk station */}
-                                            {/* Portrait needs less negative margin to shift radar left */}
-                                            <div className={`flex justify-center mt-[22px] ${isPortrait ? 'ml-[-277px]' : 'ml-[-257px]'}`}>
+                                            <div className="flex justify-center ml-[-257px] mt-[22px]">
                                                 {/* Mini radar - positioned above disk station */}
                                                 <div
                                                     className="w-[95px] h-[68px] rounded relative overflow-hidden"
@@ -1053,9 +1052,8 @@ const BattleScreen: React.FC = () => {
                                             </div>
 
                                             {/* Top right rectangle - Gauges */}
-                                            {/* Portrait needs more right offset to shift gauges left */}
                                             <div
-                                                className={`absolute top-[35px] w-[250px] h-[73px] overflow-hidden ${isPortrait ? 'right-[50px]' : 'right-[30px]'}`}
+                                                className="absolute right-[30px] top-[35px] w-[250px] h-[73px] overflow-hidden"
                                                 style={{
                                                     background: 'linear-gradient(180deg, #0a0a0a, #050505)',
                                                     border: '2px solid #1a2a1a',
@@ -1074,7 +1072,7 @@ const BattleScreen: React.FC = () => {
                                                     }}
                                                 />
                                             </div>
-                                            <div className={`absolute top-[45px] flex items-center gap-[22px] z-20 ${isPortrait ? 'right-[70px]' : 'right-[50px]'}`}>
+                                            <div className="absolute right-[50px] top-[45px] flex items-center gap-[22px] z-20">
                                                 {/* Circular gauge - Power */}
                                                 <div className="flex flex-col items-center mr-[-7px]">
                                                     <div
@@ -1151,9 +1149,8 @@ const BattleScreen: React.FC = () => {
                                             </div>
 
                                             {/* Bottom right rectangle - Battlezone-style vector display */}
-                                            {/* Portrait needs more right offset to shift display left */}
                                             <div
-                                                className={`absolute top-[140px] w-[250px] h-[70px] overflow-hidden ${isPortrait ? 'right-[50px]' : 'right-[30px]'}`}
+                                                className="absolute right-[30px] top-[140px] w-[250px] h-[70px] overflow-hidden"
                                                 style={{
                                                     background: 'linear-gradient(180deg, #0a0a0a, #050505)',
                                                     border: '2px solid #1a2a1a',
