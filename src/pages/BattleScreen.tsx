@@ -916,9 +916,9 @@ const BattleScreen: React.FC = () => {
                                                 />
 
                                                 {introStage === 'playing' ? (
-                                                    <div className="relative z-0 text-center">
+                                                    <div className="relative z-0 flex flex-col items-center justify-center">
                                                         {/* Question Display */}
-                                                        <div className="text-2xl font-bold inline-flex items-center justify-center gap-2 font-pixel mb-3">
+                                                        <div className="text-2xl font-bold flex items-center justify-center gap-2 font-pixel mb-3">
                                                             <span className="text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.9)]">{currentQuestion.num1}</span>
                                                             <span className="text-green-600">×</span>
                                                             <span className="text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.9)]">{currentQuestion.num2}</span>
@@ -931,7 +931,7 @@ const BattleScreen: React.FC = () => {
                                                         </div>
 
                                                         {/* Answer Buttons */}
-                                                        <div className="inline-grid grid-cols-3 gap-1">
+                                                        <div className="grid grid-cols-3 gap-1">
                                                                 {(frozenChoices || answerChoices).map((opt, i) => {
                                                                     const isSelected = showFeedback && selectedAnswer === opt;
                                                                     const isCorrectAnswer = opt === currentQuestion.answer;
