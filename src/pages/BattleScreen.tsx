@@ -1053,9 +1053,9 @@ const BattleScreen: React.FC = () => {
                                             </div>
 
                                             {/* Top right rectangle - Gauges */}
-                                            {/* Portrait: shift right 30px (less right offset) */}
+                                            {/* Portrait: shift right 30px and 10px narrower */}
                                             <div
-                                                className={`absolute top-[35px] w-[250px] h-[73px] overflow-hidden ${isPortrait ? 'right-[20px]' : 'right-[30px]'}`}
+                                                className={`absolute top-[35px] h-[73px] overflow-hidden ${isPortrait ? 'right-[20px] w-[240px]' : 'right-[30px] w-[250px]'}`}
                                                 style={{
                                                     background: 'linear-gradient(180deg, #0a0a0a, #050505)',
                                                     border: '2px solid #1a2a1a',
@@ -1152,9 +1152,9 @@ const BattleScreen: React.FC = () => {
                                             </div>
 
                                             {/* Bottom right rectangle - Battlezone-style vector display */}
-                                            {/* Portrait: shift right 30px (less right offset) */}
+                                            {/* Portrait: shift right 30px and 10px narrower */}
                                             <div
-                                                className={`absolute top-[140px] w-[250px] h-[70px] overflow-hidden ${isPortrait ? 'right-[20px]' : 'right-[30px]'}`}
+                                                className={`absolute top-[140px] h-[70px] overflow-hidden ${isPortrait ? 'right-[20px] w-[240px]' : 'right-[30px] w-[250px]'}`}
                                                 style={{
                                                     background: 'linear-gradient(180deg, #0a0a0a, #050505)',
                                                     border: '2px solid #1a2a1a',
