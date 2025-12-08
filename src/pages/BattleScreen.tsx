@@ -493,8 +493,8 @@ const BattleScreen: React.FC = () => {
                         borderRadius: '4px',
                         padding: '3px',
                     }}>
-                        {/* Game content area */}
-                        <div className="relative h-[900px] flex flex-col overflow-hidden">
+                        {/* Game content area - shorter on tablets to fit without scrolling */}
+                        <div className="relative h-[500px] lg:h-[900px] flex flex-col overflow-hidden">
                             {/* Main viewing area - Side-scrolling shooter */}
                             <div className="flex-1 relative flex items-center justify-center">
                                 {/* Parallax scrolling background */}
