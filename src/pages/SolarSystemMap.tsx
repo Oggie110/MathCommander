@@ -48,6 +48,7 @@ interface WaypointNodeProps {
     onClick: () => void;
     waypointProgress?: { current: number; total: number };
     starsEarned?: number; // 0-3 stars for completed planets
+    sizeScale?: number; // Scale factor for planet size (e.g., 0.75 for tablets)
 }
 
 const WaypointNode: React.FC<WaypointNodeProps> = ({
@@ -59,8 +60,10 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
     onClick,
     waypointProgress,
     starsEarned = 0,
+    sizeScale = 1,
 }) => {
     const pos = planetPositions[body.id];
+    const scaledSize = Math.round(pos.size * sizeScale);
     const canClick = !isLocked;
 
     return (
@@ -75,8 +78,8 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
                 <div
                     className="absolute inset-0 rounded-full animate-ping"
                     style={{
-                        width: pos.size + 16,
-                        height: pos.size + 16,
+                        width: scaledSize + 16,
+                        height: scaledSize + 16,
                         left: -8,
                         top: -8,
                         border: '3px solid var(--color-brand-secondary)',
@@ -89,8 +92,8 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
                 <div
                     className="absolute inset-0 rounded-full"
                     style={{
-                        width: pos.size + 16,
-                        height: pos.size + 16,
+                        width: scaledSize + 16,
+                        height: scaledSize + 16,
                         left: -8,
                         top: -8,
                         border: '3px solid var(--color-brand-accent)',
@@ -103,7 +106,7 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
             <div className="relative">
                 <AnimatedPlanet
                     planetId={body.id}
-                    size={pos.size}
+                    size={scaledSize}
                     isLocked={isLocked}
                 />
 
@@ -120,7 +123,7 @@ const WaypointNode: React.FC<WaypointNodeProps> = ({
             {/* Planet name label, stars, and waypoint progress */}
             <div
                 className="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center"
-                style={{ top: pos.size + 4 }}
+                style={{ top: scaledSize + 4 }}
             >
                 <div
                     className={`text-[10px] font-bold uppercase tracking-wider whitespace-nowrap font-pixel ${isLocked ? 'text-industrial-metal' : isCurrent ? 'text-brand-secondary' : isCompleted ? 'text-brand-success' : 'text-industrial-highlight'
@@ -171,6 +174,15 @@ const SolarSystemMap: React.FC = () => {
     const location = useLocation();
     const [stats, setStats] = useState(() => loadPlayerStats());
     const progress = stats.campaignProgress || initializeCampaignProgress();
+
+    // Detect touch devices (tablets) for planet size scaling
+    const [isTouch, setIsTouch] = useState(false);
+    useEffect(() => {
+        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        setIsTouch(hasTouch);
+    }, []);
+    // Tablets get smaller planets (75% size)
+    const planetSizeScale = isTouch ? 0.75 : 1;
 
     // Check if we came from cinematic for fade-in effect
     const fromCinematic = (location.state as { fromCinematic?: boolean })?.fromCinematic;
@@ -491,6 +503,7 @@ const SolarSystemMap: React.FC = () => {
                             onClick={() => handleBodyClick(body)}
                             waypointProgress={waypointProgress}
                             starsEarned={starsEarned}
+                            sizeScale={planetSizeScale}
                         />
                     );
                 })}
