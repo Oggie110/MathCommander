@@ -86,14 +86,16 @@ const ResultScreen: React.FC = () => {
 
     // Animate stars appearing one by one
     // Use 3 separate sound files to allow overlapping playback on iOS
-    const starPopSounds = ['resultStarPop1', 'resultStarPop2', 'resultStarPop3'];
     useEffect(() => {
         if (starsEarned === 0) return;
 
+        const starPopSounds = ['resultStarPop1', 'resultStarPop2', 'resultStarPop3'];
         const timers: ReturnType<typeof setTimeout>[] = [];
         for (let i = 1; i <= starsEarned; i++) {
-            const timer = setTimeout(() => {
+            const timer = setTimeout(async () => {
                 setVisibleStars(i);
+                // Resume audio context in case it was suspended (can happen on some browsers)
+                await audioEngine.resume();
                 // Play pop sound for each star (cycling through 3 copies)
                 audioEngine.playSFX(starPopSounds[(i - 1) % 3]);
             }, STARS_START_DELAY + (i - 1) * STAR_INTERVAL);
@@ -105,7 +107,9 @@ const ResultScreen: React.FC = () => {
 
     // Animate correct count from 0 to final value
     useEffect(() => {
-        const timer = setTimeout(() => {
+        const timer = setTimeout(async () => {
+            // Resume audio context in case it was suspended
+            await audioEngine.resume();
             // Play correct count sound
             audioEngine.playSFX('resultCorrectCount');
 
@@ -130,8 +134,10 @@ const ResultScreen: React.FC = () => {
 
     // Show XP with bounce
     useEffect(() => {
-        const timer = setTimeout(() => {
+        const timer = setTimeout(async () => {
             setShowXP(true);
+            // Resume audio context in case it was suspended
+            await audioEngine.resume();
             // Play XP sound
             audioEngine.playSFX('resultXP');
         }, XP_START_DELAY);

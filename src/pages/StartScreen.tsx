@@ -49,6 +49,11 @@ const StartScreen: React.FC = () => {
                         typeIntervalRef.current = null;
                     }
                     setIsTyping(false);
+                    // Stop intro data sound with 1s fade when typing finishes
+                    if (stopIntroDataRef.current) {
+                        stopIntroDataRef.current(1000);
+                        stopIntroDataRef.current = null;
+                    }
                 }
             }, 30);
         }
