@@ -1,20 +1,29 @@
 import { useState, useEffect } from 'react';
 
 /**
- * Hook to detect if the user is on a mobile phone in portrait orientation.
- * Returns true for phones (width < 768px) in portrait mode.
- * Tablets and desktops return false.
+ * Hook to detect if the user is on a mobile/tablet device that needs the mobile layout.
+ * Returns true for:
+ * - Phones in portrait mode (width < 768px)
+ * - Tablets (touch devices with width < 1024px) in any orientation
  */
 export function useIsMobile(): boolean {
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
         const checkMobile = () => {
-            // Check if it's a phone-sized screen in portrait
-            // 768px is typical tablet breakpoint
-            const isPhoneWidth = window.innerWidth < 768;
-            const isPortrait = window.innerHeight > window.innerWidth;
-            setIsMobile(isPhoneWidth && isPortrait);
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const isPortrait = height > width;
+            const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            const isTabletUA = /iPad|Android(?!.*Mobile)/i.test(navigator.userAgent);
+
+            // Phone in portrait
+            const isPhonePortrait = width < 768 && isPortrait;
+
+            // Tablet (touch device under 1024px width, or detected as iPad/Android tablet)
+            const isTablet = (hasTouch && width < 1024) || isTabletUA;
+
+            setIsMobile(isPhonePortrait || isTablet);
         };
 
         // Check on mount
