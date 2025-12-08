@@ -13,6 +13,8 @@ export interface SoundDefinition {
     volumeVariation?: number; // e.g., 0.1 means ±10% volume randomization
     // Default volume (0-1)
     volume?: number;
+    // Optional separate volume for iOS HTML5 fallback (since no compressor)
+    html5Volume?: number;
 }
 
 export interface PlayOptions {

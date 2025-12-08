@@ -181,6 +181,7 @@ const CORE_SOUNDS: Record<string, SoundDefinition> = {
         src: '/assets/audio/sfx/sfx/sparkling_star.wav',
         category: 'sfx',
         volume: 0.02,
+        html5Volume: 0.005, // Even lower for iOS (no compressor)
     },
     // Result screen animation sounds
     resultPercentage: {

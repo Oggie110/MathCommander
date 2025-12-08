@@ -588,14 +588,14 @@ const SolarSystemMapMobile: React.FC = () => {
                         {/* Main content */}
                         <div className="relative z-10 flex items-center justify-center w-full h-full p-4 pt-24">
                             <div className="flex flex-col gap-4 w-80">
-                                <PixelCard className="p-8 bg-industrial-dark/95 backdrop-blur-sm">
-                                    <h2 className="text-brand-accent font-pixel text-base mb-4 text-center">
+                                <PixelCard className="p-4 bg-industrial-dark/95 backdrop-blur-sm">
+                                    <h2 className="text-brand-accent font-pixel text-base mb-2 text-center">
                                         PILOT STATS
                                     </h2>
 
                                     {/* Player Rank Badge */}
-                                    <div className="flex flex-col items-center mb-4 pb-4 border-b border-industrial-metal">
-                                        <div className="w-32 h-32 flex items-center justify-center mb-3">
+                                    <div className="flex flex-col items-center mb-2 pb-2 border-b border-industrial-metal">
+                                        <div className="w-20 h-20 flex items-center justify-center mb-1">
                                             <img
                                                 src={currentRank.badge}
                                                 alt={currentRank.name}
@@ -604,66 +604,56 @@ const SolarSystemMapMobile: React.FC = () => {
                                             />
                                         </div>
                                         <div className="text-center">
-                                            <div className="text-gray-300 font-pixel text-lg uppercase">{currentRank.name}</div>
-                                            <div className="text-yellow-400 text-sm font-pixel mt-1">
+                                            <div className="text-gray-300 font-pixel text-sm uppercase">{currentRank.name}</div>
+                                            <div className="text-yellow-400 text-xs font-pixel">
                                                 {stats.totalXP.toLocaleString()} XP
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* XP Progress to Next Rank */}
-                                    <div className="mb-3">
+                                    <div className="mb-2">
                                         <div className="text-industrial-highlight font-pixel text-[10px] mb-1">
                                             {nextRank ? 'PROGRESS TO NEXT RANK' : 'MAX RANK ACHIEVED'}
                                         </div>
                                         {nextRank && (
-                                            <div className="text-brand-secondary font-pixel text-xs mb-1">
+                                            <div className="text-brand-secondary font-pixel text-[10px] mb-1">
                                                 {xpProgress.current.toLocaleString()} / {xpProgress.next.toLocaleString()}
                                             </div>
                                         )}
-                                        <div className="h-2 bg-industrial-metal rounded-full overflow-hidden">
+                                        <div className="h-1.5 bg-industrial-metal rounded-full overflow-hidden">
                                             <div
                                                 className="h-full bg-gradient-to-r from-brand-accent to-brand-secondary transition-all"
                                                 style={{ width: `${Math.round(xpProgress.progress * 100)}%` }}
                                             />
                                         </div>
                                         {nextRank && (
-                                            <div className="flex items-center gap-2 mt-2">
-                                                <span className="text-industrial-highlight text-xs font-pixel whitespace-nowrap">NEXT:</span>
-                                                <span className="text-brand-secondary text-xs font-pixel whitespace-nowrap">{nextRank.name}</span>
+                                            <div className="flex items-center gap-1 mt-1">
+                                                <span className="text-industrial-highlight text-[10px] font-pixel whitespace-nowrap">NEXT:</span>
+                                                <span className="text-brand-secondary text-[10px] font-pixel whitespace-nowrap">{nextRank.name}</span>
                                             </div>
                                         )}
                                     </div>
 
-                                    {/* Stars */}
-                                    <div className="flex items-center justify-between mb-3 py-2 border-y border-industrial-metal">
-                                        <div className="flex items-center gap-2">
-                                            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                                            <span className="text-industrial-highlight text-xs font-pixel">STARS EARNED</span>
+                                    {/* Stats row - Stars, Missions, Planets in one row */}
+                                    <div className="flex items-center justify-between mb-2 py-1.5 border-y border-industrial-metal text-[10px]">
+                                        <div className="flex items-center gap-1">
+                                            <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                                            <span className="text-industrial-highlight font-pixel">STARS</span>
+                                            <span className="text-yellow-400 font-pixel">{totalStars}</span>
                                         </div>
-                                        <span className="text-yellow-400 font-pixel">{totalStars}</span>
+                                        <div className="flex items-center gap-1">
+                                            <Rocket className="w-3 h-3 text-brand-secondary" />
+                                            <span className="text-white font-pixel">{completedWaypoints}/{totalWaypoints}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Sparkles className="w-3 h-3 text-brand-success" />
+                                            <span className="text-brand-success font-pixel">{completedStages}</span>
+                                        </div>
                                     </div>
 
-                                    {/* Progress */}
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="flex items-center gap-2">
-                                            <Rocket className="w-4 h-4 text-brand-secondary" />
-                                            <span className="text-industrial-highlight text-xs font-pixel">MISSIONS</span>
-                                        </div>
-                                        <span className="text-white font-pixel">{completedWaypoints} / {totalWaypoints}</span>
-                                    </div>
-
-                                    {/* Stages */}
-                                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-industrial-metal">
-                                        <div className="flex items-center gap-2">
-                                            <Sparkles className="w-4 h-4 text-brand-success" />
-                                            <span className="text-industrial-highlight text-xs font-pixel">PLANETS CLEARED</span>
-                                        </div>
-                                        <span className="text-brand-success font-pixel">{completedStages}</span>
-                                    </div>
-
-                                    {/* Spaceship display */}
-                                    <h3 className="text-brand-secondary font-pixel text-sm mb-3 text-center">YOUR SHIP</h3>
+                                    {/* Spaceship display - smaller and more compact */}
+                                    <h3 className="text-brand-secondary font-pixel text-[10px] mb-1 text-center">YOUR SHIP</h3>
                                     <div className="flex justify-center">
                                         <video
                                             src="/assets/video/ShipRotate.mp4"
@@ -671,12 +661,12 @@ const SolarSystemMapMobile: React.FC = () => {
                                             loop
                                             muted
                                             playsInline
-                                            className="w-32 h-32 object-contain"
+                                            className="w-20 h-20 object-contain"
                                         />
                                     </div>
-                                    <div className="text-center mt-2">
-                                        <div className="text-white font-pixel text-sm">STELLAR FALCON</div>
-                                        <div className="text-industrial-highlight text-xs font-pixel">CLASS: INTERCEPTOR</div>
+                                    <div className="text-center">
+                                        <div className="text-white font-pixel text-[10px]">STELLAR FALCON</div>
+                                        <div className="text-industrial-highlight text-[9px] font-pixel">CLASS: INTERCEPTOR</div>
                                     </div>
                                 </PixelCard>
                             </div>

@@ -46,6 +46,7 @@ class AudioEngine {
     private useHTML5Fallback = false;
     private html5Music: HTMLAudioElement | null = null;
     private html5MusicId: string | null = null;
+    private html5MusicGain: GainNode | null = null; // For volume control via Web Audio
     private html5Ambience: Map<string, HTMLAudioElement> = new Map();
     private html5Speech: HTMLAudioElement | null = null;
     private html5SpeechResolve: (() => void) | null = null;
@@ -403,6 +404,21 @@ class AudioEngine {
                 audio.load();
             });
 
+            // iOS requires "unlocking" audio by playing during a user gesture
+            // Play silently and immediately pause to unlock for later playback
+            if (sound.category === 'sfx') {
+                const originalVolume = audio.volume;
+                audio.volume = 0;
+                try {
+                    await audio.play();
+                    audio.pause();
+                    audio.currentTime = 0;
+                } catch {
+                    // Play failed - likely not in gesture context, will try again later
+                }
+                audio.volume = originalVolume;
+            }
+
             this.html5Preloaded.set(soundId, audio);
             return;
         }
@@ -566,8 +582,9 @@ class AudioEngine {
             audio = new Audio(sound.src);
         }
 
-        // Calculate volume
-        let volume = options.volume ?? sound.volume ?? 1;
+        // Calculate volume - use html5Volume if available (for sounds that need different levels on iOS)
+        const baseVolume = options.volume ?? sound.html5Volume ?? sound.volume ?? 1;
+        let volume = baseVolume;
         if (sound.volumeVariation) {
             const variation = (Math.random() * 2 - 1) * sound.volumeVariation;
             volume *= (1 + variation);
@@ -606,8 +623,9 @@ class AudioEngine {
             audio = new Audio(sound.src);
         }
 
-        // Calculate volume
-        let volume = options.volume ?? sound.volume ?? 1;
+        // Calculate volume - use html5Volume if available
+        const baseVolume = options.volume ?? sound.html5Volume ?? sound.volume ?? 1;
+        let volume = baseVolume;
         if (sound.volumeVariation) {
             const variation = (Math.random() * 2 - 1) * sound.volumeVariation;
             volume *= (1 + variation);
@@ -1266,6 +1284,7 @@ class AudioEngine {
 
         this.html5Music = audio;
         this.html5MusicId = soundId;
+        this.html5MusicGain = gainNode; // Store for volume control
     }
 
     /**
@@ -1309,6 +1328,7 @@ class AudioEngine {
 
         this.html5Music = null;
         this.html5MusicId = null;
+        this.html5MusicGain = null;
     }
 
     /**
@@ -1635,6 +1655,8 @@ class AudioEngine {
         if (this.masterGain) {
             this.masterGain.gain.value = this.volumes.master;
         }
+        // Update HTML5 audio elements (iOS)
+        this.updateHTML5Volumes();
         this.saveSettings();
     }
 
@@ -1642,6 +1664,14 @@ class AudioEngine {
         this.volumes.music = Math.max(0, Math.min(1, value));
         if (this.musicGain) {
             this.musicGain.gain.value = this.volumes.music;
+        }
+        // Update HTML5 music volume (iOS uses hybrid Web Audio gain)
+        if (this.html5MusicGain && this.html5MusicId) {
+            const sound = SOUNDS[this.html5MusicId];
+            if (sound) {
+                const html5MusicBoost = 2.5;
+                this.html5MusicGain.gain.value = (sound.volume ?? 1) * this.volumes.music * this.volumes.master * html5MusicBoost;
+            }
         }
         this.saveSettings();
     }
@@ -1651,6 +1681,7 @@ class AudioEngine {
         if (this.sfxGain) {
             this.sfxGain.gain.value = this.volumes.sfx;
         }
+        // SFX are one-shot, no need to update playing sounds
         this.saveSettings();
     }
 
@@ -1659,6 +1690,13 @@ class AudioEngine {
         if (this.ambienceGain) {
             this.ambienceGain.gain.value = this.volumes.ambience;
         }
+        // Update HTML5 ambience (iOS)
+        this.html5Ambience.forEach((audio, soundId) => {
+            const sound = SOUNDS[soundId];
+            if (sound) {
+                audio.volume = (sound.volume ?? 0.2) * this.volumes.ambience * this.volumes.master;
+            }
+        });
         this.saveSettings();
     }
 
@@ -1667,7 +1705,34 @@ class AudioEngine {
         if (this.speechGain) {
             this.speechGain.gain.value = this.volumes.speech;
         }
+        // Update HTML5 speech (iOS)
+        if (this.html5Speech) {
+            // We can't easily get the sound definition for current speech, so just apply ratio
+            this.html5Speech.volume = Math.min(1, this.html5Speech.volume * (value / (this.volumes.speech || 0.4)));
+        }
         this.saveSettings();
+    }
+
+    /**
+     * Update all HTML5 audio element volumes (iOS fallback)
+     * Called when master volume changes
+     */
+    private updateHTML5Volumes(): void {
+        // Update music via gain node
+        if (this.html5MusicGain && this.html5MusicId) {
+            const sound = SOUNDS[this.html5MusicId];
+            if (sound) {
+                const html5MusicBoost = 2.5;
+                this.html5MusicGain.gain.value = (sound.volume ?? 1) * this.volumes.music * this.volumes.master * html5MusicBoost;
+            }
+        }
+        // Update ambience
+        this.html5Ambience.forEach((audio, soundId) => {
+            const sound = SOUNDS[soundId];
+            if (sound) {
+                audio.volume = (sound.volume ?? 0.2) * this.volumes.ambience * this.volumes.master;
+            }
+        });
     }
 
     getVolumes(): CategoryVolumes {
