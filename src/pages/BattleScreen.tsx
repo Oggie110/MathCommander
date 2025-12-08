@@ -16,6 +16,13 @@ const BattleScreen: React.FC = () => {
     const locationState = location.state as LocationState | null;
     const { play: playSFX } = useSFX();
 
+    // Detect touch device for tablet-specific viewport height
+    const [isTouch, setIsTouch] = useState(false);
+    useEffect(() => {
+        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        setIsTouch(hasTouch);
+    }, []);
+
     // Use shared hooks for initialization and animations
     const battleInit = useBattleInit(locationState);
 
@@ -493,8 +500,11 @@ const BattleScreen: React.FC = () => {
                         borderRadius: '4px',
                         padding: '3px',
                     }}>
-                        {/* Game content area - shorter on tablets to fit without scrolling */}
-                        <div className="relative h-[500px] lg:h-[900px] flex flex-col overflow-hidden">
+                        {/* Game content area - shorter on touch devices (tablets) to fit without scrolling */}
+                        <div
+                            className="relative flex flex-col overflow-hidden"
+                            style={{ height: isTouch ? '500px' : '900px' }}
+                        >
                             {/* Main viewing area - Side-scrolling shooter */}
                             <div className="flex-1 relative flex items-center justify-center">
                                 {/* Parallax scrolling background */}
