@@ -180,8 +180,7 @@ const CORE_SOUNDS: Record<string, SoundDefinition> = {
         id: 'starEarned',
         src: '/assets/audio/sfx/sfx/sparkling_star.wav',
         category: 'sfx',
-        volume: 0.02,
-        html5Volume: 0.0001, // Near-zero for iOS test
+        volume: 0.45,
     },
     // Result screen animation sounds
     resultPercentage: {
@@ -192,9 +191,9 @@ const CORE_SOUNDS: Record<string, SoundDefinition> = {
     },
     resultCorrectCount: {
         id: 'resultCorrectCount',
-        src: '/assets/audio/sfx/sfx/mission_complete/SFX_User Interface, Alert, Game, Points, Single SND5583 1.wav',
+        src: '/assets/audio/sfx/sfx/mission_complete/SFX_Dsgnsynth Synth Bubble Rising Echo Funky Audio Fass by Funky_Audio Id-698820.wav',
         category: 'sfx',
-        volume: 0.6,
+        volume: 0.5,
     },
     // 3 copies to allow overlapping playback on iOS (HTML5 Audio reuse limitation)
     resultStarPop1: {

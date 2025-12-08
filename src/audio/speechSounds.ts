@@ -30,7 +30,7 @@ const ALIEN_GENERIC_TAUNTS: Record<string, SoundDefinition> = {
     taunt_05_probability: alienSpeech('taunt_05_probability', `${ALIENS_TAUNTS}/taunt_05_probability.wav`),
     taunt_06_odds: alienSpeech('taunt_06_odds', `${ALIENS_TAUNTS}/taunt_06_odds.wav`),
     taunt_07_numbers: alienSpeech('taunt_07_numbers', `${ALIENS_TAUNTS}/taunt_07_numbers.wav`),
-    taunt_08_mean_nothing: alienSpeech('taunt_08_mean_nothing', `${ALIENS_TAUNTS}/taunt_08_mean_nothing.wav`),
+    taunt_08_mean_nothing: alienSpeech('taunt_08_mean_nothing', `${ALIENS_TAUNTS}/taunt_08_mean_nothin.wav`),
     taunt_09_thousand: alienSpeech('taunt_09_thousand', `${ALIENS_TAUNTS}/taunt_09_thousand.wav`),
     taunt_10_mathematics: alienSpeech('taunt_10_mathematics', `${ALIENS_TAUNTS}/taunt_10_mathematics.wav`),
     taunt_11_flee: alienSpeech('taunt_11_flee', `${ALIENS_TAUNTS}/taunt_11_flee.wav`),

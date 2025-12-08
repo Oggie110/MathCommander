@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // Animated planet sprite mapping - folder path and frame count
 export const animatedPlanets: Record<string, { folder: string; frames: number }> = {
@@ -38,6 +38,52 @@ export const planetImages: Record<string, string> = {
     arrokoth: '/assets/images/planets/static/barren-5.png',
 };
 
+// Global cache for preloaded planet frames
+// Key is folder path, value is array of Image objects
+const frameCache: Map<string, HTMLImageElement[]> = new Map();
+const loadingPromises: Map<string, Promise<HTMLImageElement[]>> = new Map();
+
+/**
+ * Preload all frames for a planet folder into memory
+ * Returns cached array if already loaded
+ */
+async function preloadPlanetFrames(folder: string, frameCount: number): Promise<HTMLImageElement[]> {
+    // Return cached frames if available
+    if (frameCache.has(folder)) {
+        return frameCache.get(folder)!;
+    }
+
+    // Return existing promise if currently loading
+    if (loadingPromises.has(folder)) {
+        return loadingPromises.get(folder)!;
+    }
+
+    // Create loading promise
+    const loadPromise = new Promise<HTMLImageElement[]>((resolve) => {
+        const frames: HTMLImageElement[] = [];
+        let loadedCount = 0;
+
+        for (let i = 1; i <= frameCount; i++) {
+            const img = new Image();
+            img.src = `${folder}/${i}.png`;
+
+            img.onload = img.onerror = () => {
+                loadedCount++;
+                if (loadedCount === frameCount) {
+                    frameCache.set(folder, frames);
+                    loadingPromises.delete(folder);
+                    resolve(frames);
+                }
+            };
+
+            frames.push(img);
+        }
+    });
+
+    loadingPromises.set(folder, loadPromise);
+    return loadPromise;
+}
+
 interface AnimatedPlanetProps {
     planetId: string;
     size: number;
@@ -51,18 +97,65 @@ export const AnimatedPlanet: React.FC<AnimatedPlanetProps> = ({
     isLocked = false,
     className = '',
 }) => {
-    const [frame, setFrame] = useState(1);
+    const [frame, setFrame] = useState(0);
+    const [frames, setFrames] = useState<HTMLImageElement[] | null>(null);
     const planetData = animatedPlanets[planetId];
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
+    // Preload frames on mount
     useEffect(() => {
-        if (!planetData || isLocked) return;
+        if (!planetData) return;
 
-        const interval = setInterval(() => {
-            setFrame(prev => (prev % planetData.frames) + 1);
-        }, 100); // ~10fps for gentle rotation
+        let mounted = true;
 
-        return () => clearInterval(interval);
-    }, [planetData, isLocked]);
+        preloadPlanetFrames(planetData.folder, planetData.frames).then((loadedFrames) => {
+            if (mounted) {
+                setFrames(loadedFrames);
+            }
+        });
+
+        return () => { mounted = false; };
+    }, [planetData]);
+
+    // Animate frames using canvas for efficiency
+    useEffect(() => {
+        if (!frames || !canvasRef.current || isLocked) return;
+
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        let animationFrame: number;
+        let lastTime = 0;
+        const frameInterval = 100; // ~10fps
+
+        const animate = (time: number) => {
+            if (time - lastTime >= frameInterval) {
+                lastTime = time;
+                setFrame(prev => (prev + 1) % frames.length);
+            }
+            animationFrame = requestAnimationFrame(animate);
+        };
+
+        animationFrame = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(animationFrame);
+    }, [frames, isLocked]);
+
+    // Draw current frame to canvas
+    useEffect(() => {
+        if (!frames || !canvasRef.current) return;
+
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const img = frames[frame];
+        if (img && img.complete) {
+            ctx.clearRect(0, 0, size, size);
+            ctx.imageSmoothingEnabled = false; // Pixelated rendering
+            ctx.drawImage(img, 0, 0, size, size);
+        }
+    }, [frame, frames, size]);
 
     // Fallback to static image if no animation data
     if (!planetData) {
@@ -81,15 +174,50 @@ export const AnimatedPlanet: React.FC<AnimatedPlanetProps> = ({
         );
     }
 
+    // Show static image while loading frames
+    if (!frames) {
+        return (
+            <img
+                src={planetImages[planetId]}
+                alt={planetId}
+                style={{
+                    width: size,
+                    height: size,
+                    imageRendering: 'pixelated',
+                    filter: isLocked ? 'brightness(0.3) grayscale(1)' : 'none',
+                }}
+                className={className}
+            />
+        );
+    }
+
+    // Locked planets show static first frame
+    if (isLocked) {
+        return (
+            <canvas
+                ref={canvasRef}
+                width={size}
+                height={size}
+                style={{
+                    width: size,
+                    height: size,
+                    imageRendering: 'pixelated',
+                    filter: 'brightness(0.3) grayscale(1)',
+                }}
+                className={className}
+            />
+        );
+    }
+
     return (
-        <img
-            src={`${planetData.folder}/${frame}.png`}
-            alt={planetId}
+        <canvas
+            ref={canvasRef}
+            width={size}
+            height={size}
             style={{
                 width: size,
                 height: size,
                 imageRendering: 'pixelated',
-                filter: isLocked ? 'brightness(0.3) grayscale(1)' : 'none',
             }}
             className={className}
         />

@@ -96,6 +96,7 @@ const StartScreen: React.FC = () => {
             // Preload essential sounds
             await audioEngine.preloadAll([
                 'menuAmbience',
+                'spaceAmbience',
                 'introData',
                 'menuMusic',
                 // Button clicks (3 copies for iOS overlapping)
