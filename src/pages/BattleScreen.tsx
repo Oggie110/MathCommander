@@ -1153,88 +1153,91 @@ const BattleScreen: React.FC = () => {
                                             </div>
 
                                             {/* Bottom right rectangle - Battlezone-style vector display */}
-                                            {/* Portrait: shift right 30px and 20px narrower */}
+                                            {/* Portrait: shift right 30px and 24px narrower */}
                                             <div
-                                                className={`absolute top-[140px] h-[70px] overflow-hidden ${isPortrait ? 'right-[20px] w-[230px]' : 'right-[30px] w-[250px]'}`}
+                                                className={`absolute top-[140px] h-[70px] overflow-hidden ${isPortrait ? 'right-[20px] w-[226px]' : 'right-[30px] w-[250px]'}`}
                                                 style={{
                                                     background: 'linear-gradient(180deg, #0a0a0a, #050505)',
                                                     border: '2px solid #1a2a1a',
                                                 }}
                                             >
-                                                {/* Screen phosphor glow */}
-                                                <div className="absolute inset-0 pointer-events-none"
-                                                    style={{ boxShadow: 'inset 0 0 35px rgba(0,255,0,0.18)' }}
-                                                />
-                                                {/* Perspective grid floor */}
-                                                <div
-                                                    className="absolute bottom-0 left-0 right-0 h-[50px]"
-                                                    style={{
-                                                        background: `
-                                                            linear-gradient(90deg, transparent 49%, #22c55e20 49%, #22c55e20 51%, transparent 51%),
-                                                            linear-gradient(0deg, #22c55e30 0%, transparent 100%)
-                                                        `,
-                                                        backgroundSize: '20px 100%, 100% 100%',
-                                                        transform: 'perspective(100px) rotateX(60deg)',
-                                                        transformOrigin: 'bottom',
-                                                    }}
-                                                />
-                                                {/* Horizontal grid lines */}
-                                                <div className="absolute bottom-[8px] left-0 right-0 h-px bg-green-500/30" />
-                                                <div className="absolute bottom-[16px] left-0 right-0 h-px bg-green-500/20" />
-                                                <div className="absolute bottom-[26px] left-0 right-0 h-px bg-green-500/10" />
+                                                {/* Content wrapper - shift left 7px in portrait */}
+                                                <div className={`absolute inset-0 ${isPortrait ? '-translate-x-[7px]' : ''}`}>
+                                                    {/* Screen phosphor glow */}
+                                                    <div className="absolute inset-0 pointer-events-none"
+                                                        style={{ boxShadow: 'inset 0 0 35px rgba(0,255,0,0.18)' }}
+                                                    />
+                                                    {/* Perspective grid floor */}
+                                                    <div
+                                                        className="absolute bottom-0 left-0 right-0 h-[50px]"
+                                                        style={{
+                                                            background: `
+                                                                linear-gradient(90deg, transparent 49%, #22c55e20 49%, #22c55e20 51%, transparent 51%),
+                                                                linear-gradient(0deg, #22c55e30 0%, transparent 100%)
+                                                            `,
+                                                            backgroundSize: '20px 100%, 100% 100%',
+                                                            transform: 'perspective(100px) rotateX(60deg)',
+                                                            transformOrigin: 'bottom',
+                                                        }}
+                                                    />
+                                                    {/* Horizontal grid lines */}
+                                                    <div className="absolute bottom-[8px] left-0 right-0 h-px bg-green-500/30" />
+                                                    <div className="absolute bottom-[16px] left-0 right-0 h-px bg-green-500/20" />
+                                                    <div className="absolute bottom-[26px] left-0 right-0 h-px bg-green-500/10" />
 
-                                                {/* Mountain/pyramid shapes */}
-                                                <svg className="absolute bottom-[25px] left-0 right-0 h-[40px]" viewBox="0 0 250 40" preserveAspectRatio="none">
-                                                    {/* Left mountain */}
-                                                    <polygon
-                                                        points="15,40 40,12 65,40"
-                                                        fill="none"
-                                                        stroke="#22c55e"
-                                                        strokeWidth="1.5"
-                                                        style={{ filter: 'drop-shadow(0 0 3px #22c55e)' }}
-                                                    />
-                                                    {/* Center pyramid */}
-                                                    <polygon
-                                                        points="90,40 127,6 165,40"
-                                                        fill="none"
-                                                        stroke="#22c55e"
-                                                        strokeWidth="1.5"
-                                                        style={{ filter: 'drop-shadow(0 0 3px #22c55e)' }}
-                                                    />
-                                                    {/* Right mountain */}
-                                                    <polygon
-                                                        points="175,40 205,15 235,40"
-                                                        fill="none"
-                                                        stroke="#22c55e"
-                                                        strokeWidth="1.5"
-                                                        style={{ filter: 'drop-shadow(0 0 3px #22c55e)' }}
-                                                    />
-                                                </svg>
-
-                                                {/* Floating object (enemy tank/UFO style) */}
-                                                <div
-                                                    className="absolute top-[12px] animate-pulse"
-                                                    style={{
-                                                        left: introStage === 'playing' ? '70%' : '30%',
-                                                        transition: 'left 2s ease-in-out'
-                                                    }}
-                                                >
-                                                    <svg width="24" height="16" viewBox="0 0 24 16">
-                                                        {/* Simple geometric shape */}
-                                                        <ellipse cx="12" cy="10" rx="10" ry="4" fill="none" stroke="#22c55e" strokeWidth="1.5" style={{ filter: 'drop-shadow(0 0 4px #22c55e)' }} />
-                                                        <line x1="12" y1="6" x2="12" y2="2" stroke="#22c55e" strokeWidth="1.5" style={{ filter: 'drop-shadow(0 0 4px #22c55e)' }} />
-                                                        <circle cx="12" cy="2" r="2" fill="none" stroke="#22c55e" strokeWidth="1" style={{ filter: 'drop-shadow(0 0 4px #22c55e)' }} />
+                                                    {/* Mountain/pyramid shapes */}
+                                                    <svg className="absolute bottom-[25px] left-0 right-0 h-[40px]" viewBox="0 0 250 40" preserveAspectRatio="none">
+                                                        {/* Left mountain */}
+                                                        <polygon
+                                                            points="15,40 40,12 65,40"
+                                                            fill="none"
+                                                            stroke="#22c55e"
+                                                            strokeWidth="1.5"
+                                                            style={{ filter: 'drop-shadow(0 0 3px #22c55e)' }}
+                                                        />
+                                                        {/* Center pyramid */}
+                                                        <polygon
+                                                            points="90,40 127,6 165,40"
+                                                            fill="none"
+                                                            stroke="#22c55e"
+                                                            strokeWidth="1.5"
+                                                            style={{ filter: 'drop-shadow(0 0 3px #22c55e)' }}
+                                                        />
+                                                        {/* Right mountain */}
+                                                        <polygon
+                                                            points="175,40 205,15 235,40"
+                                                            fill="none"
+                                                            stroke="#22c55e"
+                                                            strokeWidth="1.5"
+                                                            style={{ filter: 'drop-shadow(0 0 3px #22c55e)' }}
+                                                        />
                                                     </svg>
-                                                </div>
 
-                                                {/* Scanline effect */}
-                                                <div
-                                                    className="absolute inset-0 pointer-events-none"
-                                                    style={{
-                                                        backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.4) 1px, rgba(0,0,0,0.4) 2px)',
-                                                        opacity: 0.6,
-                                                    }}
-                                                />
+                                                    {/* Floating object (enemy tank/UFO style) */}
+                                                    <div
+                                                        className="absolute top-[12px] animate-pulse"
+                                                        style={{
+                                                            left: introStage === 'playing' ? '70%' : '30%',
+                                                            transition: 'left 2s ease-in-out'
+                                                        }}
+                                                    >
+                                                        <svg width="24" height="16" viewBox="0 0 24 16">
+                                                            {/* Simple geometric shape */}
+                                                            <ellipse cx="12" cy="10" rx="10" ry="4" fill="none" stroke="#22c55e" strokeWidth="1.5" style={{ filter: 'drop-shadow(0 0 4px #22c55e)' }} />
+                                                            <line x1="12" y1="6" x2="12" y2="2" stroke="#22c55e" strokeWidth="1.5" style={{ filter: 'drop-shadow(0 0 4px #22c55e)' }} />
+                                                            <circle cx="12" cy="2" r="2" fill="none" stroke="#22c55e" strokeWidth="1" style={{ filter: 'drop-shadow(0 0 4px #22c55e)' }} />
+                                                        </svg>
+                                                    </div>
+
+                                                    {/* Scanline effect */}
+                                                    <div
+                                                        className="absolute inset-0 pointer-events-none"
+                                                        style={{
+                                                            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.4) 1px, rgba(0,0,0,0.4) 2px)',
+                                                            opacity: 0.6,
+                                                        }}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
