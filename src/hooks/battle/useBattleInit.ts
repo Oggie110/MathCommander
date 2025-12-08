@@ -8,21 +8,22 @@ import { selectWaveLine, selectAlienLine, selectVictoryLine, selectDefeatLine, s
 import type { Question } from '@/types/game.ts';
 
 // Planet background mapping for boss battles
+// Using new custom boss landscape for all boss fights
 const planetBackgrounds: Record<string, string> = {
-    moon: '/assets/helianthus/Landscapes/Barren/1.png',
-    mars: '/assets/helianthus/Landscapes/Desert/1.png',
-    ceres: '/assets/helianthus/Landscapes/Barren/2.png',
-    jupiter: '/assets/helianthus/Landscapes/Gas_giant_rings/1.png',
-    europa: '/assets/helianthus/Landscapes/Arctic/1.png',
-    saturn: '/assets/helianthus/Landscapes/Gas_giant_rings/2.png',
-    titan: '/assets/helianthus/Landscapes/Terran/1.png',
-    uranus: '/assets/helianthus/Landscapes/Gas_giant_rings/3.png',
-    neptune: '/assets/helianthus/Landscapes/Gas_giant_rings/4.png',
-    pluto: '/assets/helianthus/Landscapes/Tundra/1.png',
-    haumea: '/assets/helianthus/Landscapes/Arctic/1.png',
-    makemake: '/assets/helianthus/Landscapes/Lava/1.png',
-    eris: '/assets/helianthus/Landscapes/Tundra/1.png',
-    arrokoth: '/assets/helianthus/Landscapes/Barren/3.png',
+    moon: '/assets/images/backgrounds/boss-landscape/barren2c.png',
+    mars: '/assets/images/backgrounds/boss-landscape/barren2c.png',
+    ceres: '/assets/images/backgrounds/boss-landscape/barren2c.png',
+    jupiter: '/assets/images/backgrounds/boss-landscape/barren2c.png',
+    europa: '/assets/images/backgrounds/boss-landscape/barren2c.png',
+    saturn: '/assets/images/backgrounds/boss-landscape/barren2c.png',
+    titan: '/assets/images/backgrounds/boss-landscape/barren2c.png',
+    uranus: '/assets/images/backgrounds/boss-landscape/barren2c.png',
+    neptune: '/assets/images/backgrounds/boss-landscape/barren2c.png',
+    pluto: '/assets/images/backgrounds/boss-landscape/barren2c.png',
+    haumea: '/assets/images/backgrounds/boss-landscape/barren2c.png',
+    makemake: '/assets/images/backgrounds/boss-landscape/barren2c.png',
+    eris: '/assets/images/backgrounds/boss-landscape/barren2c.png',
+    arrokoth: '/assets/images/backgrounds/boss-landscape/barren2c.png',
 };
 
 // Enemy ship pool for regular enemies

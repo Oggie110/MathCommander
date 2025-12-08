@@ -446,28 +446,6 @@ const BattleScreenMobile: React.FC = () => {
                             imageRendering: 'pixelated',
                         }}
                     />
-                    <div
-                        className="absolute inset-0 pointer-events-none animate-parallaxSlow"
-                        style={{
-                            backgroundImage: 'url(/assets/images/backgrounds/stars/stars-yellow.png)',
-                            backgroundRepeat: 'repeat',
-                            backgroundSize: '1024px',
-                            backgroundPosition: '0 -200px',
-                            opacity: 0.5,
-                            imageRendering: 'pixelated',
-                        }}
-                    />
-                    {/* Parallax star layer 3 - Close stars (fastest) */}
-                    <div
-                        className="absolute inset-0 pointer-events-none animate-parallaxFast"
-                        style={{
-                            backgroundImage: 'url(/assets/images/backgrounds/stars/yellow-stars-alt.png)',
-                            backgroundRepeat: 'repeat',
-                            backgroundSize: '1024px',
-                            opacity: 0.6,
-                            imageRendering: 'pixelated',
-                        }}
-                    />
                 </div>
 
                 {/* Ships - Horizontal layout (left-to-right) */}

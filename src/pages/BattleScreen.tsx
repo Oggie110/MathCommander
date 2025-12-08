@@ -522,30 +522,6 @@ const BattleScreen: React.FC = () => {
                                         }}
                                     />
 
-                                    {/* Parallax star layer 2 - Yellow stars (slower) */}
-                                    <div
-                                        className="absolute inset-0 pointer-events-none animate-parallaxSlow"
-                                        style={{
-                                            backgroundImage: 'url(/assets/images/backgrounds/stars/stars-yellow.png)',
-                                            backgroundRepeat: 'repeat',
-                                            backgroundSize: '4096px',
-                                            backgroundPosition: '0 100px',
-                                            opacity: 0.35,
-                                            imageRendering: 'pixelated',
-                                        }}
-                                    />
-
-                                    {/* Parallax star layer 3 - Close stars (fastest) */}
-                                    <div
-                                        className="absolute inset-0 pointer-events-none animate-parallaxFast"
-                                        style={{
-                                            backgroundImage: 'url(/assets/images/backgrounds/stars/yellow-stars-alt.png)',
-                                            backgroundRepeat: 'repeat',
-                                            backgroundSize: '2048px',
-                                            opacity: 0.6,
-                                            imageRendering: 'pixelated',
-                                        }}
-                                    />
                                 </div>
 
                                 {/* Intro/Victory Message Overlay - CRT Monitor Style - Slides up/down from console */}
