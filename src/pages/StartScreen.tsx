@@ -119,7 +119,7 @@ const StartScreen: React.FC = () => {
                 'resultPercentage',
                 'resultCorrectCount',
                 'resultXP',
-            ], (loaded, total, currentId) => {
+            ], (_loaded, _total, currentId) => {
                 if (currentId) {
                     setLoadingStatus(`Loading ${currentId}...`);
                 }
