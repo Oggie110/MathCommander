@@ -1021,8 +1021,7 @@ const BattleScreen: React.FC = () => {
                                         {/* Right side - Gauges layout (ON TOP of panel) */}
                                         <div className="flex-1 flex flex-col z-20">
                                             {/* Top row - Radar above disk station */}
-                                            {/* Portrait: shift right (less negative margin) */}
-                                            <div className={`flex justify-center mt-[22px] ${isPortrait ? 'ml-[-260px]' : 'ml-[-257px]'}`}>
+                                            <div className="flex justify-center mt-[22px] ml-[-257px]">
                                                 {/* Mini radar - positioned above disk station */}
                                                 {/* Portrait: 12px narrower */}
                                                 <div
