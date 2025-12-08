@@ -35,8 +35,8 @@ const BattleScreen: React.FC = () => {
         };
     }, []);
 
-    // Calculate viewport height: touch+portrait=650px, touch+landscape=650px, desktop=900px
-    const viewportHeight = isTouch ? 650 : 900;
+    // Calculate viewport height: touch+landscape=650px, everything else=900px
+    const viewportHeight = (isTouch && !isPortrait) ? 650 : 900;
 
     // Use shared hooks for initialization and animations
     const battleInit = useBattleInit(locationState);
