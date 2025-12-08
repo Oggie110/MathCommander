@@ -175,12 +175,12 @@ const CORE_SOUNDS: Record<string, SoundDefinition> = {
         category: 'sfx',
         volume: 0.7,
     },
-    // Star earned sound
+    // Star earned sound (battle screen)
     starEarned: {
         id: 'starEarned',
         src: '/assets/audio/sfx/sfx/sparkling_star.wav',
         category: 'sfx',
-        volume: 0.05,
+        volume: 0.02,
     },
     // Result screen animation sounds
     resultPercentage: {
