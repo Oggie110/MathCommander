@@ -9,7 +9,7 @@
 | Change ALL SFX volume | `src/audio/AudioEngine.ts` | 67 | `sfx: 0.5` |
 | Change ALL ambience volume | `src/audio/AudioEngine.ts` | 68 | `ambience: 0.2` |
 | Change ALL speech volume | `src/audio/AudioEngine.ts` | 69 | `speech: 0.4` |
-| Change HTML5/iOS music boost | `src/audio/AudioEngine.ts` | 1236 | `html5MusicBoost = 1.5` |
+| Change HTML5/iOS music boost | `src/audio/AudioEngine.ts` | 1237 | `html5MusicBoost = 2.5` |
 
 ## Sound Definitions - Where to Change Volume
 
@@ -210,7 +210,7 @@ audio.volume = sound.volume × ambienceCategory (0.2) × master (1.0)
 | 944-1023 | playSpeech() (commander) |
 | 1135-1205 | playMusic() Web Audio |
 | 1210-1267 | playMusicHTML5() |
-| 1234-1237 | HTML5 music boost (1.5×) |
+| 1234-1237 | HTML5 music boost (2.5×) |
 | 1441-1500 | startAmbience() Web Audio |
 | 1505-1551 | startAmbienceHTML5() |
 
@@ -232,21 +232,18 @@ HTML5 Audio can't play the same file simultaneously, so we use multiple copies:
 - `laser` → laser1, laser2, laser3
 - `resultStarPop` → resultStarPop1, resultStarPop2, resultStarPop3
 
-### Audio Unlock During Preload
-Location: `src/audio/AudioEngine.ts:406-416`
-```typescript
-// iOS: "unlock" the audio element by playing at volume 0 then pausing
-try {
-    audio.volume = 0;
-    await audio.play();
-    audio.pause();
-    audio.currentTime = 0;
-    audio.volume = 1;
-} catch {
-    // Ignore - this is just an unlock attempt
-}
-```
-Must happen during user gesture (START MISSION tap).
+### iOS Preload Strategy (Critical!)
+
+**Key principle**: Sounds must be preloaded AND the same sound IDs must be used when playing.
+
+**Victory/Defeat Dialogue Pattern**:
+1. `useBattleInit` pre-selects random dialogue AND preloads those specific sound IDs
+2. `BattleScreen` MUST use those exact pre-selected sounds (not re-select)
+3. Re-selecting would pick different random sounds that aren't preloaded → fails on iOS
+
+**Result Screen Pattern**:
+- Call `audioEngine.resume()` before playing sounds (context may be suspended)
+- Sounds are preloaded at StartScreen, but context needs resume on ResultScreen
 
 ### Context Resume for Delayed Sounds
 When playing sounds via setTimeout (not during user gesture), call `audioEngine.resume()` first:
