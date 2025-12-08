@@ -403,21 +403,6 @@ class AudioEngine {
                 audio.load();
             });
 
-            // iOS: "unlock" SFX audio elements by playing at volume 0 then pausing
-            // Only unlock SFX - music/ambience don't need this and can cause issues
-            // This must happen during a user gesture (preload is called on START MISSION tap)
-            if (sound.category === 'sfx') {
-                try {
-                    audio.volume = 0;
-                    await audio.play();
-                    audio.pause();
-                    audio.currentTime = 0;
-                    audio.volume = 1; // Reset volume for actual playback
-                } catch {
-                    // Ignore - this is just an unlock attempt
-                }
-            }
-
             this.html5Preloaded.set(soundId, audio);
             return;
         }
@@ -450,16 +435,17 @@ class AudioEngine {
      */
     async preloadAll(
         soundIds: string[],
-        onProgress?: (loaded: number, total: number) => void
+        onProgress?: (loaded: number, total: number, currentId?: string) => void
     ): Promise<void> {
         let loaded = 0;
         const total = soundIds.length;
 
         for (const id of soundIds) {
+            onProgress?.(loaded, total, id); // Report which sound is loading
             await this.preload(id);
             loaded++;
-            onProgress?.(loaded, total);
         }
+        onProgress?.(loaded, total); // Final callback without id
     }
 
     // === SFX PLAYBACK ===

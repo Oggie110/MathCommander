@@ -15,6 +15,7 @@ const StartScreen: React.FC = () => {
     const navigate = useNavigate();
     const [stage, setStage] = useState<Stage>('title');
     const [isLoading, setIsLoading] = useState(false);
+    const [loadingStatus, setLoadingStatus] = useState('');
     const [displayedText, setDisplayedText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -80,7 +81,7 @@ const StartScreen: React.FC = () => {
 
     const handleStartMission = async () => {
         setIsLoading(true);
-
+        setLoadingStatus('Initializing audio...');
 
         // Initialize and preload audio on first tap (iOS needs user gesture)
         try {
@@ -118,11 +119,16 @@ const StartScreen: React.FC = () => {
                 'resultPercentage',
                 'resultCorrectCount',
                 'resultXP',
-            ]);
+            ], (loaded, total, currentId) => {
+                if (currentId) {
+                    setLoadingStatus(`Loading ${currentId}...`);
+                }
+            });
         } catch (e) {
             console.error('[StartScreen] Audio init failed:', e);
         }
 
+        setLoadingStatus('');
         setIsLoading(false);
         setStage('ready');
     };
@@ -239,6 +245,12 @@ const StartScreen: React.FC = () => {
                                     BRIEFING
                                 </div>
                             </button>
+                        )}
+
+                        {loadingStatus && (
+                            <div className="text-brand-secondary text-[8px] mt-4 font-pixel tracking-wider animate-pulse">
+                                {loadingStatus}
+                            </div>
                         )}
 
                         <div className="text-industrial-highlight text-xs mt-8 font-pixel tracking-widest">
