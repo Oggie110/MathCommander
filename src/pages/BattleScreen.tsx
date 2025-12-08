@@ -1021,12 +1021,11 @@ const BattleScreen: React.FC = () => {
                                         {/* Right side - Gauges layout (ON TOP of panel) */}
                                         <div className="flex-1 flex flex-col z-20">
                                             {/* Top row - Radar above disk station */}
-                                            {/* Portrait: shift right (less negative margin) */}
-                                            <div className={`flex justify-center mt-[22px] ${isPortrait ? 'ml-[-237px]' : 'ml-[-257px]'}`}>
+                                            {/* Portrait: shift left (more negative margin) like the big CRT */}
+                                            <div className={`flex justify-center mt-[22px] ${isPortrait ? 'ml-[-277px]' : 'ml-[-257px]'}`}>
                                                 {/* Mini radar - positioned above disk station */}
-                                                {/* Portrait: slightly smaller */}
                                                 <div
-                                                    className={`rounded relative overflow-hidden ${isPortrait ? 'w-[80px] h-[58px]' : 'w-[95px] h-[68px]'}`}
+                                                    className="w-[95px] h-[68px] rounded relative overflow-hidden"
                                                     style={{
                                                         background: 'linear-gradient(145deg, #0a1a0a, #0d1a0d)',
                                                         border: '3px solid #1a2a1a',
@@ -1054,9 +1053,9 @@ const BattleScreen: React.FC = () => {
                                             </div>
 
                                             {/* Top right rectangle - Gauges */}
-                                            {/* Portrait: smaller and shift right (less right offset) */}
+                                            {/* Portrait: shift left (more right offset) like the big CRT */}
                                             <div
-                                                className={`absolute overflow-hidden ${isPortrait ? 'right-[10px] top-[35px] w-[210px] h-[63px]' : 'right-[30px] top-[35px] w-[250px] h-[73px]'}`}
+                                                className={`absolute top-[35px] w-[250px] h-[73px] overflow-hidden ${isPortrait ? 'right-[50px]' : 'right-[30px]'}`}
                                                 style={{
                                                     background: 'linear-gradient(180deg, #0a0a0a, #050505)',
                                                     border: '2px solid #1a2a1a',
@@ -1075,8 +1074,8 @@ const BattleScreen: React.FC = () => {
                                                     }}
                                                 />
                                             </div>
-                                            {/* Portrait: shift right and tighter spacing */}
-                                            <div className={`absolute top-[45px] flex items-center z-20 ${isPortrait ? 'right-[25px] gap-[16px]' : 'right-[50px] gap-[22px]'}`}>
+                                            {/* Portrait: shift left (more right offset) */}
+                                            <div className={`absolute top-[45px] flex items-center gap-[22px] z-20 ${isPortrait ? 'right-[70px]' : 'right-[50px]'}`}>
                                                 {/* Circular gauge - Power */}
                                                 <div className="flex flex-col items-center mr-[-7px]">
                                                     <div
@@ -1153,9 +1152,9 @@ const BattleScreen: React.FC = () => {
                                             </div>
 
                                             {/* Bottom right rectangle - Battlezone-style vector display */}
-                                            {/* Portrait: smaller and shift right */}
+                                            {/* Portrait: shift left (more right offset) like the big CRT */}
                                             <div
-                                                className={`absolute overflow-hidden ${isPortrait ? 'right-[10px] top-[130px] w-[210px] h-[60px]' : 'right-[30px] top-[140px] w-[250px] h-[70px]'}`}
+                                                className={`absolute top-[140px] w-[250px] h-[70px] overflow-hidden ${isPortrait ? 'right-[50px]' : 'right-[30px]'}`}
                                                 style={{
                                                     background: 'linear-gradient(180deg, #0a0a0a, #050505)',
                                                     border: '2px solid #1a2a1a',
