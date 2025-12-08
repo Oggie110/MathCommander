@@ -35,8 +35,8 @@ const BattleScreen: React.FC = () => {
         };
     }, []);
 
-    // Calculate viewport height: touch+portrait=650px, touch+landscape=700px, desktop=900px
-    const viewportHeight = isTouch ? (isPortrait ? 650 : 700) : 900;
+    // Calculate viewport height: touch+portrait=650px, touch+landscape=650px, desktop=900px
+    const viewportHeight = isTouch ? 650 : 900;
 
     // Use shared hooks for initialization and animations
     const battleInit = useBattleInit(locationState);
@@ -916,7 +916,7 @@ const BattleScreen: React.FC = () => {
                                                 />
 
                                                 {introStage === 'playing' ? (
-                                                    <div className="relative z-0 flex flex-col items-center justify-center h-full">
+                                                    <div className="relative z-0">
                                                         {/* Question Display */}
                                                         <div className="text-2xl font-bold flex items-center justify-center gap-2 font-pixel mb-3">
                                                             <span className="text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.9)]">{currentQuestion.num1}</span>
