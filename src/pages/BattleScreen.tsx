@@ -16,12 +16,27 @@ const BattleScreen: React.FC = () => {
     const locationState = location.state as LocationState | null;
     const { play: playSFX } = useSFX();
 
-    // Detect touch device for tablet-specific viewport height
+    // Detect touch device and orientation for tablet-specific viewport height
     const [isTouch, setIsTouch] = useState(false);
+    const [isPortrait, setIsPortrait] = useState(false);
     useEffect(() => {
-        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        setIsTouch(hasTouch);
+        const checkDevice = () => {
+            const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            const portrait = window.innerHeight > window.innerWidth;
+            setIsTouch(hasTouch);
+            setIsPortrait(portrait);
+        };
+        checkDevice();
+        window.addEventListener('resize', checkDevice);
+        window.addEventListener('orientationchange', checkDevice);
+        return () => {
+            window.removeEventListener('resize', checkDevice);
+            window.removeEventListener('orientationchange', checkDevice);
+        };
     }, []);
+
+    // Calculate viewport height: touch+portrait=650px, touch+landscape=550px, desktop=900px
+    const viewportHeight = isTouch ? (isPortrait ? 650 : 550) : 900;
 
     // Use shared hooks for initialization and animations
     const battleInit = useBattleInit(locationState);
@@ -500,10 +515,10 @@ const BattleScreen: React.FC = () => {
                         borderRadius: '4px',
                         padding: '3px',
                     }}>
-                        {/* Game content area - shorter on touch devices (tablets) to fit without scrolling */}
+                        {/* Game content area - height adjusted for device: tablet portrait/landscape/desktop */}
                         <div
                             className="relative flex flex-col overflow-hidden"
-                            style={{ height: isTouch ? '500px' : '900px' }}
+                            style={{ height: `${viewportHeight}px` }}
                         >
                             {/* Main viewing area - Side-scrolling shooter */}
                             <div className="flex-1 relative flex items-center justify-center">

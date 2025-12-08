@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
  * Hook to detect if the user is on a mobile/tablet device that needs the mobile layout.
  * Returns true for:
  * - Phones in portrait mode (width < 768px)
- * - Tablets in portrait mode (touch devices in portrait)
- * Note: iPad landscape uses desktop layout with reduced viewport height
+ * Note: Tablets (iPad) use desktop layout with adjusted viewport height
  */
 export function useIsMobile(): boolean {
     const [isMobile, setIsMobile] = useState(false);
@@ -15,16 +14,11 @@ export function useIsMobile(): boolean {
             const width = window.innerWidth;
             const height = window.innerHeight;
             const isPortrait = height > width;
-            const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-            const isTabletUA = /iPad|Android(?!.*Mobile)/i.test(navigator.userAgent);
 
-            // Phone in portrait
+            // Only phones in portrait get mobile layout
             const isPhonePortrait = width < 768 && isPortrait;
 
-            // Tablet in portrait mode only - landscape uses desktop layout
-            const isTabletPortrait = (isTabletUA || (hasTouch && width < 1400)) && isPortrait;
-
-            setIsMobile(isPhonePortrait || isTabletPortrait);
+            setIsMobile(isPhonePortrait);
         };
 
         // Check on mount
