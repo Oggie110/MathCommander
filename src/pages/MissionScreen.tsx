@@ -79,7 +79,9 @@ const MissionScreen: React.FC = () => {
     };
 
     const waypoints = Array.from({ length: leg.waypointsRequired }, (_, i) => i);
-    const displayWaypoints = isMobile ? [...waypoints].reverse() : waypoints;
+    // Only reverse for phone portrait (vertical layout), not for tablet horizontal layout
+    const isPhonePortrait = isMobile && window.innerWidth < 768;
+    const displayWaypoints = isPhonePortrait ? [...waypoints].reverse() : waypoints;
 
     return (
         <div className="flex-1 flex flex-col bg-gray-950">
