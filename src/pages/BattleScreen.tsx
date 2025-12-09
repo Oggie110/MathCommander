@@ -44,6 +44,7 @@ const BattleScreen: React.FC = () => {
     // This ensures PNG overlay and CRT elements stay aligned at any screen size
     const panelRef = useRef<HTMLDivElement>(null);
     const [panelScale, setPanelScale] = useState(1);
+    const [debugWidth, setDebugWidth] = useState(0);
     useEffect(() => {
         const updateScale = () => {
             if (panelRef.current) {
@@ -51,6 +52,7 @@ const BattleScreen: React.FC = () => {
                 const designWidth = 896; // max-w-4xl design width
                 const scale = Math.min(containerWidth / designWidth, 1);
                 setPanelScale(scale);
+                setDebugWidth(containerWidth);
             }
         };
         updateScale();
@@ -884,6 +886,11 @@ const BattleScreen: React.FC = () => {
                                         </div>
                                     </div>
                                 )}
+                            </div>
+
+                            {/* DEBUG: Scale info - remove after testing */}
+                            <div className="fixed top-2 left-2 bg-black/80 text-yellow-400 text-xs p-2 z-50 font-mono">
+                                W:{debugWidth} S:{panelScale.toFixed(2)} L:{isLandscape ? 'Y' : 'N'}
                             </div>
 
                             {/* Bottom control panel - Retro Computer Console - z-30 to stay above dialogue */}
