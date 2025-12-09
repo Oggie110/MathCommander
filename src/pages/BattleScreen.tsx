@@ -47,17 +47,22 @@ const BattleScreen: React.FC = () => {
     const [debugWidth, setDebugWidth] = useState(0);
     useEffect(() => {
         const updateScale = () => {
-            if (panelRef.current) {
-                const containerWidth = panelRef.current.clientWidth;
-                const designWidth = 896; // max-w-4xl design width
-                const scale = Math.min(containerWidth / designWidth, 1);
-                setPanelScale(scale);
-                setDebugWidth(containerWidth);
-            }
+            // Use ref width if available, otherwise use window width (minus some padding)
+            const containerWidth = panelRef.current?.clientWidth || (window.innerWidth - 32);
+            const designWidth = 896; // max-w-4xl design width
+            const scale = Math.min(containerWidth / designWidth, 1);
+            setPanelScale(scale);
+            setDebugWidth(containerWidth);
         };
-        updateScale();
+        // Initial update after a short delay to ensure layout is complete
+        const initialTimeout = setTimeout(updateScale, 50);
         window.addEventListener('resize', updateScale);
-        return () => window.removeEventListener('resize', updateScale);
+        window.addEventListener('orientationchange', updateScale);
+        return () => {
+            clearTimeout(initialTimeout);
+            window.removeEventListener('resize', updateScale);
+            window.removeEventListener('orientationchange', updateScale);
+        };
     }, []);
 
     // Use shared hooks for initialization and animations
