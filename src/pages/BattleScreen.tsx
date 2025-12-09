@@ -899,25 +899,15 @@ const BattleScreen: React.FC = () => {
                             </div>
 
                             {/* Bottom control panel - Retro Computer Console - z-30 to stay above dialogue */}
-                            {/* Outer wrapper measures width and scales content proportionally */}
                             <div
                                 ref={panelRef}
-                                className="relative z-30 w-full flex justify-center"
-                                style={{ height: `${280 * panelScale}px` }}
+                                className="relative z-30 w-full"
+                                style={{
+                                    minHeight: '280px',
+                                    borderTop: '12px solid',
+                                    borderImage: 'linear-gradient(90deg, #2a2a3a 0%, #5a5a6a 50%, #2a2a3a 100%) 1',
+                                }}
                             >
-                                {/* Inner wrapper applies scale transform - fixed design width */}
-                                <div
-                                    style={{
-                                        transform: `scale(${panelScale})`,
-                                        transformOrigin: 'top center',
-                                        width: '896px', // Design width (max-w-4xl)
-                                    }}
-                                >
-                                    <div className="relative" style={{
-                                        minHeight: '280px',
-                                        borderTop: '12px solid',
-                                        borderImage: 'linear-gradient(90deg, #2a2a3a 0%, #5a5a6a 50%, #2a2a3a 100%) 1',
-                                    }}>
                                 {/* Panel PNG overlay - on top with transparent cutouts */}
                                 <div
                                     className="absolute inset-0 z-10 pointer-events-none"
@@ -1281,8 +1271,6 @@ const BattleScreen: React.FC = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
                                     </div>
                                 </div>
                             </div>
