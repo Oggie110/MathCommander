@@ -1154,7 +1154,7 @@ const BattleScreen: React.FC = () => {
                                             {/* Bottom right rectangle - Battlezone-style vector display */}
                                             {/* Portrait: shift right 30px and 24px narrower */}
                                             <div
-                                                className={`absolute top-[140px] h-[70px] overflow-hidden ${isPortrait ? 'right-[16px] w-[223px]' : 'right-[30px] w-[250px]'}`}
+                                                className={`absolute top-[140px] h-[70px] overflow-hidden ${isPortrait ? 'right-[11px] w-[233px]' : 'right-[30px] w-[250px]'}`}
                                                 style={{
                                                     background: 'linear-gradient(180deg, #0a0a0a, #050505)',
                                                     border: '2px solid #1a2a1a',

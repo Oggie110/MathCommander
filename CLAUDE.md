@@ -9,7 +9,7 @@
 | Radar size           | 95×68px                | 83×68px                |
 | Top gauges container | right-[30px], 250×73px | right-[20px], 230×73px |
 | Top gauges content   | right-[50px]           | right-[30px]           |
-| Battlezone container | right-[30px], 250×70px | right-[16px], 223×70px |
+| Battlezone container | right-[30px], 250×70px | right-[11px], 233×70px |
 | Battlezone content   | no translate           | -translate-x-[11px]    |
 
 ## Quick Links
