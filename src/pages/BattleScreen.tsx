@@ -16,15 +16,17 @@ const BattleScreen: React.FC = () => {
     const locationState = location.state as LocationState | null;
     const { play: playSFX } = useSFX();
 
-    // Detect touch device and orientation for tablet-specific viewport height
+    // Detect touch device for tablet-specific viewport height
     const [isTouch, setIsTouch] = useState(false);
-    const [isPortrait, setIsPortrait] = useState(false);
+    const [isLandscape, setIsLandscape] = useState(true);
     useEffect(() => {
         const checkDevice = () => {
-            const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-            const portrait = window.innerHeight > window.innerWidth;
+            const params = new URLSearchParams(window.location.search);
+            const forceTouch = params.get('forceTouch') === 'true';
+            const hasTouch = forceTouch || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            const landscape = window.innerWidth > window.innerHeight;
             setIsTouch(hasTouch);
-            setIsPortrait(portrait);
+            setIsLandscape(landscape);
         };
         checkDevice();
         window.addEventListener('resize', checkDevice);
@@ -36,7 +38,25 @@ const BattleScreen: React.FC = () => {
     }, []);
 
     // Calculate viewport height: touch+landscape=650px, everything else=900px
-    const viewportHeight = (isTouch && !isPortrait) ? 650 : 900;
+    const viewportHeight = (isTouch && isLandscape) ? 650 : 900;
+
+    // Panel scaling - scale the entire control panel to fit container width
+    // This ensures PNG overlay and CRT elements stay aligned at any screen size
+    const panelRef = useRef<HTMLDivElement>(null);
+    const [panelScale, setPanelScale] = useState(1);
+    useEffect(() => {
+        const updateScale = () => {
+            if (panelRef.current) {
+                const containerWidth = panelRef.current.clientWidth;
+                const designWidth = 896; // max-w-4xl design width
+                const scale = Math.min(containerWidth / designWidth, 1);
+                setPanelScale(scale);
+            }
+        };
+        updateScale();
+        window.addEventListener('resize', updateScale);
+        return () => window.removeEventListener('resize', updateScale);
+    }, []);
 
     // Use shared hooks for initialization and animations
     const battleInit = useBattleInit(locationState);
@@ -867,11 +887,25 @@ const BattleScreen: React.FC = () => {
                             </div>
 
                             {/* Bottom control panel - Retro Computer Console - z-30 to stay above dialogue */}
-                            <div className="relative z-30" style={{
-                                minHeight: '280px',
-                                borderTop: '12px solid',
-                                borderImage: 'linear-gradient(90deg, #2a2a3a 0%, #5a5a6a 50%, #2a2a3a 100%) 1',
-                            }}>
+                            {/* Outer wrapper measures width and scales content proportionally */}
+                            <div
+                                ref={panelRef}
+                                className="relative z-30 w-full flex justify-center"
+                                style={{ height: `${280 * panelScale}px` }}
+                            >
+                                {/* Inner wrapper applies scale transform - fixed design width */}
+                                <div
+                                    style={{
+                                        transform: `scale(${panelScale})`,
+                                        transformOrigin: 'top center',
+                                        width: '896px', // Design width (max-w-4xl)
+                                    }}
+                                >
+                                    <div className="relative" style={{
+                                        minHeight: '280px',
+                                        borderTop: '12px solid',
+                                        borderImage: 'linear-gradient(90deg, #2a2a3a 0%, #5a5a6a 50%, #2a2a3a 100%) 1',
+                                    }}>
                                 {/* Panel PNG overlay - on top with transparent cutouts */}
                                 <div
                                     className="absolute inset-0 z-10 pointer-events-none"
@@ -890,8 +924,7 @@ const BattleScreen: React.FC = () => {
                                     {/* Console layout - Left CRT (small), Right gauges panel */}
                                     <div className="flex gap-2 items-start h-full">
                                         {/* Left side - Small CRT Terminal for question (BEHIND panel cutout) */}
-                                        {/* Portrait tablets need less left margin to center content */}
-                                        <div className={`w-[314px] mt-[-2px] z-0 ${isPortrait ? 'ml-[18px]' : 'ml-[38px]'}`}>
+                                        <div className="w-[314px] mt-[-2px] z-0 ml-[38px]">
                                             {/* CRT Screen bezel */}
                                             <div
                                                 className="relative py-[60px] px-5 rounded-lg overflow-hidden"
@@ -1023,9 +1056,8 @@ const BattleScreen: React.FC = () => {
                                             {/* Top row - Radar above disk station */}
                                             <div className="flex justify-center mt-[22px] ml-[-257px]">
                                                 {/* Mini radar - positioned above disk station */}
-                                                {/* Portrait: 12px narrower */}
                                                 <div
-                                                    className={`h-[68px] rounded relative overflow-hidden ${isPortrait ? 'w-[83px]' : 'w-[95px]'}`}
+                                                    className="w-[95px] h-[68px] rounded relative overflow-hidden"
                                                     style={{
                                                         background: 'linear-gradient(145deg, #0a1a0a, #0d1a0d)',
                                                         border: '3px solid #1a2a1a',
@@ -1053,9 +1085,9 @@ const BattleScreen: React.FC = () => {
                                             </div>
 
                                             {/* Top right rectangle - Gauges */}
-                                            {/* Portrait: shift right 30px and 20px narrower */}
+                                            {/* Top gauges container */}
                                             <div
-                                                className={`absolute top-[35px] h-[73px] overflow-hidden ${isPortrait ? 'right-[20px] w-[230px]' : 'right-[30px] w-[250px]'}`}
+                                                className="absolute top-[35px] right-[30px] w-[250px] h-[73px] overflow-hidden"
                                                 style={{
                                                     background: 'linear-gradient(180deg, #0a0a0a, #050505)',
                                                     border: '2px solid #1a2a1a',
@@ -1074,8 +1106,8 @@ const BattleScreen: React.FC = () => {
                                                     }}
                                                 />
                                             </div>
-                                            {/* Portrait: shift right 10px more (content only) */}
-                                            <div className={`absolute top-[45px] flex items-center gap-[22px] z-20 ${isPortrait ? 'right-[30px]' : 'right-[50px]'}`}>
+                                            {/* Top gauges content */}
+                                            <div className="absolute top-[45px] right-[50px] flex items-center gap-[22px] z-20">
                                                 {/* Circular gauge - Power */}
                                                 <div className="flex flex-col items-center mr-[-7px]">
                                                     <div
@@ -1152,16 +1184,14 @@ const BattleScreen: React.FC = () => {
                                             </div>
 
                                             {/* Bottom right rectangle - Battlezone-style vector display */}
-                                            {/* Portrait: shift right 30px and 24px narrower */}
                                             <div
-                                                className={`absolute top-[140px] h-[70px] overflow-hidden ${isPortrait ? 'right-[11px] w-[233px]' : 'right-[30px] w-[250px]'}`}
+                                                className="absolute top-[140px] right-[30px] w-[250px] h-[70px] overflow-hidden"
                                                 style={{
                                                     background: 'linear-gradient(180deg, #0a0a0a, #050505)',
                                                     border: '2px solid #1a2a1a',
                                                 }}
                                             >
-                                                {/* Content wrapper - shift left 11px in portrait */}
-                                                <div className={`absolute inset-0 ${isPortrait ? '-translate-x-[11px]' : ''}`}>
+                                                <div className="absolute inset-0">
                                                     {/* Screen phosphor glow */}
                                                     <div className="absolute inset-0 pointer-events-none"
                                                         style={{ boxShadow: 'inset 0 0 35px rgba(0,255,0,0.18)' }}
@@ -1241,7 +1271,8 @@ const BattleScreen: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
-
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

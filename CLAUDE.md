@@ -1,16 +1,8 @@
 # Space Math Commander - Project Guide
 
-## Battle Screen CRT Positions (Tablet Portrait vs Landscape)
+## Battle Screen Panel Scaling
 
-| Element              | Landscape              | Portrait               |
-|----------------------|------------------------|------------------------|
-| Big CRT              | ml-[38px]              | ml-[18px]              |
-| Radar container      | ml-[-257px]            | ml-[-257px] (same)     |
-| Radar size           | 95×68px                | 83×68px                |
-| Top gauges container | right-[30px], 250×73px | right-[20px], 230×73px |
-| Top gauges content   | right-[50px]           | right-[30px]           |
-| Battlezone container | right-[30px], 250×70px | right-[11px], 233×70px |
-| Battlezone content   | no translate           | -translate-x-[11px]    |
+The battle screen control panel uses CSS `transform: scale()` to maintain alignment between the PNG overlay and CRT elements across different screen sizes. The panel is designed at 896px (max-w-4xl) and scales down proportionally on narrower screens. This eliminates the need for per-breakpoint pixel adjustments.
 
 ## Quick Links
 
