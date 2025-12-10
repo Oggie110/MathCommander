@@ -589,11 +589,17 @@ class AudioEngine {
                 audio = preloaded;
                 audio.currentTime = 0;
             } else {
-                // Element is playing, need to clone (may have latency on iOS)
+                // Element is playing, need to clone for overlapping playback
                 audio = preloaded.cloneNode() as HTMLAudioElement;
             }
         } else {
-            audio = new Audio(sound.src);
+            // On iOS, new Audio() without user gesture will fail
+            // Try to preload first, then play
+            console.warn(`[AudioEngine] Sound not preloaded: ${soundId}, loading...`);
+            this.preload(soundId).then(() => {
+                this.playSFXHTML5(soundId, options);
+            });
+            return;
         }
 
         // Calculate volume - use html5Volume if available (for sounds that need different levels on iOS)
@@ -634,7 +640,10 @@ class AudioEngine {
                 audio = preloaded.cloneNode() as HTMLAudioElement;
             }
         } else {
-            audio = new Audio(sound.src);
+            // On iOS, new Audio() without user gesture will fail
+            console.warn(`[AudioEngine] Sound not preloaded for stop: ${soundId}`);
+            this.preload(soundId);
+            return null;
         }
 
         // Calculate volume - use html5Volume if available
