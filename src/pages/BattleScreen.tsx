@@ -922,7 +922,7 @@ const BattleScreen: React.FC = () => {
                                     {/* Console layout - Left CRT (small), Right gauges panel */}
                                     <div className="flex gap-2 items-start h-full">
                                         {/* Left side - Small CRT Terminal for question (BEHIND panel cutout) */}
-                                        <div className="w-[314px] mt-[-2px] z-0 ml-[38px]">
+                                        <div className={`w-[314px] mt-[-2px] z-0 ${isPortrait ? 'ml-[18px]' : 'ml-[38px]'}`}>
                                             {/* CRT Screen bezel */}
                                             <div
                                                 className="relative py-[60px] px-5 rounded-lg overflow-hidden"
