@@ -77,7 +77,7 @@ const CORE_SOUNDS: Record<string, SoundDefinition> = {
         src: '/assets/audio/sfx/ambience/mc_intro_data.wav',
         category: 'sfx',
         loop: false, // Plays once, fades out when briefing typing finishes
-        volume: 0.15,
+        volume: 0.08,
     },
 
     // === SFX ===
