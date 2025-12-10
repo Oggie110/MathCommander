@@ -43,23 +43,8 @@ const BattleScreen: React.FC = () => {
     // Portrait mode for CRT positioning adjustments
     const isPortrait = isTouch && !isLandscape;
 
-    // Track container width for debug display
+    // Panel ref for layout
     const panelRef = useRef<HTMLDivElement>(null);
-    const [debugWidth, setDebugWidth] = useState(0);
-    useEffect(() => {
-        const updateWidth = () => {
-            const containerWidth = panelRef.current?.clientWidth || window.innerWidth;
-            setDebugWidth(containerWidth);
-        };
-        const initialTimeout = setTimeout(updateWidth, 50);
-        window.addEventListener('resize', updateWidth);
-        window.addEventListener('orientationchange', updateWidth);
-        return () => {
-            clearTimeout(initialTimeout);
-            window.removeEventListener('resize', updateWidth);
-            window.removeEventListener('orientationchange', updateWidth);
-        };
-    }, []);
 
     // Use shared hooks for initialization and animations
     const battleInit = useBattleInit(locationState);
@@ -890,11 +875,6 @@ const BattleScreen: React.FC = () => {
                                         </div>
                                     </div>
                                 )}
-                            </div>
-
-                            {/* DEBUG: Scale info - remove after testing */}
-                            <div className="fixed top-2 left-2 bg-black/80 text-yellow-400 text-xs p-2 z-50 font-mono">
-                                W:{debugWidth} P:{isPortrait ? 'Y' : 'N'}
                             </div>
 
                             {/* Bottom control panel - Retro Computer Console - z-30 to stay above dialogue */}

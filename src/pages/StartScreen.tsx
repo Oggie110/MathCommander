@@ -260,7 +260,7 @@ const StartScreen: React.FC = () => {
                         )}
 
                         <div className="text-industrial-highlight text-xs mt-8 font-pixel tracking-widest">
-                            v0.5.10 - INDUSTRIAL BETA
+                            v0.5.11 - INDUSTRIAL BETA
                         </div>
                     </div>
                 </div>

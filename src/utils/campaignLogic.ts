@@ -120,13 +120,8 @@ export const completeMission = (
     const isCurrentMission = actualLegId === progress.currentLegId &&
                              actualWaypointIndex === progress.currentWaypointIndex;
 
-    console.log('[completeMission] actualLegId:', actualLegId, 'progress.currentLegId:', progress.currentLegId);
-    console.log('[completeMission] actualWaypointIndex:', actualWaypointIndex, 'progress.currentWaypointIndex:', progress.currentWaypointIndex);
-    console.log('[completeMission] isCurrentMission:', isCurrentMission);
-
     if (!isCurrentMission) {
         // Just return with updated stars, don't advance progress
-        console.log('[completeMission] NOT current mission, skipping progression');
         return newProgress;
     }
 
@@ -134,16 +129,11 @@ export const completeMission = (
     if (!currentLeg) return newProgress;
 
     // Only advance if passed (e.g. > 70%)
-    const passed = score / totalQuestions >= 0.7;
-    console.log('[completeMission] Score:', score, '/', totalQuestions, '=', (score / totalQuestions * 100).toFixed(1) + '%', 'Passed:', passed);
-
-    if (passed) {
+    if (score / totalQuestions >= 0.7) {
         if (progress.currentWaypointIndex < currentLeg.waypointsRequired - 1) {
-            console.log('[completeMission] Advancing waypoint:', progress.currentWaypointIndex, '->', progress.currentWaypointIndex + 1);
             newProgress.currentWaypointIndex++;
         } else {
             // Leg completed
-            console.log('[completeMission] Completing leg:', progress.currentLegId);
             if (!newProgress.completedLegs.includes(progress.currentLegId)) {
                 newProgress.completedLegs.push(progress.currentLegId);
             }
@@ -151,17 +141,12 @@ export const completeMission = (
             // Find next leg
             const currentLegIndex = campaignLegs.findIndex(l => l.id === progress.currentLegId);
             if (currentLegIndex < campaignLegs.length - 1) {
-                const nextLegId = campaignLegs[currentLegIndex + 1].id;
-                console.log('[completeMission] Advancing to next leg:', nextLegId);
-                newProgress.currentLegId = nextLegId;
+                newProgress.currentLegId = campaignLegs[currentLegIndex + 1].id;
                 newProgress.currentWaypointIndex = 0;
-            } else {
-                console.log('[completeMission] Already at last leg!');
             }
         }
     }
 
-    console.log('[completeMission] New progress:', JSON.stringify(newProgress));
     return newProgress;
 };
 
