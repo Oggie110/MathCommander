@@ -1055,7 +1055,7 @@ const BattleScreen: React.FC = () => {
                                             <div className={`flex justify-center mt-[22px] ${isPortrait ? 'ml-[-255px]' : 'ml-[-257px]'}`}>
                                                 {/* Mini radar - positioned above disk station */}
                                                 <div
-                                                    className={`${isPortrait ? 'w-[83px]' : 'w-[95px]'} h-[68px] rounded relative overflow-hidden`}
+                                                    className={`${isPortrait ? 'w-[85px]' : 'w-[95px]'} h-[68px] rounded relative overflow-hidden`}
                                                     style={{
                                                         background: 'linear-gradient(145deg, #0a1a0a, #0d1a0d)',
                                                         border: '3px solid #1a2a1a',
