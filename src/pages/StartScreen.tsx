@@ -125,6 +125,15 @@ const StartScreen: React.FC = () => {
                 'resultPercentage',
                 'resultCorrectCount',
                 'resultXP',
+                // Victory speech (6 generic + boss + final)
+                'victory_01',
+                'victory_02',
+                'victory_03',
+                'victory_04',
+                'victory_05',
+                'victory_06',
+                'victory_boss',
+                'victory_final',
             ], (_loaded, _total, currentId) => {
                 if (currentId) {
                     setLoadingStatus(`Loading ${currentId}...`);
@@ -260,7 +269,7 @@ const StartScreen: React.FC = () => {
                         )}
 
                         <div className="text-industrial-highlight text-xs mt-8 font-pixel tracking-widest">
-                            v0.5.11 - INDUSTRIAL BETA
+                            v0.5.12 - INDUSTRIAL BETA
                         </div>
                     </div>
                 </div>

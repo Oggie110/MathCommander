@@ -60,10 +60,7 @@ const ResultScreen: React.FC = () => {
     // State for showing answers view
     const [showAnswers, setShowAnswers] = useState(false);
 
-    // iOS requires user gesture to play audio - show "tap to continue" first
-    const [animationsStarted, setAnimationsStarted] = useState(false);
-
-    // Animation states
+    // Animation states - start immediately (sounds preloaded from BattleScreen)
     const [animatedPercentage, setAnimatedPercentage] = useState(0);
     const [visibleStars, setVisibleStars] = useState(0);
     const [animatedCorrectCount, setAnimatedCorrectCount] = useState(0);
@@ -83,22 +80,13 @@ const ResultScreen: React.FC = () => {
         audioEngine.playSFX(soundId);
     };
 
-    // Preload result sounds on mount
+    // Preload result sounds on mount (should already be done from BattleScreen)
     useEffect(() => {
         audioEngine.preloadAll(RESULT_SOUNDS);
     }, []);
 
-    // Handler to start animations (called on user tap for iOS audio unlock)
-    const handleStartAnimations = async () => {
-        if (animationsStarted) return;
-        // Prime sounds on this user gesture (iOS needs this)
-        await audioEngine.primeHTML5Sounds(RESULT_SOUNDS);
-        setAnimationsStarted(true);
-    };
-
-    // Animate percentage from 0 to final value (only after user tap on iOS)
+    // Animate percentage from 0 to final value
     useEffect(() => {
-        if (!animationsStarted) return;
 
         // Play percentage sound (with preload fallback for iOS)
         playSoundReliably('resultPercentage');
@@ -120,12 +108,11 @@ const ResultScreen: React.FC = () => {
 
         animationFrame = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(animationFrame);
-    }, [percentage, animationsStarted]);
+    }, [percentage]);
 
     // Animate stars appearing one by one
     // Use 3 separate sound files to allow overlapping playback on iOS
     useEffect(() => {
-        if (!animationsStarted) return;
         if (starsEarned === 0) return;
 
         const starPopSounds = ['resultStarPop1', 'resultStarPop2', 'resultStarPop3'];
@@ -140,12 +127,10 @@ const ResultScreen: React.FC = () => {
         }
 
         return () => timers.forEach(t => clearTimeout(t));
-    }, [starsEarned, animationsStarted]);
+    }, [starsEarned]);
 
     // Animate correct count from 0 to final value
     useEffect(() => {
-        if (!animationsStarted) return;
-
         const timer = setTimeout(async () => {
             // Play correct count sound
             await playSoundReliably('resultCorrectCount');
@@ -167,12 +152,10 @@ const ResultScreen: React.FC = () => {
         }, CORRECT_START_DELAY);
 
         return () => clearTimeout(timer);
-    }, [correctCount, animationsStarted]);
+    }, [correctCount]);
 
     // Show XP with bounce
     useEffect(() => {
-        if (!animationsStarted) return;
-
         const timer = setTimeout(async () => {
             setShowXP(true);
             // Play XP sound
@@ -180,7 +163,7 @@ const ResultScreen: React.FC = () => {
         }, XP_START_DELAY);
 
         return () => clearTimeout(timer);
-    }, [animationsStarted]);
+    }, []);
 
     // Use unified selection for all dialogue (synced text + audio)
     const [_victoryDialogue, setVictoryDialogue] = useState<DialogueLine | null>(null);
@@ -268,23 +251,6 @@ const ResultScreen: React.FC = () => {
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-4">
             <SpaceBackground />
-
-            {/* Tap to continue overlay - required for iOS audio */}
-            {!animationsStarted && (
-                <div
-                    className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 cursor-pointer"
-                    onClick={handleStartAnimations}
-                >
-                    <div className="text-center">
-                        <div className="text-2xl font-pixel text-white mb-4">
-                            {passed ? 'MISSION COMPLETE' : 'MISSION FAILED'}
-                        </div>
-                        <div className="text-sm font-pixel text-gray-400 animate-pulse">
-                            TAP TO CONTINUE
-                        </div>
-                    </div>
-                </div>
-            )}
 
             <div className="relative z-10 w-full max-w-lg">
                 {/* Final victory special screen - CRT Style */}

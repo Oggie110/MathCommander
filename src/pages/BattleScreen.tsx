@@ -79,9 +79,6 @@ const BattleScreen: React.FC = () => {
     const [animatingStarIndex, setAnimatingStarIndex] = useState<number | null>(null);
     const [dialogueSlidingOut, setDialogueSlidingOut] = useState(false);
 
-    // Track if result sounds have been primed (for iOS HTML5 audio unlock)
-    const resultSoundsPrimedRef = useRef(false);
-
     // Use shared animation hook
     const { heroFrame, shotFrame, explosionFrame } = useBattleAnimations(showLaser, gameEnding);
 
@@ -958,12 +955,6 @@ const BattleScreen: React.FC = () => {
                                                                             key={i}
                                                                             disabled={showFeedback}
                                                                             onClick={() => {
-                                                                                // Prime result sounds on first answer (iOS HTML5 audio unlock)
-                                                                                if (!resultSoundsPrimedRef.current) {
-                                                                                    resultSoundsPrimedRef.current = true;
-                                                                                    const resultSounds = ['resultPercentage', 'resultStarPop1', 'resultStarPop2', 'resultStarPop3', 'resultCorrectCount', 'resultXP'];
-                                                                                    audioEngine.primeHTML5Sounds(resultSounds);
-                                                                                }
                                                                                 setUserAnswer(opt.toString());
                                                                                 setSelectedAnswer(opt);
                                                                                 setFrozenChoices([...answerChoices]); // Freeze the current choices
