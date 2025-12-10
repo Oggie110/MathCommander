@@ -977,6 +977,8 @@ class AudioEngine {
      * Returns a Promise that resolves when speech ends or is stopped
      */
     async playSpeech(soundId: string, options: PlayOptions = {}): Promise<void> {
+        console.log('[AudioEngine] playSpeech called:', soundId, 'context:', this.context?.state, 'fallback:', this.useHTML5Fallback);
+
         // === HTML5 Fallback for iOS ===
         if (this.useHTML5Fallback) {
             return this.playSpeechHTML5(soundId, options);
@@ -992,6 +994,7 @@ class AudioEngine {
             console.log('[AudioEngine] playSpeech: resuming suspended context');
             try {
                 await this.context.resume();
+                console.log('[AudioEngine] playSpeech: context resumed, state:', this.context.state);
             } catch (e) {
                 console.error('[AudioEngine] playSpeech: failed to resume context', e);
                 return;
@@ -999,7 +1002,6 @@ class AudioEngine {
         }
 
         return new Promise((resolve) => {
-
             const sound = SOUNDS[soundId];
             if (!sound) {
                 resolve();
@@ -1012,11 +1014,14 @@ class AudioEngine {
             const buffer = this.buffers.get(soundId);
             if (!buffer) {
                 // Load on demand then play
+                console.log('[AudioEngine] playSpeech: buffer not found, preloading:', soundId);
                 this.preload(soundId).then(() => {
+                    console.log('[AudioEngine] playSpeech: preload complete, retrying:', soundId);
                     this.playSpeech(soundId, options).then(resolve);
                 });
                 return;
             }
+            console.log('[AudioEngine] playSpeech: playing from buffer:', soundId);
 
             // Create source (context and speechGain already validated above)
             const source = this.context!.createBufferSource();
@@ -1057,6 +1062,7 @@ class AudioEngine {
             this.currentSpeech = source;
             this.currentSpeechGain = gainNode;
 
+            console.log('[AudioEngine] playSpeech: starting source for', soundId);
             source.start();
         });
     }
