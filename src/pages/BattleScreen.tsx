@@ -1192,11 +1192,15 @@ const BattleScreen: React.FC = () => {
                                                     border: '2px solid #1a2a1a',
                                                 }}
                                             >
-                                                <div className="absolute inset-0">
-                                                    {/* Screen phosphor glow */}
-                                                    <div className="absolute inset-0 pointer-events-none"
-                                                        style={{ boxShadow: 'inset 0 0 35px rgba(0,255,0,0.18)' }}
-                                                    />
+                                                {/* Screen phosphor glow - stays with container */}
+                                                <div className="absolute inset-0 pointer-events-none"
+                                                    style={{ boxShadow: 'inset 0 0 35px rgba(0,255,0,0.18)' }}
+                                                />
+                                                {/* Content wrapper - can be scaled independently */}
+                                                <div
+                                                    className="absolute inset-0"
+                                                    style={isPortrait ? { transform: 'scale(0.8)', transformOrigin: 'right center' } : undefined}
+                                                >
                                                     {/* Perspective grid floor */}
                                                     <div
                                                         className="absolute bottom-0 left-0 right-0 h-[50px]"
