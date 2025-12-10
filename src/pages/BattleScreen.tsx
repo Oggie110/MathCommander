@@ -1052,7 +1052,7 @@ const BattleScreen: React.FC = () => {
                                         {/* Right side - Gauges layout (ON TOP of panel) */}
                                         <div className="flex-1 flex flex-col z-20">
                                             {/* Top row - Radar above disk station */}
-                                            <div className="flex justify-center mt-[22px] ml-[-257px]">
+                                            <div className={`flex justify-center mt-[22px] ${isPortrait ? 'ml-[-255px]' : 'ml-[-257px]'}`}>
                                                 {/* Mini radar - positioned above disk station */}
                                                 <div
                                                     className={`${isPortrait ? 'w-[83px]' : 'w-[95px]'} h-[68px] rounded relative overflow-hidden`}
@@ -1105,7 +1105,10 @@ const BattleScreen: React.FC = () => {
                                                 />
                                             </div>
                                             {/* Top gauges content */}
-                                            <div className="absolute top-[45px] right-[50px] flex items-center gap-[22px] z-20">
+                                            <div
+                                                className="absolute top-[45px] right-[50px] flex items-center gap-[22px] z-20"
+                                                style={isPortrait ? { transform: 'scale(0.8)', transformOrigin: 'right center' } : undefined}
+                                            >
                                                 {/* Circular gauge - Power */}
                                                 <div className="flex flex-col items-center mr-[-7px]">
                                                     <div
@@ -1183,13 +1186,16 @@ const BattleScreen: React.FC = () => {
 
                                             {/* Bottom right rectangle - Battlezone-style vector display */}
                                             <div
-                                                className={`absolute top-[140px] right-[30px] ${isPortrait ? 'w-[220px]' : 'w-[250px]'} h-[70px] overflow-hidden`}
+                                                className={`absolute top-[140px] right-[30px] ${isPortrait ? 'w-[218px]' : 'w-[250px]'} h-[70px] overflow-hidden`}
                                                 style={{
                                                     background: 'linear-gradient(180deg, #0a0a0a, #050505)',
                                                     border: '2px solid #1a2a1a',
                                                 }}
                                             >
-                                                <div className="absolute inset-0">
+                                                <div
+                                                    className="absolute inset-0"
+                                                    style={isPortrait ? { transform: 'scale(0.8)', transformOrigin: 'right center' } : undefined}
+                                                >
                                                     {/* Screen phosphor glow */}
                                                     <div className="absolute inset-0 pointer-events-none"
                                                         style={{ boxShadow: 'inset 0 0 35px rgba(0,255,0,0.18)' }}
