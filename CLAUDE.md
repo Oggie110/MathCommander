@@ -13,7 +13,11 @@ The battle screen control panel uses CSS `transform: scale()` to maintain alignm
 ## Important Guidelines
 
 ### Version Numbers
-When making changes that will be deployed, increment the version number in `package.json`. Use semantic versioning:
+When making changes that will be deployed, increment the version number in TWO places:
+1. `package.json` - the `version` field
+2. `src/pages/StartScreen.tsx` - the displayed version string (search for "INDUSTRIAL BETA")
+
+Use semantic versioning:
 - Patch (0.5.x) for bug fixes
 - Minor (0.x.0) for new features
 - Include the version in git commit messages, e.g., `fix: Description (v0.5.8)`
