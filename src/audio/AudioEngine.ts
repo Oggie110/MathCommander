@@ -146,17 +146,10 @@ class AudioEngine {
         const iosDetected = isIOS();
         console.log('[AudioEngine] INIT DEBUG:', { ua, platform, maxTouch, iosDetected });
 
-        // Check if we should use HTML5 fallback for iOS
-        if (iosDetected) {
-            // iOS detected - using HTML5 Audio fallback
-            console.log('[AudioEngine] Using HTML5 FALLBACK for iOS');
-            this.useHTML5Fallback = true;
-            this._isInitialized = true;
-            return;
-        }
-
-        // Using Web Audio for non-iOS
-        console.log('[AudioEngine] Using Web Audio API (not iOS)');
+        // NOTE: We now use Web Audio API for ALL platforms including iOS
+        // HTML5 Audio fallback was unreliable (sounds not playing after timeouts)
+        // Web Audio works reliably once properly unlocked with playUnlockTone()
+        console.log('[AudioEngine] Using Web Audio API' + (iosDetected ? ' (iOS)' : ''));
 
         try {
             // Use webkitAudioContext for older iOS Safari
