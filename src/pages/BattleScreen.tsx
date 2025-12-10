@@ -1192,10 +1192,7 @@ const BattleScreen: React.FC = () => {
                                                     border: '2px solid #1a2a1a',
                                                 }}
                                             >
-                                                <div
-                                                    className="absolute inset-0"
-                                                    style={isPortrait ? { transform: 'scale(0.8)', transformOrigin: 'right center' } : undefined}
-                                                >
+                                                <div className="absolute inset-0">
                                                     {/* Screen phosphor glow */}
                                                     <div className="absolute inset-0 pointer-events-none"
                                                         style={{ boxShadow: 'inset 0 0 35px rgba(0,255,0,0.18)' }}
