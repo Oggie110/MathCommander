@@ -1179,7 +1179,7 @@ const BattleScreen: React.FC = () => {
                                                             border: '3px solid #1a2a1a',
                                                         }}
                                                     >
-                                                        <span className="text-base text-green-400 font-bold font-pixel drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]">47°</span>
+                                                        <span className={`${isPortrait ? 'text-xs' : 'text-base'} text-green-400 font-bold font-pixel drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]`}>47°</span>
                                                     </div>
                                                                                                     </div>
                                             </div>
