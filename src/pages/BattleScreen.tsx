@@ -40,6 +40,9 @@ const BattleScreen: React.FC = () => {
     // Calculate viewport height: touch+landscape=650px, everything else=900px
     const viewportHeight = (isTouch && isLandscape) ? 650 : 900;
 
+    // Portrait mode for CRT positioning adjustments
+    const isPortrait = isTouch && !isLandscape;
+
     // Panel scaling - scale the entire control panel to fit container width
     // This ensures PNG overlay and CRT elements stay aligned at any screen size
     const panelRef = useRef<HTMLDivElement>(null);
@@ -895,7 +898,7 @@ const BattleScreen: React.FC = () => {
 
                             {/* DEBUG: Scale info - remove after testing */}
                             <div className="fixed top-2 left-2 bg-black/80 text-yellow-400 text-xs p-2 z-50 font-mono">
-                                W:{debugWidth} S:{panelScale.toFixed(2)} L:{isLandscape ? 'Y' : 'N'}
+                                W:{debugWidth} P:{isPortrait ? 'Y' : 'N'}
                             </div>
 
                             {/* Bottom control panel - Retro Computer Console - z-30 to stay above dialogue */}
