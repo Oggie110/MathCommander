@@ -80,15 +80,9 @@ const ResultScreen: React.FC = () => {
         audioEngine.playSFX(soundId);
     };
 
-    // Preload and prime all result sounds on mount (iOS needs this for reliable delayed playback)
+    // Preload result sounds on mount (priming already done in BattleScreen during answer clicks)
     useEffect(() => {
-        const prepareSounds = async () => {
-            // First preload all sounds
-            await audioEngine.preloadAll(RESULT_SOUNDS);
-            // Then prime them for iOS (unlocks HTML5 audio elements)
-            await audioEngine.primeHTML5Sounds(RESULT_SOUNDS);
-        };
-        prepareSounds();
+        audioEngine.preloadAll(RESULT_SOUNDS);
     }, []);
 
     // Animate percentage from 0 to final value
