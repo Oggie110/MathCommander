@@ -125,6 +125,7 @@ export function useBattleInit(locationState: LocationState | null): BattleInitRe
             : undefined;
 
         // Preload all needed sounds (don't await - let them load in background)
+        // Include result screen SFX so they're ready when battle ends
         const soundsToPreload = [
             waveDialogue.soundId,
             alienDialogue.soundId,
@@ -132,6 +133,13 @@ export function useBattleInit(locationState: LocationState | null): BattleInitRe
             defeatDialogue.soundId,
             encourageDialogue.soundId,
             bossDefeatDialogue?.soundId,
+            // Result screen sounds (preload early for iOS reliability)
+            'resultPercentage',
+            'resultStarPop1',
+            'resultStarPop2',
+            'resultStarPop3',
+            'resultCorrectCount',
+            'resultXP',
         ].filter((id): id is string => !!id);
 
         audioEngine.preloadAll(soundsToPreload).catch(() => {});

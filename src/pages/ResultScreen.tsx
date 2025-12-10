@@ -19,6 +19,16 @@ const CORRECT_START_DELAY = 2000;
 const CORRECT_DURATION = 600;
 const XP_START_DELAY = 2700;
 
+// All result screen sounds that need to be preloaded
+const RESULT_SOUNDS = [
+    'resultPercentage',
+    'resultStarPop1',
+    'resultStarPop2',
+    'resultStarPop3',
+    'resultCorrectCount',
+    'resultXP',
+];
+
 interface LocationState {
     questions: Question[];
     xpEarned: number;
@@ -60,12 +70,31 @@ const ResultScreen: React.FC = () => {
     // 1 star for any correct answers, 2 stars at 70%, 3 stars at 90%
     const starsEarned = percentage >= 90 ? 3 : percentage >= 70 ? 2 : correctCount > 0 ? 1 : 0;
 
+    // Helper to play sound with preload fallback (ensures sound is ready on iOS)
+    const playSoundReliably = async (soundId: string) => {
+        // Ensure this specific sound is preloaded (fast if already done)
+        await audioEngine.preload(soundId);
+        // Resume context if suspended
+        await audioEngine.resume();
+        // Now play
+        audioEngine.playSFX(soundId);
+    };
+
+    // Preload and prime all result sounds on mount (iOS needs this for reliable delayed playback)
+    useEffect(() => {
+        const prepareSounds = async () => {
+            // First preload all sounds
+            await audioEngine.preloadAll(RESULT_SOUNDS);
+            // Then prime them for iOS (unlocks HTML5 audio elements)
+            await audioEngine.primeHTML5Sounds(RESULT_SOUNDS);
+        };
+        prepareSounds();
+    }, []);
+
     // Animate percentage from 0 to final value
     useEffect(() => {
-        // Resume audio context (iOS) then play percentage sound
-        audioEngine.resume().then(() => {
-            audioEngine.playSFX('resultPercentage');
-        });
+        // Play percentage sound (with preload fallback for iOS)
+        playSoundReliably('resultPercentage');
 
         const startTime = performance.now();
         let animationFrame: number;
@@ -96,10 +125,8 @@ const ResultScreen: React.FC = () => {
         for (let i = 1; i <= starsEarned; i++) {
             const timer = setTimeout(async () => {
                 setVisibleStars(i);
-                // Resume audio context in case it was suspended (can happen on some browsers)
-                await audioEngine.resume();
                 // Play pop sound for each star (cycling through 3 copies)
-                audioEngine.playSFX(starPopSounds[(i - 1) % 3]);
+                await playSoundReliably(starPopSounds[(i - 1) % 3]);
             }, STARS_START_DELAY + (i - 1) * STAR_INTERVAL);
             timers.push(timer);
         }
@@ -110,10 +137,8 @@ const ResultScreen: React.FC = () => {
     // Animate correct count from 0 to final value
     useEffect(() => {
         const timer = setTimeout(async () => {
-            // Resume audio context in case it was suspended
-            await audioEngine.resume();
             // Play correct count sound
-            audioEngine.playSFX('resultCorrectCount');
+            await playSoundReliably('resultCorrectCount');
 
             const startTime = performance.now();
 
@@ -138,10 +163,8 @@ const ResultScreen: React.FC = () => {
     useEffect(() => {
         const timer = setTimeout(async () => {
             setShowXP(true);
-            // Resume audio context in case it was suspended
-            await audioEngine.resume();
             // Play XP sound
-            audioEngine.playSFX('resultXP');
+            await playSoundReliably('resultXP');
         }, XP_START_DELAY);
 
         return () => clearTimeout(timer);

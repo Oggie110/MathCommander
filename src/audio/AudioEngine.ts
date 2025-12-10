@@ -542,6 +542,34 @@ class AudioEngine {
     }
 
     /**
+     * Prime HTML5 audio elements for later playback (iOS workaround)
+     * Must be called during or close to a user gesture to unlock audio elements
+     * This plays each sound at volume 0 for a brief moment to unlock them
+     */
+    async primeHTML5Sounds(soundIds: string[]): Promise<void> {
+        if (!this.useHTML5Fallback) return;
+
+        for (const soundId of soundIds) {
+            const preloaded = this.html5Preloaded.get(soundId);
+            if (preloaded) {
+                // Play at volume 0 to unlock
+                const originalVolume = preloaded.volume;
+                preloaded.volume = 0;
+                preloaded.currentTime = 0;
+                try {
+                    await preloaded.play();
+                    // Immediately pause after starting (unlocks the element)
+                    preloaded.pause();
+                    preloaded.currentTime = 0;
+                } catch {
+                    // Ignore errors
+                }
+                preloaded.volume = originalVolume;
+            }
+        }
+    }
+
+    /**
      * HTML5 Audio fallback for SFX (iOS)
      * Clones preloaded audio for instant playback, falls back to new Audio if not preloaded
      */

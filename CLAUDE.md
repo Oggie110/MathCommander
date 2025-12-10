@@ -12,6 +12,12 @@ The battle screen control panel uses CSS `transform: scale()` to maintain alignm
 
 ## Important Guidelines
 
+### Version Numbers
+When making changes that will be deployed, increment the version number in `package.json`. Use semantic versioning:
+- Patch (0.5.x) for bug fixes
+- Minor (0.x.0) for new features
+- Include the version in git commit messages, e.g., `fix: Description (v0.5.8)`
+
 ### Reverting Failed Fixes
 If a fix does not work and you are asked to revert it, you must remove ALL code traces of that fix unless they added additional functionality. Ask if unsure.
 
