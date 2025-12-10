@@ -976,25 +976,29 @@ class AudioEngine {
      * Play speech audio (only one at a time, interruptible)
      * Returns a Promise that resolves when speech ends or is stopped
      */
-    playSpeech(soundId: string, options: PlayOptions = {}): Promise<void> {
+    async playSpeech(soundId: string, options: PlayOptions = {}): Promise<void> {
         // === HTML5 Fallback for iOS ===
         if (this.useHTML5Fallback) {
             return this.playSpeechHTML5(soundId, options);
         }
 
-        return new Promise((resolve) => {
-            if (!this.context || !this.speechGain) {
-                resolve();
-                return;
-            }
+        if (!this.context || !this.speechGain) {
+            console.warn('[AudioEngine] playSpeech: no context or speechGain');
+            return;
+        }
 
-            // If context is suspended, wait for resume then retry
-            if (this.context.state === 'suspended') {
-                this.context.resume().then(() => {
-                    this.playSpeech(soundId, options).then(resolve);
-                });
+        // If context is suspended, resume it first (common on iOS between navigations)
+        if (this.context.state === 'suspended') {
+            console.log('[AudioEngine] playSpeech: resuming suspended context');
+            try {
+                await this.context.resume();
+            } catch (e) {
+                console.error('[AudioEngine] playSpeech: failed to resume context', e);
                 return;
             }
+        }
+
+        return new Promise((resolve) => {
 
             const sound = SOUNDS[soundId];
             if (!sound) {
@@ -1014,18 +1018,18 @@ class AudioEngine {
                 return;
             }
 
-            // Create source
-            const source = this.context.createBufferSource();
+            // Create source (context and speechGain already validated above)
+            const source = this.context!.createBufferSource();
             source.buffer = buffer;
 
             // Create gain for this speech
-            const gainNode = this.context.createGain();
+            const gainNode = this.context!.createGain();
             const volume = options.volume ?? sound.volume ?? 0.8;
             gainNode.gain.value = volume;
 
             // Connect: source -> gain -> speechGain -> master
             source.connect(gainNode);
-            gainNode.connect(this.speechGain);
+            gainNode.connect(this.speechGain!);
 
             // Store resolve function so stopSpeech can call it
             this.currentSpeechResolve = resolve;
