@@ -43,28 +43,21 @@ const BattleScreen: React.FC = () => {
     // Portrait mode for CRT positioning adjustments
     const isPortrait = isTouch && !isLandscape;
 
-    // Panel scaling - scale the entire control panel to fit container width
-    // This ensures PNG overlay and CRT elements stay aligned at any screen size
+    // Track container width for debug display
     const panelRef = useRef<HTMLDivElement>(null);
-    const [panelScale, setPanelScale] = useState(1);
     const [debugWidth, setDebugWidth] = useState(0);
     useEffect(() => {
-        const updateScale = () => {
-            // Use ref width if available, otherwise use window width (minus some padding)
-            const containerWidth = panelRef.current?.clientWidth || (window.innerWidth - 32);
-            const designWidth = 896; // max-w-4xl design width
-            const scale = Math.min(containerWidth / designWidth, 1);
-            setPanelScale(scale);
+        const updateWidth = () => {
+            const containerWidth = panelRef.current?.clientWidth || window.innerWidth;
             setDebugWidth(containerWidth);
         };
-        // Initial update after a short delay to ensure layout is complete
-        const initialTimeout = setTimeout(updateScale, 50);
-        window.addEventListener('resize', updateScale);
-        window.addEventListener('orientationchange', updateScale);
+        const initialTimeout = setTimeout(updateWidth, 50);
+        window.addEventListener('resize', updateWidth);
+        window.addEventListener('orientationchange', updateWidth);
         return () => {
             clearTimeout(initialTimeout);
-            window.removeEventListener('resize', updateScale);
-            window.removeEventListener('orientationchange', updateScale);
+            window.removeEventListener('resize', updateWidth);
+            window.removeEventListener('orientationchange', updateWidth);
         };
     }, []);
 
