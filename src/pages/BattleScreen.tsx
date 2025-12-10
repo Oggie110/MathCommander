@@ -1055,7 +1055,7 @@ const BattleScreen: React.FC = () => {
                                             <div className="flex justify-center mt-[22px] ml-[-257px]">
                                                 {/* Mini radar - positioned above disk station */}
                                                 <div
-                                                    className="w-[95px] h-[68px] rounded relative overflow-hidden"
+                                                    className={`${isPortrait ? 'w-[83px]' : 'w-[95px]'} h-[68px] rounded relative overflow-hidden`}
                                                     style={{
                                                         background: 'linear-gradient(145deg, #0a1a0a, #0d1a0d)',
                                                         border: '3px solid #1a2a1a',
@@ -1085,7 +1085,7 @@ const BattleScreen: React.FC = () => {
                                             {/* Top right rectangle - Gauges */}
                                             {/* Top gauges container */}
                                             <div
-                                                className="absolute top-[35px] right-[30px] w-[250px] h-[73px] overflow-hidden"
+                                                className={`absolute top-[35px] right-[30px] ${isPortrait ? 'w-[230px]' : 'w-[250px]'} h-[73px] overflow-hidden`}
                                                 style={{
                                                     background: 'linear-gradient(180deg, #0a0a0a, #050505)',
                                                     border: '2px solid #1a2a1a',
@@ -1183,7 +1183,7 @@ const BattleScreen: React.FC = () => {
 
                                             {/* Bottom right rectangle - Battlezone-style vector display */}
                                             <div
-                                                className="absolute top-[140px] right-[30px] w-[250px] h-[70px] overflow-hidden"
+                                                className={`absolute top-[140px] right-[30px] ${isPortrait ? 'w-[233px]' : 'w-[250px]'} h-[70px] overflow-hidden`}
                                                 style={{
                                                     background: 'linear-gradient(180deg, #0a0a0a, #050505)',
                                                     border: '2px solid #1a2a1a',
