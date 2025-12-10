@@ -516,9 +516,15 @@ const SolarSystemMap: React.FC = () => {
                             className="absolute inset-0 z-20"
                             onClick={handleCloseReplayPopup}
                         />
-                        {/* Popup positioned above the planet */}
+                        {/* Popup positioned above the planet - adjust for edge planets */}
                         <div
-                            className="absolute z-30 transform -translate-x-1/2 animate-fadeIn"
+                            className={`absolute z-30 animate-fadeIn ${
+                                planetPositions[replayPopupBody.id].x < 15
+                                    ? '' // Left edge planets: no transform, position from left
+                                    : planetPositions[replayPopupBody.id].x > 85
+                                        ? '-translate-x-full' // Right edge planets: align right edge
+                                        : '-translate-x-1/2' // Center planets: center align
+                            }`}
                             style={{
                                 left: `${planetPositions[replayPopupBody.id].x}%`,
                                 top: `${planetPositions[replayPopupBody.id].y - 14}%`,
@@ -624,7 +630,7 @@ const SolarSystemMap: React.FC = () => {
                                 ) : getBodyStatus(selectedBody.id).isCompleted ? (
                                     selectedBody.id === 'earth' ? (
                                         <div className="text-brand-secondary text-sm font-bold font-pixel">
-                                            HOME BASE
+                                            HOMEBASE
                                         </div>
                                     ) : (
                                         <div className="text-brand-success text-sm font-bold flex items-center gap-1 font-pixel">
