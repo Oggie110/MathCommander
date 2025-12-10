@@ -1199,7 +1199,7 @@ const BattleScreen: React.FC = () => {
                                                 {/* Content wrapper - can be scaled independently */}
                                                 <div
                                                     className="absolute inset-0"
-                                                    style={isPortrait ? { transform: 'scale(0.8) translateX(-25px)', transformOrigin: 'right center' } : undefined}
+                                                    style={isPortrait ? { transform: 'scale(0.8) translateX(-38px)', transformOrigin: 'right center' } : undefined}
                                                 >
                                                     {/* Perspective grid floor */}
                                                     <div
