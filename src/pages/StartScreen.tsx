@@ -11,6 +11,27 @@ type Stage = 'title' | 'ready' | 'briefing' | 'cinematic';
 // Flow: title -> ready (BRIEFING button) -> briefing -> cinematic
 // Audio init + preload + start happens on BRIEFING tap for iOS compatibility
 
+const trackGameStart = () => {
+    if (!import.meta.env.PROD) return;
+    if (typeof navigator === 'undefined') return;
+
+    try {
+        const body = JSON.stringify({ event: 'game_start' });
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon('/api/track', body);
+            return;
+        }
+        void fetch('/api/track', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body,
+            keepalive: true,
+        });
+    } catch {
+        // Ignore tracking errors
+    }
+};
+
 const StartScreen: React.FC = () => {
     const navigate = useNavigate();
     const [stage, setStage] = useState<Stage>('title');
@@ -85,6 +106,7 @@ const StartScreen: React.FC = () => {
     };
 
     const handleStartMission = async () => {
+        trackGameStart();
         setIsLoading(true);
         setLoadingStatus('Initializing audio...');
 
@@ -269,7 +291,7 @@ const StartScreen: React.FC = () => {
                         )}
 
                         <div className="text-industrial-highlight text-xs mt-8 font-pixel tracking-widest">
-                            v0.5.14 - INDUSTRIAL BETA
+                            v0.6.0
                         </div>
                     </div>
                 </div>
