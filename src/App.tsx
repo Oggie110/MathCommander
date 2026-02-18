@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { AudioUnlockPrompt } from "@/components/ui/AudioUnlockPrompt";
 import StartScreen from "@/pages/StartScreen";
@@ -6,7 +6,6 @@ import SolarSystemMapWrapper from "@/pages/SolarSystemMapWrapper";
 import MissionScreen from "@/pages/MissionScreen";
 import BattleScreenWrapper from "@/pages/BattleScreenWrapper";
 import ResultScreen from "@/pages/ResultScreen";
-import AudioTestPage from "@/pages/AudioTestPage";
 import HomeBaseScreen from "@/pages/HomeBaseScreen";
 import HomeScreen from "@/pages/HomeScreen";
 
@@ -21,9 +20,9 @@ const App = () => (
         <Route path="/mission" element={<MissionScreen />} />
         <Route path="/battle" element={<BattleScreenWrapper />} />
         <Route path="/result" element={<ResultScreen />} />
-        <Route path="/audio-test" element={<AudioTestPage />} />
         <Route path="/homebase" element={<HomeBaseScreen />} />
         <Route path="/home" element={<HomeScreen />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   </BrowserRouter>
