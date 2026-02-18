@@ -338,13 +338,13 @@ class AudioEngine {
 
         // Stop any playing speech
         if (this.currentSpeech) {
-            try { this.currentSpeech.stop(); } catch {}
+            try { this.currentSpeech.stop(); } catch { /* noop */ }
             this.currentSpeech = null;
         }
 
         // Close old context
         if (this.context) {
-            try { await this.context.close(); } catch {}
+            try { await this.context.close(); } catch { /* noop */ }
             this.context = null;
         }
 

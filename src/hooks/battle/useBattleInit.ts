@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { loadPlayerStats, generateQuestions } from '@/utils/gameLogic';
 import { initializeCampaignProgress, generateCampaignMission, isBossLevel, getLegById } from '@/utils/campaignLogic';
 import { isFinalBoss as checkIsFinalBoss } from '@/data/narrative';
 import { audioEngine } from '@/audio';
 import { getBattleMusicForChapter } from '@/audio/sounds';
 import { selectWaveLine, selectAlienLine, selectVictoryLine, selectDefeatLine, selectEncourageLine, selectBossDefeatLine, type BodyId } from '@/audio/speechSounds';
+import { hashStringToSeed } from '@/utils/seededRandom';
 import type { Question } from '@/types/game.ts';
 
 // Planet background mapping for boss battles
@@ -84,18 +85,20 @@ export interface BattleInitResult {
  * - Generating dialogue lines
  */
 export function useBattleInit(locationState: LocationState | null): BattleInitResult | null {
-    const [result, setResult] = useState<BattleInitResult | null>(null);
+    const legIdFromState = locationState?.legId;
+    const waypointFromState = locationState?.waypointIndex;
+    const isReplayFromState = locationState?.isReplay;
 
-    useEffect(() => {
+    const result = useMemo(() => {
         const stats = loadPlayerStats();
         const progress = stats.campaignProgress || initializeCampaignProgress();
 
-        const activeLegId = locationState?.legId || progress.currentLegId;
-        const activeWaypointIndex = locationState?.waypointIndex ?? progress.currentWaypointIndex;
-        const isReplay = locationState?.isReplay || false;
+        const activeLegId = legIdFromState || progress.currentLegId;
+        const activeWaypointIndex = waypointFromState ?? progress.currentWaypointIndex;
+        const isReplay = isReplayFromState || false;
 
         const currentLeg = getLegById(activeLegId);
-        if (!currentLeg) return;
+        if (!currentLeg) return null;
 
         const isBoss = isBossLevel(activeWaypointIndex, currentLeg.waypointsRequired);
         const isFinal = checkIsFinalBoss(currentLeg.toBodyId, isBoss);
@@ -103,16 +106,6 @@ export function useBattleInit(locationState: LocationState | null): BattleInitRe
         // Generate questions
         const settings = generateCampaignMission(activeLegId, isBoss);
         const newQuestions = generateQuestions(settings, stats);
-
-        // Start battle music
-        const battleMusicId = isFinal
-            ? 'zorathFightMusic'
-            : isBoss
-                ? 'bossFightMusic'
-                : getBattleMusicForChapter(currentLeg.chapter);
-        audioEngine.playMusic(battleMusicId);
-        audioEngine.stopAmbience('menuAmbience');
-        audioEngine.startAmbience('spaceAmbience');
 
         // Generate all dialogue upfront so we can preload the exact sounds needed
         const waveDialogue = selectWaveLine(currentLeg.toBodyId as BodyId, isBoss);
@@ -124,37 +117,18 @@ export function useBattleInit(locationState: LocationState | null): BattleInitRe
             ? selectBossDefeatLine(currentLeg.toBodyId as BodyId)
             : undefined;
 
-        // Preload all needed sounds (don't await - let them load in background)
-        // Include result screen SFX so they're ready when battle ends
-        const soundsToPreload = [
-            waveDialogue.soundId,
-            alienDialogue.soundId,
-            victoryDialogue.soundId,
-            defeatDialogue.soundId,
-            encourageDialogue.soundId,
-            bossDefeatDialogue?.soundId,
-            // Result screen sounds (preload early for iOS reliability)
-            'resultPercentage',
-            'resultStarPop1',
-            'resultStarPop2',
-            'resultStarPop3',
-            'resultCorrectCount',
-            'resultXP',
-        ].filter((id): id is string => !!id);
-
-        audioEngine.preloadAll(soundsToPreload).catch(() => {});
-
         // Determine background
         const backgroundImage = isBoss
             ? planetBackgrounds[currentLeg.toBodyId] || '/assets/helianthus/Landscapes/Barren/4.png'
             : '/assets/images/backgrounds/base/dark-blue-purple.png';
 
-        // Determine enemy ship
+        // Determine enemy ship (stable per leg/waypoint)
+        const seed = hashStringToSeed(`${activeLegId}:${activeWaypointIndex}`);
         const enemyImage = isBoss
             ? '/assets/images/ships/boss-ship.png'
-            : enemyShips[Math.floor(Math.random() * enemyShips.length)];
+            : enemyShips[seed % enemyShips.length];
 
-        setResult({
+        return {
             questions: newQuestions,
             isBossBattle: isBoss,
             isFinalBoss: isFinal,
@@ -180,8 +154,44 @@ export function useBattleInit(locationState: LocationState | null): BattleInitRe
             activeLegId,
             activeWaypointIndex,
             isReplay,
-        });
-    }, [locationState]);
+        };
+    }, [legIdFromState, waypointFromState, isReplayFromState]);
+
+    useEffect(() => {
+        if (!result) return;
+
+        const currentLeg = getLegById(result.activeLegId);
+        if (!currentLeg) return;
+
+        // Start battle music + ambience
+        const battleMusicId = result.isFinalBoss
+            ? 'zorathFightMusic'
+            : result.isBossBattle
+                ? 'bossFightMusic'
+                : getBattleMusicForChapter(currentLeg.chapter);
+        audioEngine.playMusic(battleMusicId);
+        audioEngine.stopAmbience('menuAmbience');
+        audioEngine.startAmbience('spaceAmbience');
+
+        // Preload all needed sounds (don't await - let them load in background)
+        const soundsToPreload = [
+            result.commanderSoundId,
+            result.alienSoundId,
+            result.victorySoundId,
+            result.defeatSoundId,
+            result.encourageSoundId,
+            result.bossDefeatSoundId,
+            // Result screen sounds (preload early for iOS reliability)
+            'resultPercentage',
+            'resultStarPop1',
+            'resultStarPop2',
+            'resultStarPop3',
+            'resultCorrectCount',
+            'resultXP',
+        ].filter((id): id is string => !!id);
+
+        audioEngine.preloadAll(soundsToPreload).catch(() => {});
+    }, [result]);
 
     return result;
 }

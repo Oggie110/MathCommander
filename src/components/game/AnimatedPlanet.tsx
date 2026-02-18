@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // Animated planet sprite mapping - folder path and frame count
-export const animatedPlanets: Record<string, { folder: string; frames: number }> = {
+const animatedPlanets: Record<string, { folder: string; frames: number }> = {
     earth: { folder: '/assets/images/planets/animated/terran-clouds', frames: 60 },
     moon: { folder: '/assets/images/planets/animated/barren-1', frames: 60 },
     mars: { folder: '/assets/images/planets/animated/desert-1', frames: 60 },
@@ -20,7 +20,7 @@ export const animatedPlanets: Record<string, { folder: string; frames: number }>
 };
 
 // Static planet images (fallback when animation data unavailable)
-export const planetImages: Record<string, string> = {
+const planetImages: Record<string, string> = {
     earth: '/assets/images/planets/static/ocean-1.png',
     moon: '/assets/images/planets/static/barren-1.png',
     mars: '/assets/images/planets/static/desert-1.png',

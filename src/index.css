@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
 /* iOS Safe Area Support */
 :root {
   --safe-area-top: env(safe-area-inset-top);

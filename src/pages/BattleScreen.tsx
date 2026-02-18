@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom';
 import { loadPlayerStats, savePlayerStats, updateWeakAreas, calculateXP } from '@/utils/gameLogic';
 import { initializeCampaignProgress, completeMission } from '@/utils/campaignLogic';
+import { createSeededRng, hashStringToSeed, seededShuffle } from '@/utils/seededRandom';
 import { useSFX, audioEngine } from '@/audio';
 import { speechService } from '@/audio/SpeechService';
 import { useBattleInit, useBattleAnimations, type LocationState } from '@/hooks/battle';
@@ -49,8 +50,25 @@ const BattleScreen: React.FC = () => {
     // Use shared hooks for initialization and animations
     const battleInit = useBattleInit(locationState);
 
+    // Extract values from init hook (with defaults while loading)
+    const isBossBattle = battleInit?.isBossBattle ?? false;
+    const isFinalBoss = battleInit?.isFinalBoss ?? false;
+    const backgroundImage = battleInit?.backgroundImage ?? '/assets/images/backgrounds/base/dark-blue-purple.png';
+    const enemyImage = battleInit?.enemyImage ?? '';
+    const alienSpeaker = battleInit?.alienSpeaker;
+    const commanderLine = battleInit?.commanderLine ?? '';
+    const commanderSoundId = battleInit?.commanderSoundId ?? '';
+    const alienLine = battleInit?.alienLine ?? '';
+    const alienSoundId = battleInit?.alienSoundId ?? '';
+    // Pre-selected victory/defeat dialogue (must use these exact IDs since they're preloaded)
+    const preselectedVictoryLine = battleInit?.victoryLine ?? '';
+    const preselectedVictorySoundId = battleInit?.victorySoundId ?? '';
+    const preselectedDefeatLine = battleInit?.defeatLine ?? '';
+    const preselectedDefeatSoundId = battleInit?.defeatSoundId ?? '';
+    const preselectedEncourageLine = battleInit?.encourageLine ?? '';
+
     // Game state (initialized from hook, updated during gameplay)
-    const [questions, setQuestions] = useState<Question[]>([]);
+    const [questions, setQuestions] = useState<Question[]>(() => battleInit?.questions ?? []);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [, setUserAnswer] = useState('');
     const [showFeedback, setShowFeedback] = useState(false);
@@ -58,7 +76,7 @@ const BattleScreen: React.FC = () => {
     const [showLaser, setShowLaser] = useState(false);
     const [gameEnding, setGameEnding] = useState<'explosion' | 'escape' | null>(null);
     const [introStage, setIntroStage] = useState<IntroStage>('intro1');
-    const [introMessage, setIntroMessage] = useState('');
+    const [introMessage, setIntroMessage] = useState(() => commanderLine);
     const [victorySoundId, setVictorySoundId] = useState('');
     const [pendingNavigation, setPendingNavigation] = useState<{
         questions: Question[];
@@ -82,34 +100,10 @@ const BattleScreen: React.FC = () => {
     // Use shared animation hook
     const { heroFrame, shotFrame, explosionFrame } = useBattleAnimations(showLaser, gameEnding);
 
-    // Extract values from init hook (with defaults while loading)
-    const isBossBattle = battleInit?.isBossBattle ?? false;
-    const isFinalBoss = battleInit?.isFinalBoss ?? false;
-    const backgroundImage = battleInit?.backgroundImage ?? '/assets/images/backgrounds/base/dark-blue-purple.png';
-    const enemyImage = battleInit?.enemyImage ?? '';
-    const alienSpeaker = battleInit?.alienSpeaker;
-    const commanderLine = battleInit?.commanderLine ?? '';
-    const commanderSoundId = battleInit?.commanderSoundId ?? '';
-    const alienLine = battleInit?.alienLine ?? '';
-    const alienSoundId = battleInit?.alienSoundId ?? '';
-    // Pre-selected victory/defeat dialogue (must use these exact IDs since they're preloaded)
-    const preselectedVictoryLine = battleInit?.victoryLine ?? '';
-    const preselectedVictorySoundId = battleInit?.victorySoundId ?? '';
-    const preselectedDefeatLine = battleInit?.defeatLine ?? '';
-    const preselectedDefeatSoundId = battleInit?.defeatSoundId ?? '';
-    const preselectedEncourageLine = battleInit?.encourageLine ?? '';
-
     // Refs for cleanup and stable callbacks
     const escapeNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const escapeOverlayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const dialogueSlidingOutRef = useRef(false);
-
-    // Initialize questions from hook
-    useEffect(() => {
-        if (battleInit?.questions) {
-            setQuestions(battleInit.questions);
-        }
-    }, [battleInit?.questions]);
 
     // Victory sequence - triggered when explosion finishes
     useEffect(() => {
@@ -126,6 +120,80 @@ const BattleScreen: React.FC = () => {
         }
     }, [gameEnding, explosionFrame, preselectedVictoryLine, preselectedVictorySoundId]);
 
+    const handleGameComplete = useCallback((finalQuestions: Question[]) => {
+        if (!battleInit) return;
+
+        const stats = loadPlayerStats();
+        const currentProgress = stats.campaignProgress || initializeCampaignProgress();
+        const activeLegId = battleInit.activeLegId;
+
+        const correctCount = finalQuestions.filter(q => q.correct).length;
+        const scorePercentage = (correctCount / finalQuestions.length) * 100;
+        const xpEarned = calculateXP(correctCount, finalQuestions.length);
+
+        // Determine ending based on 70% threshold
+        if (scorePercentage >= 70) {
+            setGameEnding('explosion');
+            setTimeout(() => playSFX('explosion', { volume: 0.7 }), 200);
+        } else {
+            setGameEnding('escape');
+            playSFX('shipSlide4', { volume: 0.5 });
+            // Use pre-selected dialogue from useBattleInit (these sounds are preloaded)
+            setDefeatMessage({ message: preselectedDefeatLine, encouragement: preselectedEncourageLine });
+            setDefeatSoundId(preselectedDefeatSoundId);
+        }
+
+        // Update stats (only advance campaign if not replaying a completed level)
+        const isReplay = battleInit.isReplay;
+        const playedWaypointIndex = battleInit.activeWaypointIndex;
+        const newStats = {
+            ...stats,
+            totalXP: stats.totalXP + xpEarned,
+            weakAreas: updateWeakAreas(finalQuestions, stats.weakAreas),
+            campaignProgress: isReplay
+                ? currentProgress
+                : completeMission(currentProgress, correctCount, finalQuestions.length, activeLegId, playedWaypointIndex),
+        };
+
+        savePlayerStats(newStats);
+
+        // Preload result screen sounds for smooth playback
+        audioEngine.preloadAll([
+            'resultPercentage',
+            'resultStarPop1',
+            'resultStarPop2',
+            'resultStarPop3',
+            'resultCorrectCount',
+            'resultXP',
+        ]).catch(() => {});
+
+        // Store navigation data for when player clicks through victory dialogue
+        const navData = {
+            questions: finalQuestions,
+            xpEarned,
+            passed: scorePercentage >= 70,
+            legId: activeLegId,
+            waypointIndex: battleInit.activeWaypointIndex,
+            isReplay: battleInit.isReplay,
+        };
+        setPendingNavigation(navData);
+
+        // For escape path, navigate after delay (can click to skip)
+        if (scorePercentage < 70) {
+            escapeOverlayTimeoutRef.current = setTimeout(() => setShowEscapeOverlay(true), 1500);
+            escapeNavigationTimeoutRef.current = setTimeout(() => {
+                navigate('/result', { state: navData });
+            }, 7000);
+        }
+    }, [
+        battleInit,
+        navigate,
+        playSFX,
+        preselectedDefeatLine,
+        preselectedDefeatSoundId,
+        preselectedEncourageLine,
+    ]);
+
     // Handle advancing to next question (called by click or auto-advance timer)
     const advanceToNextQuestion = useCallback(() => {
         if (!showFeedback || questions.length === 0) return;
@@ -141,7 +209,7 @@ const BattleScreen: React.FC = () => {
             setSelectedAnswer(null);
             setFrozenChoices(null);
         }
-    }, [showFeedback, currentIndex, questions]);
+    }, [showFeedback, currentIndex, questions, handleGameComplete]);
 
     // Auto-advance after each question (shorter wait on last question) - click anywhere to skip
     useEffect(() => {
@@ -201,17 +269,7 @@ const BattleScreen: React.FC = () => {
                 playSFX('shipSlide3', { volume: 0.5 }); // Hero ship exits
             }, 500); // Wait for slide-out animation
         }
-    }, [introStage, alienLine]);
-
-    // Intro sequence - triggered when dialogue is ready
-    useEffect(() => {
-        if (!commanderLine || !alienLine) return;
-
-        // Play intro sequence when dialogue is loaded - starts with commander dialogue
-        setIntroStage('intro1');
-        setIntroMessage(commanderLine);
-        // Waits for click to continue...
-    }, [commanderLine, alienLine]);
+    }, [introStage, alienLine, playSFX]);
 
     // Play commander speech when intro1 starts - auto-advance when done (minimum 3s display)
     useEffect(() => {
@@ -335,79 +393,19 @@ const BattleScreen: React.FC = () => {
     const currentQuestion = questions[currentIndex];
     const answerChoices = useMemo(() => {
         if (!currentQuestion) return [];
-        return [
+        const seed = hashStringToSeed(`${currentQuestion.num1}x${currentQuestion.num2}:${currentIndex}`);
+        const rng = createSeededRng(seed);
+        const upOffset = Math.floor(rng() * 5) + 1;
+        const downOffset = Math.floor(rng() * 5) + 1;
+        const choices = [
             currentQuestion.answer,
-            currentQuestion.answer + Math.floor(Math.random() * 5) + 1,
-            currentQuestion.answer - Math.floor(Math.random() * 5) - 1
-        ].sort(() => Math.random() - 0.5);
-    }, [currentQuestion]);
+            currentQuestion.answer + upOffset,
+            currentQuestion.answer - downOffset,
+        ];
+        return seededShuffle(choices, seed ^ 0x9e3779b9);
+    }, [currentQuestion, currentIndex]);
 
     if (questions.length === 0) return null;
-
-    const handleGameComplete = (finalQuestions: Question[]) => {
-        if (!battleInit) return;
-
-        const stats = loadPlayerStats();
-        const currentProgress = stats.campaignProgress || initializeCampaignProgress();
-        const activeLegId = battleInit.activeLegId;
-
-        const correctCount = finalQuestions.filter(q => q.correct).length;
-        const scorePercentage = (correctCount / finalQuestions.length) * 100;
-        const xpEarned = calculateXP(correctCount, finalQuestions.length);
-
-        // Determine ending based on 70% threshold
-        if (scorePercentage >= 70) {
-            setGameEnding('explosion');
-            setTimeout(() => playSFX('explosion', { volume: 0.7 }), 200);
-        } else {
-            setGameEnding('escape');
-            playSFX('shipSlide4', { volume: 0.5 });
-            // Use pre-selected dialogue from useBattleInit (these sounds are preloaded)
-            setDefeatMessage({ message: preselectedDefeatLine, encouragement: preselectedEncourageLine });
-            setDefeatSoundId(preselectedDefeatSoundId);
-        }
-
-        // Update stats (only advance campaign if not replaying a completed level)
-        const isReplay = battleInit.isReplay;
-        const playedWaypointIndex = battleInit.activeWaypointIndex;
-        const newStats = {
-            ...stats,
-            totalXP: stats.totalXP + xpEarned,
-            weakAreas: updateWeakAreas(finalQuestions, stats.weakAreas),
-            campaignProgress: isReplay
-                ? currentProgress
-                : completeMission(currentProgress, correctCount, finalQuestions.length, activeLegId, playedWaypointIndex),
-        };
-
-        savePlayerStats(newStats);
-
-        // Preload result screen sounds for smooth playback
-        audioEngine.preloadAll([
-            'resultPercentage',
-            'resultStarPop',
-            'resultCorrectCount',
-            'resultXP',
-        ]).catch(() => {});
-
-        // Store navigation data for when player clicks through victory dialogue
-        const navData = {
-            questions: finalQuestions,
-            xpEarned,
-            passed: scorePercentage >= 70,
-            legId: activeLegId,
-            waypointIndex: battleInit.activeWaypointIndex,
-            isReplay: battleInit.isReplay,
-        };
-        setPendingNavigation(navData);
-
-        // For escape path, navigate after delay (can click to skip)
-        if (scorePercentage < 70) {
-            escapeOverlayTimeoutRef.current = setTimeout(() => setShowEscapeOverlay(true), 1500);
-            escapeNavigationTimeoutRef.current = setTimeout(() => {
-                navigate('/result', { state: navData });
-            }, 7000);
-        }
-    };
 
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-4">

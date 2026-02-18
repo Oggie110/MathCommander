@@ -1,2 +1,2 @@
-export { AnimatedPlanet, animatedPlanets, planetImages } from './AnimatedPlanet';
+export { AnimatedPlanet } from './AnimatedPlanet';
 export { SpaceBackground } from './SpaceBackground';

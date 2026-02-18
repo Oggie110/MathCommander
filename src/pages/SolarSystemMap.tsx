@@ -176,11 +176,9 @@ const SolarSystemMap: React.FC = () => {
     const progress = stats.campaignProgress || initializeCampaignProgress();
 
     // Detect touch devices (tablets) for planet size scaling
-    const [isTouch, setIsTouch] = useState(false);
-    useEffect(() => {
-        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        setIsTouch(hasTouch);
-    }, []);
+    const isTouch = typeof window !== 'undefined'
+        && typeof navigator !== 'undefined'
+        && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
     // Tablets get smaller planets (75% size)
     const planetSizeScale = isTouch ? 0.75 : 1;
 
@@ -232,7 +230,7 @@ const SolarSystemMap: React.FC = () => {
             }, 500);
             return () => clearTimeout(timer);
         }
-    }, [progress.currentLegId, progress.currentWaypointIndex]);
+    }, [progress]);
 
     // Check for rank-up on mount
     useEffect(() => {

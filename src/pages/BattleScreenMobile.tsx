@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom';
 import { loadPlayerStats, savePlayerStats, updateWeakAreas, calculateXP } from '@/utils/gameLogic';
 import { initializeCampaignProgress, completeMission } from '@/utils/campaignLogic';
+import { createSeededRng, hashStringToSeed, seededShuffle } from '@/utils/seededRandom';
 import { isFinalBoss as checkIsFinalBoss } from '@/data/narrative';
 import { useSFX, audioEngine } from '@/audio';
 import { speechService } from '@/audio/SpeechService';
@@ -22,7 +23,7 @@ const BattleScreenMobile: React.FC = () => {
     const battleInit = useBattleInit(locationState);
 
     // Game state (initialized from hook, updated during gameplay)
-    const [questions, setQuestions] = useState<Question[]>([]);
+    const [questions, setQuestions] = useState<Question[]>(() => battleInit?.questions ?? []);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [, setUserAnswer] = useState('');
     const [showFeedback, setShowFeedback] = useState(false);
@@ -30,7 +31,7 @@ const BattleScreenMobile: React.FC = () => {
     const [showLaser, setShowLaser] = useState(false);
     const [gameEnding, setGameEnding] = useState<'explosion' | 'escape' | null>(null);
     const [introStage, setIntroStage] = useState<IntroStage>('intro1');
-    const [introMessage, setIntroMessage] = useState('');
+    const [introMessage, setIntroMessage] = useState(() => battleInit?.commanderLine ?? '');
     const [victorySoundId, setVictorySoundId] = useState('');
     const [pendingNavigation, setPendingNavigation] = useState<{
         questions: Question[];
@@ -46,7 +47,6 @@ const BattleScreenMobile: React.FC = () => {
     const [showEscapeOverlay, setShowEscapeOverlay] = useState(false);
     const [defeatMessage, setDefeatMessage] = useState<{ message: string; encouragement: string } | null>(null);
     const [defeatSoundId, setDefeatSoundId] = useState('');
-    const [_shotFired, setShotFired] = useState(false);
     const [prevStarCount, setPrevStarCount] = useState(0);
     const [animatingStarIndex, setAnimatingStarIndex] = useState<number | null>(null);
     const [dialogueSlidingOut, setDialogueSlidingOut] = useState(false);
@@ -61,7 +61,6 @@ const BattleScreenMobile: React.FC = () => {
     const backgroundImage = battleInit?.backgroundImage ?? '/assets/images/backgrounds/base/dark-blue-purple.png';
     const enemyImage = battleInit?.enemyImage ?? '';
     const alienSpeaker = battleInit?.alienSpeaker;
-    const commanderLine = battleInit?.commanderLine ?? '';
     const commanderSoundId = battleInit?.commanderSoundId ?? '';
     const alienLine = battleInit?.alienLine ?? '';
     const alienSoundId = battleInit?.alienSoundId ?? '';
@@ -70,13 +69,6 @@ const BattleScreenMobile: React.FC = () => {
     const escapeNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const escapeOverlayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const dialogueSlidingOutRef = useRef(false);
-
-    // Initialize questions from hook
-    useEffect(() => {
-        if (battleInit?.questions) {
-            setQuestions(battleInit.questions);
-        }
-    }, [battleInit?.questions]);
 
     // Victory sequence
     useEffect(() => {
@@ -92,6 +84,68 @@ const BattleScreenMobile: React.FC = () => {
         }
     }, [gameEnding, explosionFrame, currentBodyId, isBossBattle]);
 
+    const handleGameComplete = useCallback((finalQuestions: Question[]) => {
+        if (!battleInit) return;
+
+        const stats = loadPlayerStats();
+        const currentProgress = stats.campaignProgress || initializeCampaignProgress();
+        const activeLegId = battleInit.activeLegId;
+
+        const correctCount = finalQuestions.filter(q => q.correct).length;
+        const scorePercentage = (correctCount / finalQuestions.length) * 100;
+        const xpEarned = calculateXP(correctCount, finalQuestions.length);
+
+        if (scorePercentage >= 70) {
+            setGameEnding('explosion');
+            setTimeout(() => playSFX('explosion', { volume: 0.7 }), 200);
+        } else {
+            setGameEnding('escape');
+            playSFX('shipSlide4', { volume: 0.5 });
+            const defeatDialogue = selectDefeatLine(isBossBattle);
+            setDefeatMessage({ message: defeatDialogue.text, encouragement: '' });
+            setDefeatSoundId(defeatDialogue.soundId);
+        }
+
+        const isReplay = battleInit.isReplay;
+        const playedWaypointIndex = battleInit.activeWaypointIndex;
+        const newStats = {
+            ...stats,
+            totalXP: stats.totalXP + xpEarned,
+            weakAreas: updateWeakAreas(finalQuestions, stats.weakAreas),
+            campaignProgress: isReplay
+                ? currentProgress
+                : completeMission(currentProgress, correctCount, finalQuestions.length, activeLegId, playedWaypointIndex),
+        };
+        savePlayerStats(newStats);
+
+        // Preload result screen sounds for smooth playback
+        audioEngine.preloadAll([
+            'resultPercentage',
+            'resultStarPop1',
+            'resultStarPop2',
+            'resultStarPop3',
+            'resultCorrectCount',
+            'resultXP',
+        ]).catch(() => {});
+
+        const navData = {
+            questions: finalQuestions,
+            xpEarned,
+            passed: scorePercentage >= 70,
+            legId: activeLegId,
+            waypointIndex: battleInit.activeWaypointIndex,
+            isReplay: battleInit.isReplay,
+        };
+        setPendingNavigation(navData);
+
+        if (scorePercentage < 70) {
+            escapeOverlayTimeoutRef.current = setTimeout(() => setShowEscapeOverlay(true), 1500);
+            escapeNavigationTimeoutRef.current = setTimeout(() => {
+                navigate('/result', { state: navData });
+            }, 7000);
+        }
+    }, [battleInit, isBossBattle, navigate, playSFX]);
+
     const advanceToNextQuestion = useCallback(() => {
         if (!showFeedback || questions.length === 0) return;
         const isLastQuestion = currentIndex === questions.length - 1;
@@ -104,7 +158,7 @@ const BattleScreenMobile: React.FC = () => {
             setSelectedAnswer(null);
             setFrozenChoices(null);
         }
-    }, [showFeedback, currentIndex, questions]);
+    }, [showFeedback, currentIndex, questions, handleGameComplete]);
 
     // Auto-advance after each question (shorter wait on last question)
     useEffect(() => {
@@ -157,15 +211,9 @@ const BattleScreenMobile: React.FC = () => {
                 playSFX('shipSlide3', { volume: 0.5 });
             }, 500);
         }
-    }, [introStage, alienLine]);
+    }, [introStage, alienLine, playSFX]);
 
     // Intro sequence
-    useEffect(() => {
-        if (!commanderLine || !alienLine) return;
-        setIntroStage('intro1');
-        setIntroMessage(commanderLine);
-    }, [commanderLine, alienLine]);
-
     // Play commander speech
     useEffect(() => {
         if (introStage === 'intro1' && commanderSoundId) {
@@ -266,74 +314,19 @@ const BattleScreenMobile: React.FC = () => {
     const currentQuestion = questions[currentIndex];
     const answerChoices = useMemo(() => {
         if (!currentQuestion) return [];
-        return [
+        const seed = hashStringToSeed(`${currentQuestion.num1}x${currentQuestion.num2}:${currentIndex}`);
+        const rng = createSeededRng(seed);
+        const upOffset = Math.floor(rng() * 5) + 1;
+        const downOffset = Math.floor(rng() * 5) + 1;
+        const choices = [
             currentQuestion.answer,
-            currentQuestion.answer + Math.floor(Math.random() * 5) + 1,
-            currentQuestion.answer - Math.floor(Math.random() * 5) - 1
-        ].sort(() => Math.random() - 0.5);
-    }, [currentQuestion]);
+            currentQuestion.answer + upOffset,
+            currentQuestion.answer - downOffset,
+        ];
+        return seededShuffle(choices, seed ^ 0x9e3779b9);
+    }, [currentQuestion, currentIndex]);
 
     if (questions.length === 0) return null;
-
-    const handleGameComplete = (finalQuestions: Question[]) => {
-        if (!battleInit) return;
-
-        const stats = loadPlayerStats();
-        const currentProgress = stats.campaignProgress || initializeCampaignProgress();
-        const activeLegId = battleInit.activeLegId;
-
-        const correctCount = finalQuestions.filter(q => q.correct).length;
-        const scorePercentage = (correctCount / finalQuestions.length) * 100;
-        const xpEarned = calculateXP(correctCount, finalQuestions.length);
-
-        if (scorePercentage >= 70) {
-            setGameEnding('explosion');
-            setTimeout(() => playSFX('explosion', { volume: 0.7 }), 200);
-        } else {
-            setGameEnding('escape');
-            playSFX('shipSlide4', { volume: 0.5 });
-            const defeatDialogue = selectDefeatLine(isBossBattle);
-            setDefeatMessage({ message: defeatDialogue.text, encouragement: '' });
-            setDefeatSoundId(defeatDialogue.soundId);
-        }
-
-        const isReplay = battleInit.isReplay;
-        const playedWaypointIndex = battleInit.activeWaypointIndex;
-        const newStats = {
-            ...stats,
-            totalXP: stats.totalXP + xpEarned,
-            weakAreas: updateWeakAreas(finalQuestions, stats.weakAreas),
-            campaignProgress: isReplay
-                ? currentProgress
-                : completeMission(currentProgress, correctCount, finalQuestions.length, activeLegId, playedWaypointIndex),
-        };
-        savePlayerStats(newStats);
-
-        // Preload result screen sounds for smooth playback
-        audioEngine.preloadAll([
-            'resultPercentage',
-            'resultStarPop',
-            'resultCorrectCount',
-            'resultXP',
-        ]).catch(() => {});
-
-        const navData = {
-            questions: finalQuestions,
-            xpEarned,
-            passed: scorePercentage >= 70,
-            legId: activeLegId,
-            waypointIndex: battleInit.activeWaypointIndex,
-            isReplay: battleInit.isReplay,
-        };
-        setPendingNavigation(navData);
-
-        if (scorePercentage < 70) {
-            escapeOverlayTimeoutRef.current = setTimeout(() => setShowEscapeOverlay(true), 1500);
-            escapeNavigationTimeoutRef.current = setTimeout(() => {
-                navigate('/result', { state: navData });
-            }, 7000);
-        }
-    };
 
     return (
         <div className="fixed inset-0 flex flex-col overflow-hidden">
@@ -639,8 +632,6 @@ const BattleScreenMobile: React.FC = () => {
                                                 setSelectedAnswer(opt);
                                                 setFrozenChoices([...answerChoices]);
                                                 setShowLaser(true);
-                                                setShotFired(true);
-                                                setTimeout(() => setShotFired(false), 500);
                                                 playSFX('laser', { volume: 0.6 });
                                                 if (opt === currentQuestion.answer) {
                                                     setIsCorrect(true);

@@ -189,7 +189,7 @@ const SolarSystemMapMobile: React.FC = () => {
             }, 500);
             return () => clearTimeout(timer);
         }
-    }, [progress.currentLegId, progress.currentWaypointIndex]);
+    }, [progress]);
 
     // Check for rank-up
     useEffect(() => {
@@ -204,7 +204,7 @@ const SolarSystemMapMobile: React.FC = () => {
             }, activeMilestone ? 3000 : 500);
             return () => clearTimeout(timer);
         }
-    }, [stats.totalXP, activeMilestone]);
+    }, [stats.totalXP, stats.lastSeenRankId, activeMilestone]);
 
     // Ref for the current planet element
     const currentPlanetRef = useRef<HTMLDivElement>(null);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Volume2, VolumeX, Sparkles, Star, Rocket, Play, RotateCcw } from 'lucide-react';
 import { Header } from '@/components/ui/Header';
@@ -43,12 +43,6 @@ const HomeBaseScreen: React.FC = () => {
         ambience: volumes.ambience || 0.2,
         speech: volumes.speech || 0.4,
     });
-
-    // Sync with audio engine
-    useEffect(() => {
-        const currentVolumes = audioEngine.getVolumes();
-        setVolumes(currentVolumes);
-    }, []);
 
     const handleMusicVolumeChange = (value: number) => {
         audioEngine.setMusicVolume(value);
@@ -454,4 +448,3 @@ const HomeBaseScreen: React.FC = () => {
 };
 
 export default HomeBaseScreen;
-

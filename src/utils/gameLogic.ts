@@ -195,14 +195,18 @@ export const updateWeakAreas = (
 };
 
 export const loadPlayerStats = (): PlayerStats => {
-    const stored = localStorage.getItem('spacemath_stats');
-    if (stored) {
-        const parsed = JSON.parse(stored);
-        // Ensure campaignProgress.starsEarned exists (migration for old save data)
-        if (parsed.campaignProgress && !parsed.campaignProgress.starsEarned) {
-            parsed.campaignProgress.starsEarned = {};
+    try {
+        const stored = localStorage.getItem('spacemath_stats');
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            // Ensure campaignProgress.starsEarned exists (migration for old save data)
+            if (parsed.campaignProgress && !parsed.campaignProgress.starsEarned) {
+                parsed.campaignProgress.starsEarned = {};
+            }
+            return parsed;
         }
-        return parsed;
+    } catch {
+        // Ignore corrupted or unavailable storage
     }
     return {
         totalXP: 0,
@@ -211,7 +215,11 @@ export const loadPlayerStats = (): PlayerStats => {
 };
 
 export const savePlayerStats = (stats: PlayerStats): void => {
-    localStorage.setItem('spacemath_stats', JSON.stringify(stats));
+    try {
+        localStorage.setItem('spacemath_stats', JSON.stringify(stats));
+    } catch {
+        // Ignore storage errors (private mode, quota, etc.)
+    }
 };
 
 // Rank system utilities

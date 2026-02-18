@@ -7,7 +7,7 @@ import { SpaceBackground } from '@/components/game';
 import { isFinalBoss, victoryNarrative } from '@/data/narrative';
 import { getLegById, isBossLevel } from '@/utils/campaignLogic';
 import { audioEngine } from '@/audio';
-import { selectVictoryLine, selectDefeatLine, selectEncourageLine, selectBossDefeatLine, type BodyId, type DialogueLine } from '@/audio/speechSounds';
+import { selectEncourageLine, selectBossDefeatLine, type BodyId, type DialogueLine } from '@/audio/speechSounds';
 import type { Question } from '@/types/game.ts';
 import { Star, RotateCcw, Map, ChevronLeft, Radio, ClipboardList, ArrowLeft } from 'lucide-react';
 
@@ -166,33 +166,23 @@ const ResultScreen: React.FC = () => {
     }, []);
 
     // Use unified selection for all dialogue (synced text + audio)
-    const [_victoryDialogue, setVictoryDialogue] = useState<DialogueLine | null>(null);
-    const [_defeatDialogue, setDefeatDialogue] = useState<DialogueLine | null>(null);
     const [encourageDialogue, setEncourageDialogue] = useState<DialogueLine | null>(null);
     const [bossDefeatDialogue, setBossDefeatDialogue] = useState<DialogueLine | null>(null);
 
     // Pre-select all dialogue lines once when battle info is known
     React.useEffect(() => {
         // Reset all dialogue states first
-        setVictoryDialogue(null);
-        setDefeatDialogue(null);
         setEncourageDialogue(null);
         setBossDefeatDialogue(null);
 
         if (passed) {
-            // Victory: select victory line and boss defeat line (if boss)
-            if (battleInfo.bodyId || battleInfo.isBoss) {
-                setVictoryDialogue(selectVictoryLine(battleInfo.isBoss, battleInfo.isFinal));
-                if (battleInfo.isBoss && !battleInfo.isFinal) {
-                    setBossDefeatDialogue(selectBossDefeatLine(battleInfo.bodyId as BodyId));
-                }
+            // Victory: select boss defeat line (if boss)
+            if (battleInfo.isBoss && !battleInfo.isFinal) {
+                setBossDefeatDialogue(selectBossDefeatLine(battleInfo.bodyId as BodyId));
             }
         } else {
             // Defeat: always show encouragement
             setEncourageDialogue(selectEncourageLine());
-            if (battleInfo.bodyId || battleInfo.isBoss) {
-                setDefeatDialogue(selectDefeatLine(battleInfo.isBoss));
-            }
         }
     }, [battleInfo.isBoss, battleInfo.isFinal, battleInfo.bodyId, passed]);
 

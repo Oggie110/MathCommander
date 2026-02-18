@@ -76,8 +76,8 @@ export const SpaceBackground: React.FC<SpaceBackgroundProps> = ({
                 <div
                     className="absolute inset-0 animate-pulse"
                     style={{
-                        backgroundImage: "url('https://www.transparenttextures.com/patterns/stardust.png')",
-                        backgroundSize: '1536px',
+                        backgroundImage: 'url(/assets/images/backgrounds/stars/yellow-stars-alt.png)',
+                        backgroundSize: '1024px',
                         opacity: 0.3,
                     }}
                 />

@@ -23,7 +23,7 @@ export const Layout: React.FC = () => {
         <ScreenFrame>
             {/* Starfield Background */}
             <div className="fixed inset-0 z-0">
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 animate-pulse"></div>
+                <div className="absolute inset-0 bg-[url('/assets/images/backgrounds/stars/yellow-stars-alt.png')] opacity-30 animate-pulse"></div>
                 {stars.map((star) => (
                     <div
                         key={star.id}
