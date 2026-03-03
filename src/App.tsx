@@ -8,6 +8,7 @@ import BattleScreenWrapper from "@/pages/BattleScreenWrapper";
 import ResultScreen from "@/pages/ResultScreen";
 import HomeBaseScreen from "@/pages/HomeBaseScreen";
 import HomeScreen from "@/pages/HomeScreen";
+import SwishPaymentPage from "@/pages/SwishPaymentPage";
 
 const App = () => (
   <BrowserRouter>
@@ -22,6 +23,7 @@ const App = () => (
         <Route path="/result" element={<ResultScreen />} />
         <Route path="/homebase" element={<HomeBaseScreen />} />
         <Route path="/home" element={<HomeScreen />} />
+        <Route path="/payment" element={<SwishPaymentPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

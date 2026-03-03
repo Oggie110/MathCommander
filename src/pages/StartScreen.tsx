@@ -291,7 +291,7 @@ const StartScreen: React.FC = () => {
                         )}
 
                         <div className="text-industrial-highlight text-xs mt-8 font-pixel tracking-widest">
-                            v0.6.0
+                            v0.7.0
                         </div>
                     </div>
                 </div>
