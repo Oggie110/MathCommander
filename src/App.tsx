@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { AudioUnlockPrompt } from "@/components/ui/AudioUnlockPrompt";
+import MainMenuScreen from "@/pages/MainMenuScreen";
 import StartScreen from "@/pages/StartScreen";
 import SolarSystemMapWrapper from "@/pages/SolarSystemMapWrapper";
 import MissionScreen from "@/pages/MissionScreen";
@@ -16,7 +17,8 @@ const App = () => (
     <AudioUnlockPrompt />
     <Routes>
       <Route element={<Layout />}>
-        <Route path="/" element={<StartScreen />} />
+        <Route path="/" element={<MainMenuScreen />} />
+        <Route path="/start" element={<StartScreen />} />
         <Route path="/map" element={<SolarSystemMapWrapper />} />
         <Route path="/mission" element={<MissionScreen />} />
         <Route path="/battle" element={<BattleScreenWrapper />} />
